@@ -70,28 +70,36 @@ extension DocEditorToolbar on DocEditorState {
   }
 
   /// 构建富文本工具栏按钮（粗体/斜体/下划线/链接）。
+  ///
+  /// FDC-03（业主 2026-10-17 选「标灰 + 说明」）：这四个入口写的样式今天**没有任何读者**
+  /// （判据与原因都在 `doc_editor_style_entry.dart` / `inlineStylesAreRendered`），
+  /// 所以禁用并在 tooltip 里说明，而不是让用户按了没反应。接上渲染后自动恢复。
   List<Widget> _buildRichTextButtons() {
-    final hasFocus = _focusedBlockId != null;
+    final enabled = styleEntryEnabled(hasTarget: _focusedBlockId != null);
+    VoidCallback? guard(void Function() action) => enabled ? action : null;
     return [
       _toolbarIconButton(
         icon: Icons.format_bold,
-        tooltip: AppLocalizations.of(context)?.mtBold ?? '粗体',
-        onPressed: hasFocus ? () => _toggleBold() : null,
+        tooltip: styleEntryTooltip(context, AppLocalizations.of(context)?.mtBold ?? '粗体'),
+        onPressed: guard(_toggleBold),
       ),
       _toolbarIconButton(
         icon: Icons.format_italic,
-        tooltip: AppLocalizations.of(context)?.mtItalic ?? '斜体',
-        onPressed: hasFocus ? () => _toggleItalic() : null,
+        tooltip: styleEntryTooltip(context, AppLocalizations.of(context)?.mtItalic ?? '斜体'),
+        onPressed: guard(_toggleItalic),
       ),
       _toolbarIconButton(
         icon: Icons.format_underline,
-        tooltip: AppLocalizations.of(context)?.mtUnderline ?? '下划线',
-        onPressed: hasFocus ? () => _toggleUnderline() : null,
+        tooltip: styleEntryTooltip(
+          context,
+          AppLocalizations.of(context)?.mtUnderline ?? '下划线',
+        ),
+        onPressed: guard(_toggleUnderline),
       ),
       _toolbarIconButton(
         icon: Icons.link,
-        tooltip: AppLocalizations.of(context)?.mtLink ?? '链接',
-        onPressed: hasFocus ? () => _insertLink() : null,
+        tooltip: styleEntryTooltip(context, AppLocalizations.of(context)?.mtLink ?? '链接'),
+        onPressed: guard(_insertLink),
       ),
     ];
   }

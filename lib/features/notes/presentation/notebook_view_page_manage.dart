@@ -216,38 +216,17 @@ extension _NotebookPageManage on _NotebookViewPageState {
     await _openBlockDocFromPage(page);
   }
 
-  /// M4：把 NotebookPage 的文本项迁移为 NoteBlockDoc。
-  @visibleForTesting
-  NoteBlockDoc migrateNotebookPage(NotebookPage page) {
-    final blocks = <NoteBlock>[];
-    // 标题作为 heading 块（level 1）
-    if (page.title.isNotEmpty) {
-      blocks.add(
-        NoteBlock.headingBlock(
-          NoteBlockDocStore.newId(),
-          level: 1,
-          text: page.title,
-        ),
-      );
-    }
-    // textItems 映射为 text blocks
-    for (final item in page.textItems) {
-      final text = item.text.trim();
-      if (text.isEmpty) continue;
-      blocks.add(NoteBlock.textBlock(NoteBlockDocStore.newId(), text: text));
-    }
-    // 若无文本内容，给一个空段落以便编辑
-    if (blocks.isEmpty) {
-      blocks.add(NoteBlock.textBlock(NoteBlockDocStore.newId(), text: ''));
-    }
-    return NoteBlockDoc(
-      id: page.id,
-      title: page.title,
-      body: blocks,
-      createdAt: page.createdAt,
-      updatedAt: DateTime.now(),
-    );
-  }
+  /// M4「打开为块文档」的迁移实现已**合一**（R48，业主授权按推荐档推进）：
+  /// 以前这里私有一份只搬 title + textItems 的副本，而 `features/doc/domain/
+  /// note_block_doc_migration.dart` 里那份会连画布/图表/图片一起搬（M4 规则 3/4），
+  /// 却只有测试在调 ⇒ 两份同名实现、成员集不一致（本仓头号复发形态），且活的这份是窄的。
+  /// 现在调用点直接用 domain 那份纯函数；差异如实写着：
+  ///  · 标题不再额外产一个 heading 块——`NoteBlockDoc.title` 本来就带标题，编辑器标题区显示它；
+  ///  · 只含空白的 textItem 不再被丢掉（保持「一条不落」）；
+  ///  · 块 id 从随机改成 `${page.id}_text_i` 等确定性形状；
+  ///  · 页面里的画布/图表/图片**会**跟着进块文档（画布与图表在块编辑器里是占位卡片，
+  ///    图片块有真渲染）——原笔记本页不受影响，这是复制不是搬运。
+  /// 迁移规则本身与「不许静默丢内容」的口径只写在 domain 那一份，这里不再抄第二遍。
 
   /// 从其他笔记本引入页面（创建克隆引用，借鉴 Trilium 笔记克隆）。
   Future<void> _importPage() async {
@@ -492,7 +471,12 @@ extension _NotebookPageManage on _NotebookViewPageState {
       final bytes = await NotebookPdfExporter(
         mediaCrypto: widget.mediaCrypto,
         vaultService: widget.storage.vaultService,
-      ).exportNotebook(_notebook);
+        // R45（业主「全部推进推荐档」授权）：整本这条路径以前**没传** footer，而导出器的
+        // 注释却写着「审计 #38 已接线」⇒ 整本 PDF 一直没有页脚，测试传了 footer 所以绿。
+        // 整本是多页装订件，页脚「标题 · n / m」按装订件口径默认给上；画布分页那条路径
+        // 仍是用户在导出面板里自己勾（pdf_export_panel.dart:263），两条口径不同是有意的：
+        // 整本导出是一步式菜单动作，不再加一层弹窗。
+      ).exportNotebook(_notebook, footer: true);
       await File(location.path).writeAsBytes(bytes, flush: true);
       _showSnack(
         _l10nSafe?.nbExportedPdf(_notebook.pages.length, location.path) ??

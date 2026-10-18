@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -145,5 +146,52 @@ void main() {
       contains('FontFile2'),
       reason: '中文标题页脚必须挂 CJK 字体主题（DroidSansFallbackFull 真字形嵌入）',
     );
+  });
+
+  // ---------------- 接线（R45）：注释说「已接线」不算，调用方传了才算 ----------------
+  //
+  // 背景（台账 §31）：导出器的 `[footer]` 注释写着「审计 2026-09-26 #38 接线」，
+  // 而整本这条生产路径（`notebook_view_page_manage.dart`）当时**不传** footer ⇒ 整本 PDF
+  // 一直没有页脚；偏偏本文件里的用例传了 `footer: true` ⇒ 绿灯把这个缺失常年盖住。
+  // 所以这里不再测页脚长什么样（上面已有用例测），而是把**调用方有没有传参**变成判据。
+  group('接线：lib/ 里每个整本导出调用点都得真的传 footer', () {
+    /// (调用点, 是否传了 `footer: true`)。
+    List<(String, bool)> callSites() {
+      final out = <(String, bool)>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final lines = entity.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          final line = lines[i];
+          // 注释行跳过：导出器的文档注释里就写着 `exportNotebook(`（正在解释这段历史），
+          // 按整行匹配会把注释当成一个「没传参的调用点」⇒ 假红（trap 56 的第三种脸）。
+          if (line.trimLeft().startsWith('//')) continue;
+          if (!line.contains('exportNotebook(')) continue;
+          if (line.contains('Future<Uint8List> exportNotebook(')) continue; // 方法声明
+          final window = lines.skip(i).take(8).join('\n');
+          out.add(
+            ('${entity.path}:$i', window.contains('footer: true')),
+          );
+        }
+      }
+      return out;
+    }
+
+    test('分母下限：至少扫到那个生产调用点', () {
+      expect(
+        callSites().length,
+        greaterThanOrEqualTo(1),
+        reason: '扫不到任何 exportNotebook( 调用点 ⇒ 抽取失效，下一条判据会「空集通过」',
+      );
+    });
+
+    test('判据：每个调用点都传了 footer: true（不传就没有页脚）', () {
+      final missing = callSites().where((s) => !s.$2).map((s) => s.$1).toList();
+      expect(
+        missing,
+        isEmpty,
+        reason: '这些整本导出调用点没传 footer ⇒ 用户拿到的 PDF 没有页脚',
+      );
+    });
   });
 }

@@ -216,25 +216,40 @@ extension DocEditorSelection on DocEditorState {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // FDC-03（业主 2026-10-17 选「标灰 + 说明」）：这四个样式入口写的 spans
+                // 今天没有任何读者 ⇒ 禁用并在 tooltip 里说清原因。判据只有一份，见
+                // `doc_editor_style_entry.dart`。下面「复制块」等其它按钮照旧可点。
                 _selectionToolbarIcon(
                   Icons.format_bold,
-                  AppLocalizations.of(context)?.mtBold ?? '粗体',
-                  _toggleBold,
+                  styleEntryTooltip(
+                    context,
+                    AppLocalizations.of(context)?.mtBold ?? '粗体',
+                  ),
+                  styleEntryEnabled(hasTarget: true) ? _toggleBold : null,
                 ),
                 _selectionToolbarIcon(
                   Icons.format_italic,
-                  AppLocalizations.of(context)?.mtItalic ?? '斜体',
-                  _toggleItalic,
+                  styleEntryTooltip(
+                    context,
+                    AppLocalizations.of(context)?.mtItalic ?? '斜体',
+                  ),
+                  styleEntryEnabled(hasTarget: true) ? _toggleItalic : null,
                 ),
                 _selectionToolbarIcon(
                   Icons.format_underline,
-                  AppLocalizations.of(context)?.mtUnderline ?? '下划线',
-                  _toggleUnderline,
+                  styleEntryTooltip(
+                    context,
+                    AppLocalizations.of(context)?.mtUnderline ?? '下划线',
+                  ),
+                  styleEntryEnabled(hasTarget: true) ? _toggleUnderline : null,
                 ),
                 _selectionToolbarIcon(
                   Icons.link,
-                  AppLocalizations.of(context)?.mtLink ?? '链接',
-                  _insertLink,
+                  styleEntryTooltip(
+                    context,
+                    AppLocalizations.of(context)?.mtLink ?? '链接',
+                  ),
+                  styleEntryEnabled(hasTarget: true) ? _insertLink : null,
                 ),
                 _selectionToolbarDivider(),
                 _selectionToolbarIcon(
@@ -258,7 +273,7 @@ extension DocEditorSelection on DocEditorState {
   Widget _selectionToolbarIcon(
     IconData icon,
     String tooltip,
-    VoidCallback onTap,
+    VoidCallback? onTap,
   ) {
     return Tooltip(
       message: tooltip,
@@ -266,15 +281,21 @@ extension DocEditorSelection on DocEditorState {
         borderRadius: AppleRadius.sm,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppleRadius.sm),
-          onTap: () {
-            onTap();
-          },
+          // null = 该入口今天被刻意禁用（见 styleEntryEnabled）；InkWell 传 null 即不响应
+          // 点击/键盘激活，图标同时降成半透明——灰了要看得出来，不能只没了反应。
+          onTap: onTap,
           child: Padding(
             // D-11（审计 2026-09-27）：触控目标算法统一走归档口径
             //「20px 图标 + 12×2 = 44px」（同 doc_editor_toolbar / database_table_view），
             // 原「18px 图标 + 13×2」虽同为 44px，但两套并存会让后来者算不清。
             padding: const EdgeInsets.all(AppleSpacing.sm),
-            child: Icon(icon, size: 20, color: Colors.white),
+            child: Icon(
+              icon,
+              size: 20,
+              color: onTap == null
+                  ? Colors.white.withValues(alpha: 0.38)
+                  : Colors.white,
+            ),
           ),
         ),
       ),

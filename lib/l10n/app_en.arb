@@ -2508,6 +2508,15 @@
   "@mtUnderline": {},
   "mtLink": "Link",
   "@mtLink": {},
+  "styleUnwiredTip": "{label} (not rendered yet — exports won't include it)",
+  "@styleUnwiredTip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    },
+    "description": "FDC-03：行内样式入口在接上渲染之前禁用，tooltip 里必须连原因一起说清（两个入口共用这一份文案）"
+  },
   "mtCopyBlock": "Copy block",
   "@mtCopyBlock": {},
   "mtDeleteBlock": "Delete block",

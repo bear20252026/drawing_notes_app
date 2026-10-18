@@ -1,6 +1,7 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // note_block_doc_migration.dart 单元测试。
 
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -290,6 +291,57 @@ void main() {
       expect(restored.title, doc.title);
       expect(restored.body.length, doc.body.length);
       expect(restored.body.first.text, 'Round trip');
+    });
+  });
+
+  // ───────────── 接线（R48）：合一之后不许再长出第二份 ─────────────
+  //
+  // 活的调用点以前用的是 `notebook_view_page_manage.dart` 里私有的一份**窄**实现
+  // （只搬 title + textItems），而这份会连画布/图表/图片一起搬（M4 规则 3/4）的实现
+  // 只有测试在调 ⇒ 「一份判据 N 份副本、而且活的偏偏是窄的那份」在迁移域复现。
+  // R48 合一到本文件测的这份，这里把「只许有一份」钉住。
+  group('接线：lib/ 里只允许一份 migrateNotebookPage 实现', () {
+    List<String> declarations() {
+      final hits = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final lines = entity.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          // 注释行跳过：调用点上方的 dartdoc 也写着这个名字（trap 56 那一族）。
+          if (lines[i].trimLeft().startsWith('//')) continue;
+          if (lines[i].contains('NoteBlockDoc migrateNotebookPage(')) {
+            hits.add('${entity.path}:$i');
+          }
+        }
+      }
+      return hits;
+    }
+
+    test('实现只有一处，且就是本文件测的这份', () {
+      final decls = declarations();
+      expect(
+        decls,
+        hasLength(1),
+        reason: '又长出第二份了：$decls ——「打开为块文档」的产物形状会随调用点而不同，'
+            '这正是本仓反复出事的形状',
+      );
+      expect(decls.single, contains('note_block_doc_migration.dart'));
+    });
+
+    test('调用点用的就是这份纯函数（没在自己的 part 里内联一套）', () {
+      expect(
+        File(
+          'lib/features/notes/presentation/notebook_view_page_manage.dart',
+        ).readAsStringSync(),
+        contains('migrateNotebookPage(page)'),
+      );
+      expect(
+        File(
+          'lib/features/notes/presentation/notebook_view_page.dart',
+        ).readAsStringSync(),
+        contains('note_block_doc_migration.dart'),
+        reason: '缺 import 编译期就红；这条是防「以后又内联一份、把 import 删掉」',
+      );
     });
   });
 }

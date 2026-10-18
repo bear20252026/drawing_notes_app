@@ -45,6 +45,7 @@ part 'doc_editor_blocks.dart';
 part 'doc_editor_toolbar.dart';
 part 'doc_editor_editing.dart';
 part 'doc_editor_selection.dart';
+part 'doc_editor_style_entry.dart';
 
 /// 块式笔记编辑器页面。
 ///

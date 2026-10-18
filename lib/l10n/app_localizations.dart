@@ -5047,6 +5047,12 @@ abstract class AppLocalizations {
   /// **'Link'**
   String get mtLink;
 
+  /// FDC-03：行内样式入口在接上渲染之前禁用，tooltip 里必须连原因一起说清（两个入口共用这一份文案）
+  ///
+  /// In en, this message translates to:
+  /// **'{label} (not rendered yet — exports won\'t include it)'**
+  String styleUnwiredTip(String label);
+
   /// No description provided for @mtCopyBlock.
   ///
   /// In en, this message translates to:

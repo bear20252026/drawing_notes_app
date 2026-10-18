@@ -2487,6 +2487,15 @@
   "@mtUnderline": {},
   "mtLink": "链接",
   "@mtLink": {},
+  "styleUnwiredTip": "{label}（暂不参与渲染，导出也不会带上）",
+  "@styleUnwiredTip": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    },
+    "description": "FDC-03：行内样式入口在接上渲染之前禁用，tooltip 里必须连原因一起说清（两个入口共用这一份文案）"
+  },
   "mtCopyBlock": "复制块",
   "@mtCopyBlock": {},
   "mtDeleteBlock": "删除块",

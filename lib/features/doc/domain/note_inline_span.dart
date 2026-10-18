@@ -2,6 +2,21 @@
 // 内联富文本 span 模型：承载块内文本的样式片段。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
 
+/// 行内样式（粗体/斜体/下划线/链接）**今天没有任何读者**（第四轮审计 FDC-03，逐条回读）：
+///
+///  - 编辑渲染：`doc_editor_blocks.dart:494-517` 每个块是一个 `TextField`，`style:` 只有
+///    一个整块样式（`_textStyleForBlockType`）⇒ 结构上呈现不了块内多段样式；
+///  - Markdown 导出：`note_block_doc_markdown.dart` 只在注释里提过 `props['spans']`，不读；
+///  - HTML / PDF 导出：`doc_html_export.dart` 只有 `.embed` 一条 CSS 斜体；
+///    `doc_pdf_adapter.dart` 的 bold/italic 是标题与 CJK 字体，不是行内样式；
+///    `rtf_exporter.dart:36-47` 那两个 `item.bold/item.italic` 属于**画布域** `TextItem`。
+///
+/// ⇒ 用户点粗体的真实后果：改动落盘、重开仍在，但界面与一切导出都看不见。
+/// 业主 2026-10-17 选的处置是「**标灰 + 说明**」：两个样式入口在接上渲染之前禁用，
+/// tooltip 里说清原因；数据与入口代码都保留。**接上渲染那天把本常量改成 true，
+/// 入口自动恢复**，不必回头翻调用点。
+const bool inlineStylesAreRendered = false;
+
 /// 内联富文本片段：携带文本 + 样式标记。
 ///
 /// 用于在 NoteBlock 的文本块中表达粗体/斜体/下划线/链接等内联样式。

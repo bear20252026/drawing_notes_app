@@ -2644,6 +2644,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mtLink => '链接';
 
   @override
+  String styleUnwiredTip(String label) {
+    return '$label（暂不参与渲染，导出也不会带上）';
+  }
+
+  @override
   String get mtCopyBlock => '复制块';
 
   @override

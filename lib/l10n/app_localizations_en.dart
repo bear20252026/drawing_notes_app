@@ -2752,6 +2752,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mtLink => 'Link';
 
   @override
+  String styleUnwiredTip(String label) {
+    return '$label (not rendered yet — exports won\'t include it)';
+  }
+
+  @override
   String get mtCopyBlock => 'Copy block';
 
   @override
