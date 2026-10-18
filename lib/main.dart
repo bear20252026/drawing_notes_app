@@ -52,7 +52,10 @@ Future<SingleInstanceStatus> _acquireSingleInstance() async {
       lockFile: File('$supportPath${Platform.pathSeparator}app.lock'),
     );
     _instanceLock = lock;
-    return lock.acquire(dataRootKey: rootKey);
+    // 先 await 再 return：直接把 `lock.acquire(...)` 从 try 里返回出去，返回的 Future 上的
+    // 异常就不归这个 catch 管了（lint `unawaited_return_in_try_block`，CI 的 analyze 步骤拦下过）。
+    final status = await lock.acquire(dataRootKey: rootKey);
+    return status;
   } catch (e) {
     // 根都解析不出来 ⇒ 连锁放哪儿都不知道：这一格就是「判不出来」，不出提示、不阻断。
     AuditLogger.log(
