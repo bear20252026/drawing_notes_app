@@ -81,7 +81,6 @@ void main() {
 
   group('源码级判据：每条裸 tmp 都要有自己的失败路径', () {
     const target = 'lib/core/documents/note_block_doc_store_trash.dart';
-    final tmpDecl = RegExp(r"final (\w+) = File\('[^']*\.tmp'\);");
     final discardCall = RegExp(r'_discardTemp\((\w+)\)');
 
     test('抽取本身要扫得到东西（空集不算通过）', () {
