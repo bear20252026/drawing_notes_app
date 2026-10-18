@@ -146,7 +146,7 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       AuditLogger.log(
         'note_block_doc.delete.bak_left',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
     }
   }

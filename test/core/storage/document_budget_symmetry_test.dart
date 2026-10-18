@@ -662,8 +662,9 @@ void main() {
       );
       expect(
         scheduler.saveFailure.value!.errorKind,
-        'DocumentIncompleteLoadException',
-        reason: '只带 runtimeType，异常 message 不得外带（H-04）',
+        'document_incomplete_load',
+        reason: '只带 `errorCode()` 推的类型代码（R50 起不再是 runtimeType），'
+            '异常 message 不得外带（H-04）',
       );
       expect(
         scheduler.isDirty,

@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -107,7 +108,7 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
   AuditLogger.log(
     'webdav.sync.error',
     success: false,
-    detail: e.runtimeType.toString(),
+    detail: errorCode(e),
   );
   // 修复 1②：口令轮换导致的「旧云端密文解不开」是确定性失败——文案必须
   // 可执行（填回旧口令 / 决定全量重传），不得落到下面那句「检查网络与账号」。

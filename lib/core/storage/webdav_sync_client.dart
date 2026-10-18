@@ -12,10 +12,13 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/filename_sanitize.dart';
 
 /// WebDAV 同步异常。
-class WebDavSyncException implements Exception {
+class WebDavSyncException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'webdav_sync';
   WebDavSyncException(this.message, {this.statusCode});
 
   /// 错误描述。
@@ -56,7 +59,9 @@ class WebDavSyncException implements Exception {
 /// 设备**改过。这不是网络故障，而是「必须重新读取 → 合并 → 重试」的信号，
 /// 调用方（SyncService）据此做有界重试，绝不能把它当成普通失败吞掉——
 /// 吞掉就等于放弃对方的清单更新。
-class WebDavPreconditionFailedException extends WebDavSyncException {
+class WebDavPreconditionFailedException extends WebDavSyncException implements CodedFailure {
+  @override
+  String get errorCode => 'webdav_precondition_failed';
   WebDavPreconditionFailedException(super.message, {super.statusCode});
 }
 
@@ -200,7 +205,9 @@ class WebDavResponseLimits {
 /// 继承 [WebDavSyncException] 以便既有 `on WebDavSyncException` 分支照常
 /// 收敛（设置页 humanizer 走静态文案）。message 全为本地构造：只有档位名、
 /// 限额类型与两个数字，**不含 URL、头部、正文或任何远端文本**（脱敏红线）。
-class WebDavResponseTooLargeException extends WebDavSyncException {
+class WebDavResponseTooLargeException extends WebDavSyncException implements CodedFailure {
+  @override
+  String get errorCode => 'webdav_response_too_large';
   WebDavResponseTooLargeException({
     required this.budget,
     required this.kind,

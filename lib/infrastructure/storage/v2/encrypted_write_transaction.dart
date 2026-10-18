@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// V2 密文文件 magic 头（4 字节——识别 V2 密文——防把 V1 明文/未知文件
 /// 误判为可备份对象——S-001/S-002——专家更正方案）。
@@ -11,7 +12,9 @@ const String kV2Magic = 'DNN2';
 
 /// 迁移要求异常（S-001：V1 明文/未知 destination——拒绝自动覆盖——
 /// 仅显式迁移（复制-认证-校验-切换）——绝不原地覆盖 V1）。
-class MigrationRequiredException implements Exception {
+class MigrationRequiredException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'migration_required';
   const MigrationRequiredException(this.destination);
 
   final String destination;
@@ -24,7 +27,9 @@ class MigrationRequiredException implements Exception {
 
 /// 备份失败异常（S-003：.bak 复制失败不得静默忽略——明确返回——
 /// 原主文件保持可恢复状态）。
-class BackupFailedException implements Exception {
+class BackupFailedException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'backup_failed';
   const BackupFailedException(this.destination, this.cause);
 
   final String destination;

@@ -445,7 +445,7 @@ extension _EditorPagePersistence on _EditorPageState {
           AuditLogger.log(
             'editor.crop.save_failed',
             success: false,
-            detail: e.runtimeType.toString(),
+            detail: errorCode(e),
           );
         },
       );
@@ -455,7 +455,7 @@ extension _EditorPagePersistence on _EditorPageState {
       AuditLogger.log(
         'editor.crop.save_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       _showSnack(_l10nSafe?.cropFailed ?? '裁剪失败，请重试');
       return;

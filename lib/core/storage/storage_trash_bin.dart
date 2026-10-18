@@ -8,6 +8,7 @@ import 'package:drawing_notes_app/core/storage/storage_media_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
 import 'package:drawing_notes_app/core/storage/storage_write_pipeline.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 // C-08（审计 2026-09-27）：自 StorageService 的 part 五域拆为真协作类。
 // 本类承载**回收站域**（M-06 修复，专家审计 2026-08-15）：删除移入
@@ -140,7 +141,7 @@ class StorageTrashBin {
       AuditLogger.log(
         'trash.delete.bak_left',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
     }
 

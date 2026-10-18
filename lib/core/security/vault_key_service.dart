@@ -10,13 +10,16 @@ import 'package:path_provider/path_provider.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// 解锁失败（PIN 错误 / 载荷被篡改 / 数据损坏）。
 ///
 /// fail-closed 原则：任何一种失败都不暴露主密钥，调用方按"密码错误"
 /// 处理（防爆破计数归口批次③）。
-class VaultUnlockException implements Exception {
+class VaultUnlockException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'vault_unlock';
   const VaultUnlockException(this.reason);
 
   final String reason;
@@ -252,7 +255,7 @@ class VaultKeyService {
       AuditLogger.log(
         'vault.initialize.orphanBackupPreserveFailed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
     }
   }

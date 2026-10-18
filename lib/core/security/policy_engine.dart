@@ -1,4 +1,5 @@
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 策略执行引擎（专家审计最优先行动④——SessionGuard + PolicyEngine +
 /// Capability，2026-08-16 落地）。
@@ -81,7 +82,9 @@ class PolicyEngine {
 }
 
 /// 策略拒绝异常（enforce 模式 deny 时抛出——调用方捕获并拒绝执行）。
-class PolicyDeniedException implements Exception {
+class PolicyDeniedException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'policy_denied';
   const PolicyDeniedException(this.operation, this.reason);
 
   final String operation;

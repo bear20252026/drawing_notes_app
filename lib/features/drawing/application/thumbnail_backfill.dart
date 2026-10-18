@@ -16,6 +16,7 @@ import 'dart:typed_data';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 
 class ThumbnailBackfill {
@@ -44,7 +45,7 @@ class ThumbnailBackfill {
       AuditLogger.log(
         'thumbnail.backfill.snapshot',
         success: false,
-        detail: error.runtimeType.toString(),
+        detail: errorCode(error),
       );
       return;
     }
@@ -98,7 +99,7 @@ class ThumbnailBackfill {
       AuditLogger.log(
         'thumbnail.backfill.render',
         success: false,
-        detail: error.runtimeType.toString(),
+        detail: errorCode(error),
       );
     }
   }

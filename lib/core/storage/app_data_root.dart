@@ -19,6 +19,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
@@ -506,7 +507,7 @@ class AppDataRoot {
         }
         await _recordRestoreFailure(
           supportPath,
-          'promote_failed  ${e.runtimeType}'
+          'promote_failed  ${errorCode(e)}'
           '${oldRoot == null ? '' : '（已尝试回滚旧根）'}',
         );
         rethrow; // 外层 catch：保留标记 + 返回 false，下次启动重试

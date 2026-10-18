@@ -49,6 +49,7 @@ import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/security/vault_error_messages.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -566,7 +567,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
       AuditLogger.log(
         'app_lock.vault_unlock_failed',
         success: false,
-        detail: error.runtimeType.toString(),
+        detail: errorCode(error),
       );
       // 文案复用设置页解锁失败同款 arb 键（术语一致，零新增翻译）。
       // 不阻塞进入的取舍如实声明：拒绝放行会让保险库文件损坏的用户连

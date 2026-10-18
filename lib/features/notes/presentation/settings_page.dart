@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/backup_service.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
@@ -328,7 +329,7 @@ class SettingsPage extends StatelessWidget {
       AuditLogger.log(
         'settings.diagnostics.export_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.settingsDiagnosticsExportFail ?? '导出失败，请重试');
@@ -369,7 +370,7 @@ class SettingsPage extends StatelessWidget {
       AuditLogger.log(
         'settings.backup.export_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.backupFailed ?? '备份失败，请重试');
@@ -459,7 +460,7 @@ class SettingsPage extends StatelessWidget {
       AuditLogger.log(
         'settings.backup.restore_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.restoreFailed ?? '恢复失败，请重试');

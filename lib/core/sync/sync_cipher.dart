@@ -14,6 +14,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 同步加密器抽象：远端路径映射 + 文档字节加解密 + manifest 密封。
 ///
@@ -44,7 +45,9 @@ abstract class SyncCipher {
 /// 否则一轮口令错配会被当成毒丸反复消耗，并被泛化成「检查网络」。
 ///
 /// 消息为本地静态构造，不含口令、密钥、docId 或任何远端原文（脱敏红线）。
-class SyncKeyMismatchException extends FormatException {
+class SyncKeyMismatchException extends FormatException implements CodedFailure {
+  @override
+  String get errorCode => 'sync_key_mismatch';
   const SyncKeyMismatchException([super.message = defaultKeyMismatchMessage]);
 
   /// 与原 `_decrypt` 抛出的文案逐字一致（不改既有可观测行为）。

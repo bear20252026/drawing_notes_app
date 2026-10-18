@@ -11,6 +11,7 @@ import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/storage_secret_session.dart';
 import 'package:drawing_notes_app/core/storage/stale_tmp_cleanup.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 // C-08（审计 2026-09-27）：自 StorageService 的 part 五域拆为真协作类。
 // 本类持有**写入管线域**自有状态：每文档写入尾队列（同一文档按请求顺序
@@ -280,7 +281,7 @@ class StorageWritePipeline {
       AuditLogger.log(
         'storage.lazy_migration_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
     });
     _writeTails[id] = operation;

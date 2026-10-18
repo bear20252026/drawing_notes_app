@@ -26,6 +26,7 @@ import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
 import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_push_waivers.dart';
 import 'package:drawing_notes_app/core/sync/sync_service.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_post_restore_baseline_gate.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_push_waiver_store.dart';
@@ -64,7 +65,9 @@ typedef SyncRunOutcome = ({SyncResult? result, Object? error});
 /// 抛该异常时 **一个字节都不上盘**（与 https 门禁同款 fail-closed），
 /// 由调用方出示二次确认后带 `confirmKeyRotation: true` 重试。
 /// 不携带口令/密钥/远端原文（脱敏红线）。
-class SyncKeyRotationConfirmationRequired implements Exception {
+class SyncKeyRotationConfirmationRequired implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'sync_key_rotation_confirmation_required';
   const SyncKeyRotationConfirmationRequired();
 
   @override

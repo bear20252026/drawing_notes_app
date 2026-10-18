@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
@@ -740,7 +741,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         AuditLogger.log(
           'editor.autosave.error',
           success: false,
-          detail: error.runtimeType.toString(),
+          detail: errorCode(error),
         );
       },
     );

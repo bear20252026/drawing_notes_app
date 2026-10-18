@@ -115,7 +115,8 @@ enum DocumentBudgetDimension {
   const DocumentBudgetDimension(this.label);
 
   /// 中文维度名：**只用于异常 toString/日志**，不得进 UI——
-  /// `SaveScheduler` 的可见化刻意只带 `runtimeType`（H-04 不泄漏内部结构）。
+  /// `SaveScheduler` 的可见化刻意只带 `errorCode()` 推成的类型代码
+  /// （H-04 不泄漏内部结构；R50 起这里不再是 `runtimeType`）。
   final String label;
 
   /// 该维度的上限，取自 [DocumentBudgets]（读写两侧唯一来源）。
@@ -448,7 +449,7 @@ class DocumentDecodeStats {
 ///
 /// 从**写路径**抛出（`StorageService.save`），因此天然走 `SaveScheduler`
 /// 既有的失败可见化链路（顶栏芯片 / 状态栏芯片 / snackbar 三处消费
-/// `saveFailure`，`errorKind` 只带 `runtimeType`）——不新增任何 UI 面。
+/// `saveFailure`，`errorKind` 只带 `errorCode()` 推成的类型代码）——不新增任何 UI 面。
 class DocumentIncompleteLoadException implements Exception {
   const DocumentIncompleteLoadException({
     required this.documentId,

@@ -597,11 +597,11 @@ extension _EditorPageActions on _EditorPageState {
       AuditLogger.log(
         'editor.paste.failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       _showSnack(
-        _l10nSafe?.pasteFailedSnack(e.runtimeType.toString()) ??
-            '粘贴失败：${e.runtimeType}',
+        _l10nSafe?.pasteFailedSnack(errorCode(e)) ??
+            '粘贴失败：${errorCode(e)}',
       );
     }
   }

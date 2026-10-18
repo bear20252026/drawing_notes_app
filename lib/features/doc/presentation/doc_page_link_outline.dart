@@ -144,7 +144,7 @@ extension _DocPageLinkOutline on _DocPageState {
         AuditLogger.log(
           'doc.link.open_failed',
           success: false,
-          detail: e.runtimeType.toString(),
+          detail: errorCode(e),
         );
         if (!mounted) return;
         AppSnack.show(

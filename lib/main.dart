@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/single_instance.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -63,13 +64,13 @@ Future<void> main() async {
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     AuditLogger.log(
-      'app.error.${details.exception.runtimeType}',
+      'app.error.${errorCode(details.exception)}',
       success: false,
       detail: details.library ?? 'framework',
     );
   };
   PlatformDispatcher.instance.onError = (error, stack) {
-    AuditLogger.log('app.uncaught.${error.runtimeType}', success: false);
+    AuditLogger.log('app.uncaught.${errorCode(error)}', success: false);
     return true;
   };
   // R-13（审计 2026-09-27）：构建期异常兜底——此前全库无 ErrorWidget
@@ -77,7 +78,7 @@ Future<void> main() async {
   // ErrorBox 且无用户可读信息。保持日志纪律：只记错误类型。
   ErrorWidget.builder = (details) {
     AuditLogger.log(
-      'app.build.${details.exception.runtimeType}',
+      'app.build.${errorCode(details.exception)}',
       success: false,
     );
     return const _BuildErrorFallback();

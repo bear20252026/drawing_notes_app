@@ -328,7 +328,7 @@ extension _EditorPageEditing on _EditorPageState {
           SnackBar(
             content: Text(
               AppLocalizations.of(context)
-                      ?.editorImageInsertFail(e.runtimeType.toString()) ??
+                      ?.editorImageInsertFail(errorCode(e)) ??
                   '插入图片失败，请重试',
             ),
           ),
@@ -569,11 +569,11 @@ extension _EditorPageEditing on _EditorPageState {
       AuditLogger.log(
         'editor.href.open_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
       _showSnack(
-        _l10nSafe?.linkOpenFailedSnack(e.runtimeType.toString()) ??
-            '无法打开链接：${e.runtimeType}',
+        _l10nSafe?.linkOpenFailedSnack(errorCode(e)) ??
+            '无法打开链接：${errorCode(e)}',
       );
     }
   }

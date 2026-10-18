@@ -27,9 +27,12 @@ import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 快速解锁异常（开关流程失败时向上传递可读原因）。
-class QuickUnlockException implements Exception {
+class QuickUnlockException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'quick_unlock';
   const QuickUnlockException(this.reason);
 
   final String reason;

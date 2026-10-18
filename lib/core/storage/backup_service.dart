@@ -55,6 +55,7 @@ import 'dart:isolate';
 import 'package:archive/archive_io.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 备份包内清单文件名（zip 根部）。
 const String kBackupManifestName = AppDataRoot.backupManifestName;
@@ -153,7 +154,9 @@ const BackupRestoreLimits kBackupRestoreLimitsDefault = BackupRestoreLimits();
 /// 继承 [FormatException] 是为了**不新增 UI 面也不漏网**：settings_page 的
 /// 恢复动作既有 `on FormatException` 分支已经把它映射成用户可见的
 /// 「无效的备份文件」；同时 [code] 与 [stats] 让调用方能审计到具体缺哪一项。
-class BackupIntegrityException extends FormatException {
+class BackupIntegrityException extends FormatException implements CodedFailure {
+  @override
+  String get errorCode => 'backup_integrity';
   const BackupIntegrityException({
     required this.code,
     required String message,

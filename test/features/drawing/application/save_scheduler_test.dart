@@ -351,14 +351,16 @@ void main() {
       expect(scheduler.isDirty, isTrue, reason: '升级措辞的同时脏标记不得被清掉');
     });
 
-    test('通知只带异常类型名，不带 message（H-04 不泄漏路径与凭据）', () async {
+    test('通知只带类型代码，不带 message（H-04 不泄漏路径与凭据）', () async {
       scheduler = build();
       save.shouldFail = true;
 
       await scheduler.saveNow();
 
       final notice = scheduler.saveFailure.value!;
-      expect(notice.errorKind, 'StateError');
+      // R50：这里从 `StateError`（运行时读的类型名）换成 `errorCode()` 推的字面码——
+      // 开 `--obfuscate` 之后类型名是每次出包都不同的随机串，这条断言就没法写了。
+      expect(notice.errorKind, 'core_state');
       expect(
         notice.errorKind.contains('save-failure'),
         isFalse,

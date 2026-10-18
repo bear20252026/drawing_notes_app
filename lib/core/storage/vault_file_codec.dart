@@ -6,9 +6,12 @@ import 'package:cryptography/cryptography.dart';
 
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 文件信封加密异常：密钥不匹配 / 载荷被篡改 / 版本不识别。
-class VaultFileException implements Exception {
+class VaultFileException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'vault_file';
   const VaultFileException(this.reason);
 
   final String reason;
@@ -18,7 +21,9 @@ class VaultFileException implements Exception {
 }
 
 /// 锁定状态下尝试读取加密文件（fail-closed：不回退明文、不猜测）。
-class VaultFileLockException implements Exception {
+class VaultFileLockException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'vault_file_lock';
   const VaultFileLockException();
 
   @override
@@ -27,7 +32,9 @@ class VaultFileLockException implements Exception {
 
 /// 文件受独立密码保护但会话中尚无该密码（批次②：单文件密码——
 /// UI 捕获后弹出密码输入；不暴露任何内容，fail-closed）。
-class VaultFilePasswordLockException implements Exception {
+class VaultFilePasswordLockException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'vault_file_password_lock';
   const VaultFilePasswordLockException();
 
   @override

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'save_failure_policy.dart';
@@ -47,9 +48,11 @@ class SaveFailureNotice {
   /// 本轮连续失败的次数（成功落盘后归零）。
   final int failureCount;
 
-  /// 失败异常的**类型名**——刻意不带 message 与堆栈：远端可控文本、路径与内部
-  /// 结构不得进 UI 与日志（与 H-04「绝不落凭据」、`editor.autosave.error`
-  /// 只记 `runtimeType` 是同一条纪律）。
+  /// 失败异常的**类型代码**（`core/utils/error_code.dart` 由 `is` 判出的字面量）——
+  /// 刻意不带 message 与堆栈：远端可控文本、路径与内部结构不得进 UI 与日志
+  /// （与 H-04「绝不落凭据」、`editor.autosave.error` 同一条纪律）。
+  /// 以前这里记的是 `runtimeType`，R50 起换成代码：开 `--obfuscate` 之后运行时读到的
+  /// 类型名是每次出包都不同的随机串，那等于没有这个字段。
   final String errorKind;
 
   /// 失败策略已放弃本轮自动重试。此后只有下一次内容变更才会再试，
@@ -398,7 +401,7 @@ class SaveScheduler {
     if (!_disposed) {
       saveFailure.value = SaveFailureNotice(
         failureCount: _failureCount,
-        errorKind: error.runtimeType.toString(),
+        errorKind: errorCode(error),
         gaveUp: decision == SaveRetryDecision.giveUp,
       );
     }

@@ -29,6 +29,7 @@ import 'package:drawing_notes_app/core/operation/document_operation.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
 import 'package:drawing_notes_app/core/storage/storage_directories.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 一条已落盘的操作：信封（`seq` + `baseRev`）+ 原样的操作 JSON。
 ///
@@ -92,7 +93,9 @@ class OperationLogLimits {
 /// 这是批次 D §3-C 那一格（部分写 / 内存序 / 杀软在句柄释放后改写）——此前四条写腿
 /// 一条防线都没有。业主 2026-10-14 批准只给本条腿（几 KB 的侧车）加，L1/L3 大文件腿
 /// 的代价另议。
-class OperationLogIntegrityException implements Exception {
+class OperationLogIntegrityException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'operation_log_integrity';
   const OperationLogIntegrityException(this.docId);
 
   final String docId;

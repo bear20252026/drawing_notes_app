@@ -21,6 +21,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
@@ -40,7 +41,9 @@ part 'note_block_doc_store_password.dart';
 ///
 /// loadDocument 在锁定态抛出此异常——调用方（打开路径）应先走
 /// UnlockFlow 解锁（verifyBlockDocPassword 成功即入会话 DEK 缓存）。
-class BlockDocLockedException implements Exception {
+class BlockDocLockedException implements Exception, CodedFailure {
+  @override
+  String get errorCode => 'block_doc_locked';
   const BlockDocLockedException();
 
   @override
@@ -378,7 +381,7 @@ class NoteBlockDocStore implements SessionSecretsHolder {
       AuditLogger.log(
         'note_block_doc.lazy_migration_failed',
         success: false,
-        detail: e.runtimeType.toString(),
+        detail: errorCode(e),
       );
     });
   }
