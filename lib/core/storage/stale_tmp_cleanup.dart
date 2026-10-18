@@ -11,6 +11,12 @@
 /// 另有 **3 处裸 `.tmp`**（`note_block_doc_store_trash.dart:104/117`、
 /// `storage_media_store.dart:153`）不带生成器 id ⇒ 按下面的判据**故意不扫**（判据表里
 /// 钉住 `trash.meta.tmp` 这一格），它们的清理归各自那条腿的失败路径。
+/// ⚠ 这句话在写下时（R41）**只有一条腿成立**：媒体那条有 try/catch 清 tmp，块文档回收站
+/// 那两条根本没有失败路径，写废的 `.meta.tmp` 里装着删除时间、回退那枚甚至装着整篇正文，
+/// 而且 `listTrash`/`purgeExpiredTrash` 只认 `.json` 也看不见它们 ⇒ 永久明文残留。
+/// R52 给那两条补上 `_discardTemp`，并由 `test/core/documents/block_doc_trash_tmp_test.dart`
+/// 双重钉住（真造一次 rename 失败看残不留 + 源码级「每枚裸 tmp 都要有自己的失败路径」）。
+/// **引用规范文档当理由之前先 grep 那句话在不在**——这次轮到我自查写过的这句话。
 /// 还有 **6 处 `<目标>.tmp.<时间>.<十六进制>`**（实测：`vault_key_service.dart:695`、
 /// `vfs/encrypted_vault.dart:345`、`tag_store.dart:217`、`favorite_store.dart:103`、
 /// `file_sync_baseline_store.dart:68`、`file_sync_push_waiver_store.dart:60`）——

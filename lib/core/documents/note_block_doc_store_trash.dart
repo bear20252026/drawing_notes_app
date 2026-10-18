@@ -89,6 +89,16 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
   Future<bool> deleteDocument(String pageId) =>
       _enqueue(pageId, () => _deleteDocumentLocked(pageId));
 
+  /// 尽力删掉一枚写废的临时文件——删不掉也不许盖掉原始异常（与画布那条腿同一条纪律）。
+  Future<void> _discardTemp(File tmp) async {
+    try {
+      if (tmp.existsSync()) await tmp.delete();
+    } catch (_) {
+      // 平台占用（Windows 删除待处理）：留着由下一次同一 pageId 的写入覆盖，
+      // 不谎报成功，也不把真正的失败原因换成这条次要失败。
+    }
+  }
+
   Future<bool> _deleteDocumentLocked(String pageId) async {
     final path = await _pathFor(pageId);
     final active = File(path);
@@ -102,11 +112,20 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
     final trashFile = await _trashPathFor(pageId);
     final metaFile = File('$trashFile.meta.json');
     final metaTmp = File('$trashFile.meta.tmp');
-    await metaTmp.writeAsString(
-      jsonEncode({'deletedAt': timeToIso(DateTime.now())}),
-      flush: true,
-    );
-    await metaTmp.rename(metaFile.path);
+    try {
+      await metaTmp.writeAsString(
+        jsonEncode({'deletedAt': timeToIso(DateTime.now())}),
+        flush: true,
+      );
+      await metaTmp.rename(metaFile.path);
+    } catch (_) {
+      // R52（第五轮采集 F-01）：这两枚裸 `.tmp` 不带生成器 id ⇒ 全仓那套孤儿清扫
+      // **故意不碰它们**（判据只认自己生成器的形状，见 `stale_tmp_cleanup.dart`），
+      // 而 `listTrash`/`purgeExpiredTrash` 只认 `.json` 也看不见它们。所以清理只能
+      // 由这条腿自己做——失败路径不留下一枚装着删除时间的明文侧车。
+      await _discardTemp(metaTmp);
+      rethrow;
+    }
     try {
       // 主文件在就搬主文件；只剩侧车时搬侧车（两条路都不留第二份）。
       await (active.existsSync() ? active : backup).rename(trashFile);
@@ -115,14 +134,19 @@ extension NoteBlockDocStoreTrash on NoteBlockDocStore {
       final doc = await loadDocument(pageId);
       if (doc == null) return false;
       final tmp = File('$trashFile.tmp');
-      await tmp.writeAsString(
-        jsonEncode({
-          'deletedAt': timeToIso(DateTime.now()),
-          'document': doc.toJson(),
-        }),
-        flush: true,
-      );
-      await tmp.rename(trashFile);
+      try {
+        await tmp.writeAsString(
+          jsonEncode({
+            'deletedAt': timeToIso(DateTime.now()),
+            'document': doc.toJson(),
+          }),
+          flush: true,
+        );
+        await tmp.rename(trashFile);
+      } catch (_) {
+        await _discardTemp(tmp);
+        rethrow;
+      }
       await _removeActiveFiles(pageId);
       // 这条腿以前**没有**清侧车：用户已经删进回收站了，盘上却还留着一份 `.bak`。
       await _removeBak(pageId);
