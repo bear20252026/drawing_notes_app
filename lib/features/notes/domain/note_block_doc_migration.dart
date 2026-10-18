@@ -1,6 +1,11 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // 存量迁移：将旧 NotebookPage 转为 NoteBlockDoc（向后兼容）。
 // 纯 Dart，无 flutter/io/controller/存储依赖。
+//
+// 放在 notes/domain 而不是 doc/domain：这份的**唯一 feature 依赖**是下面的
+// NotebookPage（产物 NoteBlockDoc/NoteBlock 都在 core/documents）。以前住在 doc/domain
+// 是 doc→notes 越界棘轮里**唯一的一条**，而调用方在 notes 侧 ⇒ 两边互为依赖。
+// 位置由 `note_block_doc_migration_test.dart` 的「实现只有一处」用例钉住。
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';

@@ -57,8 +57,11 @@ import 'package:flutter_test/flutter_test.dart';
 ///   `features/<dst>/`，`src == dst`（同 feature 内分层 import）不计。
 ///
 /// 本次实测（与本测试同口径）：notes->doc 9、notes->security 5、
-/// notes->drawing 6、doc->notes 1、notes->all_docs 0、doc->security 0、
+/// notes->drawing 6、doc->notes 0、notes->all_docs 0、doc->security 0、
 /// all_docs->notes 0、security->notes 0、security->doc 0、drawing->notes 0。
+/// R49（审计 2026-10-17）doc->notes 1→0：`migrateNotebookPage` 那份合一实现从
+/// doc/domain 搬到 notes/domain（它的唯一 feature 依赖是 NotebookPage），
+/// 于是 doc→notes 归零；R48 合一当初新增的那条 notes→doc 也随之消失（回 9）。
 /// C-09（审计 2026-09-27，v1.17.54）：doc->notes 2→1（PdfAttachmentPreview
 /// 随唯一消费方迁 doc）、doc->security 1→0（DocPage 重置流改组合根注入）、
 /// notes->all_docs 2→0 与 all_docs->notes 1→0（AllDoc 契约+查询纯函数
@@ -77,7 +80,7 @@ const Map<String, int> _baseline = {
   'notes->doc': 9,
   'notes->security': 5,
   'notes->drawing': 6,
-  'doc->notes': 1,
+  'doc->notes': 0,
   'notes->all_docs': 0,
   'security->notes': 0,
   'security->doc': 0,

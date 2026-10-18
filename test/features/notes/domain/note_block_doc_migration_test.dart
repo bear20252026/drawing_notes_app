@@ -13,7 +13,7 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
-import 'package:drawing_notes_app/features/doc/domain/note_block_doc_migration.dart';
+import 'package:drawing_notes_app/features/notes/domain/note_block_doc_migration.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page_content.dart';
 
@@ -310,7 +310,10 @@ void main() {
           // 注释行跳过：调用点上方的 dartdoc 也写着这个名字（trap 56 那一族）。
           if (lines[i].trimLeft().startsWith('//')) continue;
           if (lines[i].contains('NoteBlockDoc migrateNotebookPage(')) {
-            hits.add('${entity.path}:$i');
+            // 路径统一成正斜杠：Windows 上 `entity.path` 是反斜杠，CI 同为 Windows，
+            // 拿 `features/notes/domain/` 去 contains 会在**两边都**红——归一化之后
+            // 「实现住在哪个目录」这条判据才是可写的。
+            hits.add('${entity.path.replaceAll(r'\', '/')}:$i');
           }
         }
       }
@@ -326,6 +329,10 @@ void main() {
             '这正是本仓反复出事的形状',
       );
       expect(decls.single, contains('note_block_doc_migration.dart'));
+      // 位置也是判据的一部分：这份只依赖 notes 自己的 NotebookPage 与 core 的
+      // NoteBlockDoc，放在 doc/domain 就凭空造出一条 doc→notes 越界（R49 前它是
+      // 棘轮里 doc->notes 的唯一一条）。搬回那边 ⇒ 这条红。
+      expect(decls.single, contains('features/notes/domain/'));
     });
 
     test('调用点用的就是这份纯函数（没在自己的 part 里内联一套）', () {

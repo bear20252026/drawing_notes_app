@@ -12,10 +12,17 @@
 ///    `rtf_exporter.dart:36-47` 那两个 `item.bold/item.italic` 属于**画布域** `TextItem`。
 ///
 /// ⇒ 用户点粗体的真实后果：改动落盘、重开仍在，但界面与一切导出都看不见。
-/// 业主 2026-10-17 选的处置是「**标灰 + 说明**」：两个样式入口在接上渲染之前禁用，
-/// tooltip 里说清原因；数据与入口代码都保留。**接上渲染那天把本常量改成 true，
-/// 入口自动恢复**，不必回头翻调用点。
-const bool inlineStylesAreRendered = false;
+/// 处置（R46，业主 2026-10-17「全部推进推荐档」授权下按**推荐档**选的，不是逐条点名）：
+/// 「**标灰 + 说明**」——两个样式入口在接上渲染之前禁用，tooltip 里说清原因；
+/// 数据与入口代码都保留。**接上渲染那天把本值改成 true，入口自动恢复**，
+/// 不必回头翻调用点。
+///
+/// 可写而不是 `const`，是为了让 FDC-01 那两条**必须走样式入口**才能造出形状的用例
+/// 继续跑（`doc_editor_spans_text_authority_test.dart` 里置 true、tearDown 还原）。
+/// 同一条纪律由 `test/architecture/inline_style_flag_write_gate_test.dart` 守着：
+/// **`lib/` 里除本文件声明那行以外，任何位置给它赋值都算红**——生产只读，改它只有两条路：
+/// 接上渲染（改这里的初值）或测试临时开一扇门。
+bool inlineStylesAreRendered = false;
 
 /// 内联富文本片段：携带文本 + 样式标记。
 ///

@@ -17,14 +17,24 @@
 // 内容永远赢）。
 //
 // 反向锁同样钉住：文字一致时样式必须仍然生效——把 spans 一律忽略不是修法。
+//
+// R46 之后样式入口默认是**禁用**的（`inlineStylesAreRendered = false`，标灰 + 说明），
+// 这三条都要走那条入口才能造出 spans 形状 ⇒ 本文件在 setUp 里临时把判据开成 true、
+// tearDown 还原。这不是绕过 R46：生产默认仍然点不动（由
+// `doc_editor_style_entries_test.dart` 钉），这里保住的是**接上渲染那天**
+// 「正文永远赢、样式不能当第二个真相」这条裁决不因入口重开而失守。
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
+import 'package:drawing_notes_app/features/doc/domain/note_inline_span.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';
 
 void main() {
+  setUp(() => inlineStylesAreRendered = true);
+  tearDown(() => inlineStylesAreRendered = false);
+
   NoteBlockDoc docWith(List<NoteBlock> body, {String id = 'fdc01'}) => NoteBlockDoc(
     id: id,
     title: '',

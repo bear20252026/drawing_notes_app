@@ -234,8 +234,8 @@ void main() {
       'package:drawing_notes_app/features/notes/domain/notebook_page_template_strategy.dart':
           1.00,
       'package:drawing_notes_app/features/notes/domain/page_version.dart': 0.89,
-      'package:drawing_notes_app/features/doc/domain/note_block_doc_migration.dart':
-          0.80,
+      'package:drawing_notes_app/features/notes/domain/note_block_doc_migration.dart':
+          0.67,
       'package:drawing_notes_app/features/notes/domain/notebook_page.dart':
           0.63,
       'package:drawing_notes_app/features/doc/domain/note_block_doc_search.dart':
