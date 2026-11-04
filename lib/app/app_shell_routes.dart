@@ -401,8 +401,23 @@ extension _AppShellRoutes on _AppShellState {
         final store = _services.blockDocStore;
         // N2：文件密码解锁拦截（未解锁先输密码；忘记密码 → 重置流）。
         if (!await _ensureBlockDocUnlocked(store, doc.id)) return;
-        final bd = await _loadBlockDocGuarded(store, doc.id);
-        if (bd == null) return;
+        final loaded = await _loadBlockDocGuarded(store, doc.id);
+        // N2：三态判据与 _openBlockDocById 同口径——「被锁」要说出
+        // 来，不能静默 return（否则从全部文档点一篇刚锁定的笔记会毫无反应）。
+        if (loaded.locked) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)?.nbNoteEncryptedLocked ??
+                    '该笔记已加密且会话已锁定，请重新解锁后再打开',
+              ),
+            ),
+          );
+          return;
+        }
+        final bd = loaded.doc;
+        if (bd == null || !mounted) return;
         final favs = await _services.favoriteStore.loadKeys();
         if (!mounted) return;
         await Navigator.of(context, rootNavigator: true).push(
