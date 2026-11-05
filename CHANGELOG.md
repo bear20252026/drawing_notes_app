@@ -334,6 +334,34 @@
   计数变 0）才发现。正确做法是备份点必须在「修复完成之后、注入突变之前」，
   且还原后要 grep 的是**修复的标志物**而不是「文件还在」。
 
+### R52c（2026-11-04，一个没用到的局部变量把 analyze 步骤打红）
+
+- `test/features/security/...` 一处局部变量声明后从未被读，`flutter analyze` 的
+  `unused_local_variable` 把它标红——**CI 抓到，这是同一类第三次**（前两次分别在
+  `test/` 与 `lib/` 各一处）。删掉即可，行为不变。
+- 如实记：这条不是「审计发现」，是 CI 的 analyze 门禁发现的；登记在此是为了让
+  「同一类第三次」这个事实有落点（前两处都没进 CHANGELOG，只在提交信息里）。
+
+### 修复（2026-11-04，`fix(blockdoc)`：全部文档打开块笔记时的类型错误）
+
+- **现象**：Windows 发布构建与 Android 构建**同时**编译失败（Weekly Evidence 连红两轮，
+  开出 issue #54 / #55）。报的是同一个错：
+  `app_shell_routes.dart(411,25): error GC2F972A8: The argument type
+  '({NoteBlockDoc? doc, bool locked})' can't be assigned to the parameter type 'NoteBlockDoc'`
+- **根因**：`_loadBlockDocGuarded()` 早已改成三态返回（`({NoteBlockDoc? doc, bool locked})`），
+  而同文件里 `_openBlockDocById()` 是按三态正确解的（先判 `locked`、再取 `doc`）；
+  「全部文档」那条分支没跟上，把**整个记录**传给了 `DocPage(document:)`。
+  这与 R52b 修的是**同一个坑的另一条腿**——R52b 修的是「锁定那一格被折叠成 null 后
+  静默 return」，这条腿是「三态改成记录后调用点没跟着改」。本仓的「一修就漏九处」再次现形。
+- **修复**：与 `_openBlockDocById()` 逐字同口径——先判 `loaded.locked`（被锁要出声，
+  复用既有 `nbNoteEncryptedLocked` 文案，不新造键），再取 `loaded.doc` 并处理
+  null / 未挂载。**没有放宽判据、没有豁免、没有删功能。**
+- **验证**：`flutter analyze` 全项目 0 issue；`flutter test` **2818 条全绿**
+  （0 failed / 6 skipped）；Android debug APK 本地构建成功；
+  Weekly Evidence 三个 job（Windows 发布构建 / Android 构建 / SBOM）全绿；
+  push 后的 CI（analyze / code_guard / pr_arch）全绿。
+- 落点：`lib/app/app_shell_routes.dart`（`AllDocKind.blockdoc` 分支）。
+
 ## [1.17.66] - 2026-10-14
 
 ### 第三轮外部专家审计整改（DN-201→DN-208）+ 协同地基 A2/A3 + 批次 D（确定性验证）
