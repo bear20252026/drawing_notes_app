@@ -82,4 +82,24 @@ void main() {
       throwsA(isA<VaultFileException>()),
     );
   });
+
+  test('R53：载荷被截断到过短 → VaultFileException（不得逃逸 VaultUnlockException）', () async {
+    // R53 审计：`VaultKeyService.aeadDecrypt` 对 payload.length <= 28 抛的是
+    // VaultUnlockException('密文长度不合法')，而 VaultFileCodec 的对外契约是
+    // VaultFileException。调用方 StorageFilePasswordManager.verifyFilePassword
+    // 只 catch VaultFileException——接不住就逃逸到 PinPad._submit（无 try/catch）
+    // ⇒ 解锁界面假死（不抖、不报错）。
+    final blob = await VaultFileCodec.encrypt(
+      plainOf('secret body'),
+      key,
+      aadContext: 'doc:a1',
+    );
+    // 4 字节头 + 28 字节载荷（= aeadDecrypt 的截断阈值）⇒ 触发 VaultUnlockException。
+    final truncated = Uint8List.fromList(blob.sublist(0, 4 + 28));
+    expect(
+      () => VaultFileCodec.decrypt(truncated, key, aadContext: 'doc:a1'),
+      throwsA(isA<VaultFileException>()),
+      reason: '过短载荷必须转成 VaultFileException，否则解锁界面假死',
+    );
+  });
 }

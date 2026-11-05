@@ -250,7 +250,22 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         ),
       );
     } on FormatException {
-      // 正式文件损坏：尝试备份恢复。
+      // 正式文件损坏（明文解码失败）：尝试备份恢复。
+      if (bak.existsSync()) {
+        return _registerDecode(
+          _codec.decodeDetailed(await preparedBytes(bak)),
+        );
+      }
+      rethrow;
+    } on VaultFileException {
+      // R53：加密文档的主文件损坏（载荷截断/被篡改）时，prepareDocBytes 抛的是
+      // VaultFileException，而旧实现只 catch FormatException ⇒ 注释声称的
+      // 「正式文件损坏时尝试备份恢复」对加密文档根本不会触发。加密的正好是
+      // 它该保护的那类数据，偏偏用不上。
+      //
+      // 注意：不 catch VaultFileLockException / VaultFilePasswordLockException——
+      // 那两类的语义是「保险库/文件密码已锁定，读不了」，不是损坏；
+      // .bak 同样是加密且锁定的，回退过去一样读不出，不该静默吞掉。
       if (bak.existsSync()) {
         return _registerDecode(
           _codec.decodeDetailed(await preparedBytes(bak)),

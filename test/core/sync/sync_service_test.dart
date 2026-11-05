@@ -1177,6 +1177,65 @@ void main() {
       expect(_remoteEntries(server).containsKey('doc-c'), isTrue);
     });
   });
+
+  group('SyncService R53 远端裸 deletedIds 必须留下（删除复活防护）', () {
+    // R53 审计：`SyncManifest` 里 `deletedIds` 是「是否已删」的唯一裁决源，
+    // `tombstones` 只是它的富信息侧（且 toJson 只写**带因果**的墓碑）。
+    // 因此 `deletedIds` 里存在「只有 id、没有 tombstone 条目」的记录
+    // （旧版客户端就是这么写的，见 tombstone_causality_test.dart:204）。
+    //
+    // 旧实现只遍历 `remoteManifest.tombstones.values`，把这类裸删除记录
+    // 全丢了；写回时 `deletedIds: newTombstones.keys` ⇒ 记录彻底消失。
+    // 下一轮另一端看到该文档「仅本地 ⇒ 上传」⇒ **删除被复活**。
+    test('远端只有 deletedIds、没有 tombstones → 同步后仍须留在 deletedIds', () async {
+      final server = _MemoryServer();
+      // 远端清单：'doc-gone' 被删除，但只有 deletedIds、没有 tombstones
+      // （旧格式 / 未带因果信息的新格式都会是这个形状）。
+      server.files['manifest.json'] = utf8.encode(
+        jsonEncode({
+          'entries': <String, dynamic>{},
+          'deletedIds': <String>['doc-gone'],
+        }),
+      );
+      final store = _MemoryDocStore(); // 本地没有这篇（已经跟着删了）
+      final baseline = _MemoryBaseline();
+
+      await _service(store, server, baseline: baseline).syncNow();
+
+      final remoteManifest =
+          jsonDecode(utf8.decode(server.files['manifest.json']!))
+              as Map<String, dynamic>;
+      final deletedIds = (remoteManifest['deletedIds'] as List).cast<String>();
+      expect(
+        deletedIds,
+        contains('doc-gone'),
+        reason: '远端的裸 deletedIds 是权威删除记录，不得在合并中被丢掉',
+      );
+    });
+
+    test('远端 deletedIds 与 tombstones 并存 → 两者都不得丢', () async {
+      final server = _MemoryServer();
+      server.files['manifest.json'] = utf8.encode(
+        jsonEncode({
+          'entries': <String, dynamic>{},
+          'deletedIds': <String>['doc-a', 'doc-b'],
+          'tombstones': <String, dynamic>{
+            'doc-b': {'deletedAt': 200, 'opSeq': 7, 'origin': 'device-b'},
+          },
+        }),
+      );
+      final store = _MemoryDocStore();
+      final baseline = _MemoryBaseline();
+
+      await _service(store, server, baseline: baseline).syncNow();
+
+      final remoteManifest =
+          jsonDecode(utf8.decode(server.files['manifest.json']!))
+              as Map<String, dynamic>;
+      final deletedIds = (remoteManifest['deletedIds'] as List).cast<String>();
+      expect(deletedIds, containsAll(<String>['doc-a', 'doc-b']));
+    });
+  });
 }
 
 /// 「存在但锁定」的本地存储门面（DN-107，P0 数据安全）：`listDocuments()`

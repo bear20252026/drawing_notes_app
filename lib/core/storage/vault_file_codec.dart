@@ -188,6 +188,12 @@ abstract final class VaultFileCodec {
       return Uint8List.fromList(plain);
     } on SecretBoxAuthenticationError {
       throw const VaultFileException('密钥不匹配或密文被篡改');
+    } on VaultUnlockException {
+      // R53：aeadDecrypt 对过短载荷抛 VaultUnlockException('密文长度不合法')。
+      // 必须转成本类对外契约的 VaultFileException——调用方
+      // StorageFilePasswordManager.verifyFilePassword 只 catch VaultFileException，
+      // 接不住就逃逸到 PinPad._submit（无 try/catch）⇒ 解锁界面假死。
+      throw const VaultFileException('密文长度不合法或密文被篡改');
     }
   }
 
@@ -257,6 +263,10 @@ abstract final class VaultFileCodec {
       return Uint8List.fromList(plain);
     } on SecretBoxAuthenticationError {
       throw const VaultFileException('密码错误或密文被篡改');
+    } on VaultUnlockException {
+      // R53：同 decrypt——过短载荷的 VaultUnlockException 必须转成
+      // VaultFileException，否则单文件密码解锁界面会假死。
+      throw const VaultFileException('密文长度不合法或密文被篡改');
     }
   }
 
@@ -363,6 +373,10 @@ abstract final class VaultFileCodec {
       );
     } on SecretBoxAuthenticationError {
       throw const VaultFileException('密码错误或密文被篡改');
+    } on VaultUnlockException {
+      // R53：同 decrypt——过短载荷的 VaultUnlockException 必须转成
+      // VaultFileException，否则 v3 密码解锁界面会假死。
+      throw const VaultFileException('密文长度不合法或密文被篡改');
     }
     final plain = await _decryptPayloadV3(dek, payload, aadContext);
     final usbWrapped = usbSlot == null
@@ -478,6 +492,10 @@ abstract final class VaultFileCodec {
       );
     } on SecretBoxAuthenticationError {
       throw const VaultFileException('密钥不匹配或密文被篡改');
+    } on VaultUnlockException {
+      // R53：同 decrypt——过短载荷的 VaultUnlockException 必须转成
+      // VaultFileException，否则 v3 载荷解密失败会逃逸成未处理异常。
+      throw const VaultFileException('密文长度不合法或密文被篡改');
     }
   }
 

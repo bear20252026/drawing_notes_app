@@ -569,8 +569,20 @@ class SyncService {
       }
     }
     var newTombstones = SyncManifest.pruneTombstones([
-      for (final t in remoteManifest.tombstones.values)
-        if (!uploadedIds.contains(t.id)) t,
+      // R53：必须遍历 `deletedIds` 而不是 `tombstones.values`——
+      // `deletedIds` 是「是否已删」的唯一裁决源，`tombstones` 只是它的富信息侧
+      // （且 toJson 只写**带因果**的墓碑）。旧实现只遍历 tombstones，
+      // 把「只有 id、没有 tombstone 条目」的裸删除记录全丢了；写回时
+      // `deletedIds: newTombstones.keys` ⇒ 记录彻底消失 ⇒ 下一轮另一端看到
+      // 该文档「仅本地 ⇒ 上传」⇒ **删除被复活**。
+      //
+      // 但 `!uploadedIds.contains` 这道否决必须保留：本地还留着该文档并上传，
+      // 就是明确主张「这一版仍在用」，远端那条删除记录要被这次有据的否决移除
+      // （见 tombstone_causality_test.dart:365「本轮真上传成功 ⇒ 那一条删除记录
+      // 被一次有据的否决移除」）。R53 只是把「裸记录」一并纳入，不改否决方向。
+      for (final id in remoteManifest.deletedIds)
+        if (!uploadedIds.contains(id))
+          remoteManifest.tombstones[id] ?? SyncTombstone(id: id),
       for (final id in deletedIds)
         localManifest.tombstones[id] ?? SyncTombstone(id: id),
     ]);
@@ -627,8 +639,11 @@ class SyncService {
         // 我们自己的贡献只有本轮本地删除的那些。这两处表达式（首轮 571 行附近
         // 与这里）必须逐字同构，只有 `remoteManifest` / `fresh.manifest` 之差。
         newTombstones = SyncManifest.pruneTombstones([
-          for (final t in fresh.manifest.tombstones.values)
-            if (!uploadedIds.contains(t.id)) t,
+          // R53：同首轮口径——遍历 deletedIds（含裸记录），不得只遍历 tombstones；
+          // `!uploadedIds.contains` 的否决同样保留。
+          for (final id in fresh.manifest.deletedIds)
+            if (!uploadedIds.contains(id))
+              fresh.manifest.tombstones[id] ?? SyncTombstone(id: id),
           for (final id in deletedIds)
             localManifest.tombstones[id] ?? SyncTombstone(id: id),
         ]);
