@@ -2,6 +2,60 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.17.68] - 2026-11-05
+
+### R53 审计三条：同步删除复活 / 加密损坏假死 / `.bak` 恢复失效
+
+> 提交链：`3774842`(fix(blockdoc)) → `d49abff`(CHANGELOG) →
+> `4be57c2`(R53 三条修复)。
+>
+> 三条都按本仓的「突变自证」手法做：**先写回归测试证明现状会红、再修到绿、
+> 然后把修复撤掉确认测试又变红**。附一条自我更正：R53 第一版修复把同步的
+> **否决语义**（veto）丢了，`tombstone_causality_test.dart:365` 立刻变红——
+> 补回否决条件后 251 条同步测试全绿。
+
+**1. 远端「裸 `deletedIds`」被静默丢弃 → 删除复活（HIGH）**
+
+`SyncManifest` 里 `deletedIds` 是「是否已删」的**唯一裁决源**，`tombstones`
+只是它的富信息侧（且 `toJson` 只写**带因果**的墓碑）。合并时旧实现只遍历
+`remoteManifest.tombstones.values`，把「只有 id、没有 tombstone 条目」的裸记录
+全丢了；写回时 `deletedIds: newTombstones.keys` ⇒ 记录彻底消失。下一轮另一端
+看到该文档「仅本地 ⇒ 上传」⇒ **删除被复活**——正是墓碑功能要终结的乒乓。
+
+- 改为遍历 `deletedIds`，同时**保留** `!uploadedIds.contains` 的否决语义
+  （本地还留着该文档并上传 = 明确主张这版仍在用，远端那条删除记录要被这次
+  有据的否决移除）。两处（首轮合并 + CAS 重试）同口径。
+- 旁证：第 626-628 行注释声称两处表达式「必须逐字同构」，但远端那支其实
+  **少了一半**——注释与代码不符，本仓 R44 修过同类。
+
+**2. 加密文件被截断 → 解锁界面「假死」（HIGH）**
+
+`VaultKeyService.aeadDecrypt` 对 `payload.length <= 28` 抛的是
+`VaultUnlockException('密文长度不合法')`，而 `VaultFileCodec` 的对外契约是
+`VaultFileException`。调用链：`StorageFilePasswordManager.verifyFilePassword`
+只 catch `VaultFileException` → `VaultUnlockException` 逃逸 → `PinPad._submit`
+没有 try/catch → **未处理异常**。用户看到的是解锁框没反应（不抖、不报错），
+而不是「文件损坏，请重试」。
+
+- 四处 decrypt 路径（`decrypt` / `decryptWithPassword` / `unlockWithPasswordV3`
+  / `_decryptPayloadV3`）补 catch `VaultUnlockException` → 转 `VaultFileException`。
+- 与本仓已修过的 P2-2 是同一类（`encryption_service.dart:266-280` 有记录），
+  在这里还开着。
+
+**3. `.bak` 备份恢复对加密文档失效（MEDIUM）**
+
+`.bak` 回退旧实现只 `on FormatException`（明文解码失败）。加密文档主文件损坏
+（载荷截断/被篡改）抛的是 `VaultFileException` ⇒ 注释声称的「正式文件损坏时
+尝试备份恢复」**根本不会触发**。加密的正好是它该保护的那类数据，偏偏用不上。
+
+- 补 catch `VaultFileException`；**不** catch 两类 LockException——它们的语义是
+  「保险库/文件密码已锁定，读不了」，不是损坏；`.bak` 同样是加密且锁定的，
+  回退过去一样读不出，不该静默吞掉。
+
+**验证**：`flutter analyze` 0 issue；`flutter test` **2824 passed / 0 failed**
+（+5 条新测试）；CI 全绿（SBOM / PR Architecture / 质量门禁 / Code Guard /
+Secret Scan / Push / CI）。
+
 ## [1.17.67] - 2026-10-15
 
 ### 同步处置入口 + 操作日志接入自动保存（收 `v1.17.66` 之后 15 个提交）
