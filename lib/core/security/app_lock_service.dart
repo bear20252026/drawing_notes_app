@@ -4,8 +4,9 @@
 //
 // 应用级冷启动门 + 切后台回锁的单一事实来源：
 // - PIN 永不明文落盘：随机盐 + Argon2id（后台 isolate，经 KekSessionCache）
-//   存 shared_preferences；v1 单次 SHA-256 旧哈希仅做兼容验证，验证通过
-//   即透明升级（P0 安全修复——4 位 PIN 离线毫秒爆破）；
+//   存 shared_preferences；v1 单次 SHA-256 旧哈希路径已移除（2026-11-10
+//   用户裁决不兼容旧版——该路径可被本地写 prefs 降级成毫秒爆破，
+//   且旧哈希已达不到 4 位 PIN 的防护要求）；
 // - 校验用恒定时间比较，避免时序侧信道；
 // - 「是否已配置」是唯一持久状态，加锁/解锁的瞬时状态由 UI 层（AppLockGate）
 //   持有——存储层不感知「此刻是否锁定」。
@@ -21,7 +22,6 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -57,8 +57,8 @@ class AppLockService extends ChangeNotifier {
   /// 免重新输入开屏密码。持久化为秒；0 = 关闭（切后台立即锁定，旧行为）。
   static const _kGraceSecondsKey = 'app_lock.grace_seconds';
 
-  /// PIN 哈希版本键（诊断可观测；读取按哈希形值识别，不信任该键）。
-  /// 版本语义：1 = 单次 SHA-256（旧，64 位 hex），2 = Argon2id（44 位 base64）。
+  /// PIN 哈希版本键（诊断可观测；读取不依赖它——只认 v2 Argon2id 形值）。
+  /// 版本语义：1 = 单次 SHA-256（已废弃，不再识别），2 = Argon2id。
   static const _kPinKdfVersionKey = 'app_lock.pin_kdf_v';
   static const int _kdfArgon2id = 2;
 
@@ -161,7 +161,6 @@ class AppLockService extends ChangeNotifier {
   ///
   /// 批次③：冷却期内一律拒绝（不计入失败——冷却本身就是惩罚，
   /// 反复尝试不应延长；到期后重新开始接受尝试）。
-  /// P0 迁移：v1（SHA-256）旧哈希验证通过即透明升级 v2（用户无感）。
   ///
   /// [recordAttempt] 默认 true（既有调用点行为逐字节不变）；置 false 时
   /// 本次比对不写防爆破计数——仅供「同码探测」这类**非登录**校验使用：
@@ -213,7 +212,7 @@ class AppLockService extends ChangeNotifier {
     return _compareAgainstStore(candidate);
   }
 
-  /// 读持久化哈希并比对（v1 命中即透明升级 v2）。
+  /// 读持久化哈希并比对（仅 Argon2id v2；v1 SHA-256 旧路径已移除）。
   /// null = 无法判定（盐/哈希缺失或派生异常）。
   Future<bool?> _compareAgainstStore(String pin) async {
     final prefs = await _preferencesLoader();
@@ -221,24 +220,24 @@ class AppLockService extends ChangeNotifier {
     final stored = prefs.getString(_kPinHashKey);
     if (salt == null || stored == null) return null;
     // P0 加固：版本不依赖独立 int 键（存储后端 int 编解码差异曾导致误判），
-    // 直接按哈希形值识别——64 位 hex = v1 SHA-256，其余按 v2 Argon2id 验。
-    // 版本键保留写入（诊断可观测），读取不再信任它。
-    final legacyFormat = stored.length == 64;
+    // 直接按哈希形值识别。版本键保留写入（诊断可观测），读取不再信任它。
+    //
+    // 2026-11-10（用户裁决不兼容旧版）：64 位 hex = v1 单次 SHA-256，
+    // 该形态不再识别——防止本地写 prefs 把开屏校验降级成毫秒可爆破的
+    // SHA-256（4 位 PIN 更甚），也避免旧数据掩盖真实 PIN。命中即按
+    // 「不同码」处理（verify=false），由用户重设 PIN 恢复。
+    if (stored.length == 64) {
+      // 恒定时间消耗一次 Argon2id 派生，使 v1 拒绝路径与 v2 正常路径
+      // 时延同档（不因「形态识别」直接短路而泄露哈希格式信息）。
+      try {
+        await _hashV2(pin, salt);
+      } catch (_) {
+        return null;
+      }
+      return false;
+    }
     try {
-      if (!legacyFormat) {
-        return _constantTimeEquals(await _hashV2(pin, salt), stored);
-      }
-      final ok = _constantTimeEquals(_hashLegacy(pin, salt), stored);
-      if (ok) {
-        // 透明升级：旧哈希命中后换 Argon2id（失败不影响本次结果）。
-        try {
-          await prefs.setString(_kPinHashKey, await _hashV2(pin, salt));
-          await prefs.setInt(_kPinKdfVersionKey, _kdfArgon2id);
-        } catch (_) {
-          /* 尽力而为：透明升级失败不影响本次验证结果，下次登录再试 */
-        }
-      }
-      return ok;
+      return _constantTimeEquals(await _hashV2(pin, salt), stored);
     } catch (_) {
       return null;
     }
@@ -299,10 +298,6 @@ class AppLockService extends ChangeNotifier {
     final random = Random.secure();
     return hexEncode(List<int>.generate(16, (_) => random.nextInt(256)));
   }
-
-  /// v1 旧哈希（仅兼容验证——新写入永不使用）。
-  String _hashLegacy(String pin, String salt) =>
-      sha256.convert(utf8.encode('$salt:$pin')).toString();
 
   /// v2 哈希：Argon2id 64MiB/t2/p2，经 KekSessionCache 后台 isolate 派生
   /// （主 isolate 零阻塞）；输出 base64(32B)。盐为既有 16 字节 hex 串。

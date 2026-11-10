@@ -247,70 +247,35 @@ extension _HomePageTabs on _HomePageState {
   }
 
   /// 统一打开路径（M12.4）：与 All Docs 同一回调（note→NotebookViewPage，
-  /// blockdoc→DocPage）。无宿主回调时兜底直推 DocPage（仅笔记）。
+  /// blockdoc→DocPage）。
   ///
-  /// N2：受密未解锁的笔记先解锁（与 app_shell 同口径）。
+  /// 解耦（2026-10-10）：原先此处直接 import doc 的 presentation 层
+  /// （DocPage）与 security 的 presentation 层（BlockDocPasswordResetFlow）
+  /// 自拼打开链路；现改为**经组合根注入的** [AppRouteServices]
+  /// （`app/app_routes.dart` 契约）——notes 不再横向依赖 doc/security 的
+  /// presentation 层。解锁拦截（含损坏文档反馈）随之落在实现侧，
+  /// 语义与迁移前逐条一致。
   Future<void> _openEntry(AllDoc doc) async {
     if (widget.onOpenDoc != null) {
       widget.onOpenDoc!(doc);
       return;
     }
     if (doc.kind != AllDocKind.blockdoc) return;
-    if (!await _ensureUnlocked(doc.id)) return;
-    // 锁定异常折叠为 null（fail-closed）——独立方法保证空安全提升。
-    // R-09（审计 2026-09-27）：损坏文档（主备双坏 rethrow FormatException/
-    // TypeError）此前静默无反应——补捕并给用户反馈。
-    Future<NoteBlockDoc?> loadGuarded() async {
-      try {
-        return await _blockDocStore.loadDocument(doc.id);
-      } on BlockDocLockedException {
-        return null; // 会话 DEK 已被清——不暴露内容
-      } on FormatException {
-        _showSnack(_l10nSafe?.homeDocCorrupt ?? '笔记数据损坏，无法打开');
-        return null;
-      } on TypeError {
-        _showSnack(_l10nSafe?.homeDocCorrupt ?? '笔记数据损坏，无法打开');
-        return null;
-      }
+    final routes = appRouteServices;
+    if (routes == null) {
+      _showSnack(_l10nSafe?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配');
+      return;
     }
-
-    final d = await loadGuarded();
-    if (!mounted || d == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DocPage(
-          document: d,
-          blockDocStore: _blockDocStore,
-          controller: DocController(
-            onSave: (updated) => _blockDocStore.saveDocument(updated),
-          ),
-          resetBlockDocPassword: BlockDocPasswordResetFlow.show,
-        ),
+    await routes.openNotePage(
+      context,
+      DocOpenArgs(
+        id: doc.id,
+        title: doc.title,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
       ),
     );
     await _refresh();
-  }
-
-  /// N2：笔记文件密码解锁拦截。返回 false = 用户取消且会话未解锁。
-  Future<bool> _ensureUnlocked(String id) async {
-    if (!await _blockDocStore.isBlockDocPasswordProtected(id)) return true;
-    if (_blockDocStore.isBlockDocUnlocked(id)) return true;
-    if (!mounted) return false;
-    final pin = await UnlockFlow.show(
-      context,
-      title: AppLocalizations.of(context)?.docUnlockTitle ?? '该笔记已加密，输入密码',
-      flexible: true,
-      onVerify: (p) => _blockDocStore.verifyBlockDocPassword(id, p),
-      footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
-      onFooter: () {
-        BlockDocPasswordResetFlow.show(
-          context,
-          store: _blockDocStore,
-          docId: id,
-        );
-      },
-    );
-    return pin != null || _blockDocStore.isBlockDocUnlocked(id);
   }
 
   Future<void> _deleteNote(AllDoc doc) async {

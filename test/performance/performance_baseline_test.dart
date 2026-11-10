@@ -22,8 +22,8 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_edit_history.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 
 Stroke _stroke(int seed, int pointCount) {
   final points = <StrokePoint>[];

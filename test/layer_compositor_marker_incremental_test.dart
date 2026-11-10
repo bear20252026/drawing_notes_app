@@ -12,7 +12,7 @@ import 'dart:ui' as ui;
 
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _canvasSize = 128;

@@ -6,7 +6,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_html_export.dart';
-import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
+// 2026-10-10 解耦：模板库自 `features/doc/application/` 迁至
+// `core/documents/note_templates.dart`（全仓唯一消费方是 notes 的
+// 「新建笔记」选择器，doc 内零引用；留在 doc 会迫使 notes 反向 import
+// doc 的 application 层）。
+import 'package:drawing_notes_app/core/documents/note_templates.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/features/doc/domain/note_block_doc_markdown.dart';

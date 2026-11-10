@@ -53,7 +53,7 @@ void main() {
       );
       final map = jsonDecode(utf8.decode(cipherBytes)) as Map<String, dynamic>;
       expect(map['mode'], 'sync-doc');
-      expect(map['v'], 1);
+      expect(map['v'], 2);
       expect(map['n'], isA<String>());
       expect(map['c'], isA<String>());
       expect(map['m'], isA<String>());

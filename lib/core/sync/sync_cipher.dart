@@ -81,7 +81,11 @@ class NoopSyncCipher implements SyncCipher {
 /// AES-256-GCM 同步加密器。
 ///
 /// 构造注入 32 字节主密钥；加密载荷格式：
-/// `{"mode":"sync-doc"|"sync-manifest","v":1,"n":base64(nonce),"c":base64(cipherText),"m":base64(mac)}`
+/// `{"mode":"sync-doc"|"sync-manifest","v":2,"n":base64(nonce),"c":base64(cipherText),"m":base64(mac)}`
+///
+/// **信封版本 v2（2026-11-10）**：同步主密钥派生升级为 Argon2id（见
+/// [deriveMasterKey]），与 v1（PBKDF2 时代）信封不兼容——解密侧强制校验
+/// `v == 2`，旧信封一律拒绝（fail-closed，且归入不可重试的密钥错配类）。
 class AesSyncCipher implements SyncCipher {
   AesSyncCipher({required this.key, int? isolateThreshold})
     : assert(key.length == 32, '主密钥必须 32 字节'),
@@ -97,6 +101,10 @@ class AesSyncCipher implements SyncCipher {
 
   static const int _nonceLength = 12;
   static const int _macLength = 16;
+
+  /// 线格式版本：v2 = Argon2id 派生时代；v1 = PBKDF2 时代（已不兼容，
+  /// 解密侧拒绝）。
+  static const int _wireVersion = 2;
 
   // AAD 上下文常量。
   static const _docAadPrefix = 'drawing-notes|sync|doc|';
@@ -214,7 +222,7 @@ class AesSyncCipher implements SyncCipher {
     );
     final payload = jsonEncode({
       'mode': mode,
-      'v': 1,
+      'v': _wireVersion,
       'n': base64Encode(nonce),
       'c': base64Encode(box.cipherText),
       'm': base64Encode(box.mac.bytes),
@@ -246,6 +254,12 @@ class AesSyncCipher implements SyncCipher {
     final macBytes = base64Decode(_requireString(map, 'm'));
     _requireFixedLength('nonce', nonce, _nonceLength);
     _requireFixedLength('MAC', macBytes, _macLength);
+    // 版本闸门（2026-11-10）：只认 Argon2id 时代的 v2 信封；v1（PBKDF2 时代）
+    // 已不兼容。字段缺失/类型不符同样拒绝。归入 [SyncKeyMismatchException]
+    // ——确定性失败、不可重试，避免旧信封被当网络类失败反复退避。
+    if (map['v'] != _wireVersion) {
+      throw const SyncKeyMismatchException('同步数据版本不兼容（旧版加密信封）');
+    }
     try {
       final plain = await AesGcm.with256bits().decrypt(
         SecretBox(cipherText, nonce: nonce, mac: Mac(macBytes)),
@@ -288,28 +302,21 @@ List<int> generateSalt({int length = 16}) {
   return List<int>.generate(length, (_) => rng.nextInt(256));
 }
 
-/// 从密码派生 32 字节主密钥：PBKDF2-HMAC-SHA256。
+/// 从密码派生 32 字节主密钥：**Argon2id**（RFC 9106，cryptography 纯 Dart
+/// 实现，经 [KekSessionCache] 后台 isolate 派生 + 会话缓存）。
 ///
-/// 默认 60 万次迭代（OWASP 2026 推荐）。密码/盐相同 → 同 key。
-/// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生）。
-/// 批B 注：同步格式跨设备互操作，KDF 与既有密文耦合，维持 PBKDF2。
+/// 参数与主 PIN 路径一致：[KdfParams.argon2idProduction]（64 MiB / t2 / p2）
+/// ——内存硬度抗 GPU/ASIC 爆破，优于旧 PBKDF2-HMAC-SHA256 600k 的纯计算
+/// 硬度。密码/盐相同 → 同 key。
 ///
-/// 为何不升 Argon2id（审计 2026-09-26 #39 评估结论，全量分析见
-/// `docs/KDF_MIGRATION_EVALUATION_2026-09-26.md`）：PBKDF2 600k 是纯
-/// 计算硬度，GPU 吞吐下实耗毫秒级/口令；Argon2id 的 64MiB 内存硬度可
-/// 把同硬件爆破吞吐压低 2–3 个数量级。差距真实但兑现需「WebDAV 服务器
-/// 副本泄露 + 低熵口令」双条件叠加，当前 OWASP 合规、非紧急漏洞。
-/// 迁移方案（信封版本化 + 用户主动事件触发重绕，不做后台静默迁移）与
-/// 风险对策见上述评估文档；下次触及同步加密域（改密/配对协议）时顺车
-/// 实施。
-Future<List<int>> deriveMasterKey(
-  String password,
-  List<int> salt, {
-  int iterations = 600000,
-}) {
+/// **不兼容旧版（2026-11-10 用户裁决）**：同步 KDF 从 PBKDF2 切换到
+/// Argon2id 后，同口令同盐产出**不同** key——PBKDF2 时代上传的云端密文
+/// 从此不可解（同步信封同时升级到 v2，解密侧拒绝 v1）。要继续使用云端
+/// 数据，用户需重新配置同步口令并全量重传。
+Future<List<int>> deriveMasterKey(String password, List<int> salt) {
   return KekSessionCache.instance.deriveKek(
     password,
     salt,
-    KdfParams.pbkdf2(iterations),
+    KdfParams.argon2idProduction,
   );
 }

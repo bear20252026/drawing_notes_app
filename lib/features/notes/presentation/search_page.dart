@@ -7,16 +7,16 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
-import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
-import 'package:drawing_notes_app/features/notes/presentation/notebook_view_page.dart';
-import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
+// 解耦（2026-10-10）：原 `features/doc/application/doc_controller.dart`、
+// `features/doc/presentation/doc_page.dart`、
+// `features/security/presentation/{notebook,block_doc}_password_reset_flow.dart`
+// 四条跨 feature 依赖**已删除**——打开块文档/分页画布与重置流均经组合根契约
+// `app/app_routes.dart` 注入。
+import 'package:drawing_notes_app/app/app_routes.dart';
 // N4 批 3：加密分页画布解锁拦截（与 app_shell 同口径）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/features/security/presentation/notebook_password_reset_flow.dart';
-import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
@@ -110,54 +110,13 @@ class _SearchPageState extends State<SearchPage> {
       );
       return;
     }
-    // 块文档命中：打开双模宿主（页面/无限画布）。
+    // 块文档命中：经组合根路由打开（N2 受密解锁拦截与损坏反馈在实现侧）。
     if (r.kind == 'blockdoc') {
-      final blockStore = widget.blockDocStore ?? NoteBlockDocStore();
-      // N2：受密笔记解锁拦截（搜索索引本身已排除未解锁的受密笔记，
-      // 此处兜底防「搜索后设密/切后台清 DEK」竞态）。
-      if (await blockStore.isBlockDocPasswordProtected(r.pageId!) &&
-          !blockStore.isBlockDocUnlocked(r.pageId!)) {
-        if (!mounted) return;
-        final pin = await UnlockFlow.show(
-          context,
-          title: AppLocalizations.of(context)?.docUnlockTitle ?? '该笔记已加密，输入密码',
-          flexible: true,
-          onVerify: (p) => blockStore.verifyBlockDocPassword(r.pageId!, p),
-          footerLabel:
-              AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
-          onFooter: () {
-            BlockDocPasswordResetFlow.show(
-              context,
-              store: blockStore,
-              docId: r.pageId!,
-            );
-          },
-        );
-        if (pin == null && !blockStore.isBlockDocUnlocked(r.pageId!)) {
-          return;
-        }
-      }
-      // 锁定异常折叠为 null（fail-closed）——独立方法保证空安全提升。
-      Future<NoteBlockDoc?> loadGuarded() async {
-        try {
-          return await blockStore.loadDocument(r.pageId!);
-        } on BlockDocLockedException {
-          return null; // 会话 DEK 已被清——不暴露内容
-        }
-      }
-
-      final doc = await loadGuarded();
-      if (doc == null || !mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DocPage(
-            document: doc,
-            blockDocStore: blockStore,
-            controller: DocController(
-              onSave: (d) => blockStore.saveDocument(d),
-            ),
-          ),
-        ),
+      final routes = appRouteServices;
+      if (routes == null) return;
+      await routes.openNotePage(
+        context,
+        DocOpenArgs(id: r.pageId!, title: r.title),
       );
       return;
     }
@@ -189,12 +148,9 @@ class _SearchPageState extends State<SearchPage> {
         onVerify: (p) => nbStorage.verifyNotebookPassword(nbId, p),
         footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
         onFooter: () {
-          NotebookPasswordResetFlow.show(
-            context,
-            storage: nbStorage,
-            notebookId: nbId,
-            notebookTitle: nb.title,
-          );
+          // 解耦（2026-10-10）：原直推 security 的
+          // `NotebookPasswordResetFlow`；现经组合根契约启动。
+          _startNotebookPasswordReset(nbId, nb.title);
         },
       );
       if (pin == null && nbStorage.notebookPasswordFor(nbId) == null) {
@@ -217,16 +173,37 @@ class _SearchPageState extends State<SearchPage> {
       }
     }
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => NotebookViewPage(
-          notebook: nb,
-          storage: nbStorage,
-          editorPageBuilder: widget.editorPageBuilder,
-          // C-06（审计 2026-09-27）：媒体服务同一实例继续传线。
-          mediaCrypto: widget.mediaCrypto,
-          sessionPassword: sessionPw,
-        ),
+    // 解耦（2026-10-10）：原直推 `NotebookViewPage`；现经组合根契约打开
+    // （媒体服务/编辑器构建器由实现侧装配，会话密码随参数传线）。
+    final routes = appRouteServices;
+    if (routes == null) return;
+    await routes.openNotebookPage(
+      context,
+      NotebookOpenArgs(
+        pageId: nbId,
+        pageTitle: nb.title,
+        notebookId: nbId,
+        sessionPassword: sessionPw,
+      ),
+    );
+  }
+
+  /// 启动笔记本「忘记密码」重置流（解耦 2026-10-10）。
+  ///
+  /// 原实现直推 `features/security/presentation/notebook_password_reset_flow.dart`
+  /// 的 `NotebookPasswordResetFlow.show`；现经组合根契约
+  /// [AppRouteServices.startNotebookPasswordReset] 启动。
+  Future<void> _startNotebookPasswordReset(
+    String notebookId,
+    String notebookTitle,
+  ) async {
+    final routes = appRouteServices;
+    if (routes == null) return;
+    await routes.startNotebookPasswordReset(
+      context,
+      NotebookPasswordResetRequest(
+        notebookId: notebookId,
+        notebookTitle: notebookTitle,
       ),
     );
   }

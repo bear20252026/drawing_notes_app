@@ -11,8 +11,8 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 
 Stroke _stroke({

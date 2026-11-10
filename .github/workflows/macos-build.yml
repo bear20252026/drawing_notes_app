@@ -1,0 +1,147 @@
+name: macOS Build (Release)
+
+# macOS 构建支持（2026-11 审计新增）。
+#
+# 背景：本仓此前只有 Windows + Android 两条构建腿（release-build.yml），
+# 而 pubspec 的插件集里已有 macOS 原生实现（file_selector_macos /
+# flutter_secure_storage_darwin / hotkey_manager_macos / local_auth_darwin），
+# 即依赖侧早已具备 macOS 能力，缺的只是平台工程与构建证据。
+#
+# 定位与边界：
+#  · **暂不签名、暂不分发**（用户明确要求）。产物只作为 workflow artifact
+#    归档，不挂 GitHub Release、不进公开面。
+#  · 最低部署目标 **macOS 13**（见下方「最低部署目标」步骤）。
+#  · 构建在云端 runner 上跑（用户要求：重量构建全部在云端 CI，本机不跑）。
+#
+# ⚠ 关于 macos/ 平台目录：本工作区**已包含** `macos/`（`flutter create`
+# 生成后按需配置：最低部署目标 13、Entitlements、Info.plist 已入库）。
+# 因此本工作流直接复用仓库里的 macos/，不再在 runner 上重新生成。
+# 若将来升级 Flutter 模板，需在本地 `flutter create --platforms=macos`
+# 对照差异并回写仓库，而不是依赖 runner 现场生成（自定义配置会丢）。
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+# 最小权限：本工作流只读代码、只上传 artifact，不写 Release、不碰 secrets。
+permissions:
+  contents: read
+
+# 快速连推/重开 PR 时取消同组在跑的旧 run，节省排队时长。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-release:
+    name: macOS Release Build
+    # macos-13 = Intel runner，是本仓最低部署目标（macOS 13）的同代 runner，
+    # 能最直接地验证「在 macOS 13 上编得动、跑得起来」。
+    # 若换 macos-latest（当前是 Apple Silicon），需在注释里说明架构变化。
+    runs-on: macos-13
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          # 全仓统一口径：所有工作流（CI / PR / 出货 / 周证据）均钉 3.47.9。
+          # 版本一致是「同一份代码在各平台都能编」证据的前提——两条腿版本
+          # 不同会让构建证据互相不可比。后续升级需整体替换，不在此单方面漂移。
+          flutter-version: 3.47.9
+          cache: true
+
+      # ── 平台工程 ─────────────────────────────────────────────────────────
+      # macos/ 已随仓库入库（含 Entitlements / Info.plist / 部署目标配置）。
+      # 这里只做存在性校验 + 幂等地把部署目标钉到 13，防止后续误改回模板默认值。
+      - name: 校验 macOS 平台工程
+        run: |
+          set -euo pipefail
+          test -f macos/Runner.xcodeproj/project.pbxproj || {
+            echo "::error::仓库缺少 macos/ 平台工程，无法继续"; exit 1;
+          }
+          test -f macos/Runner/Info.plist
+          test -f macos/Runner/Release.entitlements
+          echo "macOS 平台工程齐备（Info.plist / Entitlements / pbxproj）。"
+
+      # ── 最低部署目标：macOS 13 ────────────────────────────────────────────
+      # 用户要求最低 macOS 13。仓库里的 macos/ 已把三套 configuration
+      # （Debug / Profile / Release）的 MACOSX_DEPLOYMENT_TARGET 钉在 13.0；
+      # 本步是**幂等保护**——若后续有人误改回模板默认值，这里会纠正回来。
+      # Podfile 由 `pod install` 生成（在本步之后），会继承 pbxproj 的目标版本，
+      # 所以这里只需处理已存在的 Podfile（重跑场景）。
+      - name: 设置最低部署目标 macOS 13
+        run: |
+          set -euo pipefail
+          TARGET=13.0
+          pbx=macos/Runner.xcodeproj/project.pbxproj
+          # 同时改 Debug / Profile / Release 三套 configuration。
+          sed -i '' -E "s/(MACOSX_DEPLOYMENT_TARGET = )[0-9.]+;/\1${TARGET};/g" "$pbx"
+          echo "pbxproj 中的部署目标："
+          grep -n "MACOSX_DEPLOYMENT_TARGET" "$pbx" | head
+          if [ -f macos/Podfile ]; then
+            sed -i '' -E "s/(platform :osx, *')[0-9.]+(')/\1${TARGET}\2/" macos/Podfile
+            grep -n "platform :osx" macos/Podfile || true
+          fi
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: CocoaPods install
+        # 插件里有多枚 macOS 原生依赖（file_selector_macos 等），必须 pod install。
+        # 失败时把 pod 输出打出来，便于判断是网络还是插件兼容问题。
+        working-directory: macos
+        run: |
+          set -euo pipefail
+          pod install --repo-update
+
+      - name: Static analysis
+        run: flutter analyze
+
+      # ── 构建 ─────────────────────────────────────────────────────────────
+      # 暂不签名（用户要求）：不传 --dart-define 签名相关变量，不配置
+      # codesign。未签名的 .app 在别的机器上首次打开会被 Gatekeeper 拦，
+      # 需要用户手动「允许」—— 这是当前口径的已知代价，不是 bug。
+      #
+      # 混淆口径与 release-build.yml / pr-platform.yml 对齐（2026-11 审计统一）。
+      # 符号表落到 build/symbols，随 artifact 上传。
+      - name: Build macOS release
+        run: flutter build macos --release --obfuscate --split-debug-info=build/symbols
+
+      # ── 产物 ─────────────────────────────────────────────────────────────
+      - name: 定位 .app 并打包为 zip
+        run: |
+          set -euo pipefail
+          app=$(find build/macos/Build/Products/Release -maxdepth 1 -name "*.app" | head -1)
+          if [ -z "$app" ]; then
+            echo "::error::未找到 .app 产物"; exit 1
+          fi
+          name=$(basename "$app")
+          echo "产物：$name"
+          ditto -c -k --keepParent "$app" "build/${name}.zip"
+          ls -lh "build/${name}.zip"
+
+      - name: Upload macOS app bundle (zip)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: macos-release
+          path: build/*.app.zip
+          if-no-files-found: error
+
+      - name: Upload macOS symbols
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: macos-symbols
+          path: build/symbols/
+          if-no-files-found: warn

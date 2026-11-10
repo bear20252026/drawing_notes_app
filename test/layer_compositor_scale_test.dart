@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 
 /// 计算位图中墨迹（alpha > 8）的质心。
 Future<ui.Offset> inkCentroid(ui.Image image) async {

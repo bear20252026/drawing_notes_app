@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 import 'dart:ui' show Color, Rect;
 
 import 'package:drawing_notes_app/features/drawing/application/layer_render_cache_coordinator.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';

@@ -29,11 +29,11 @@ import 'package:drawing_notes_app/features/drawing/application/services/stroke_s
 import 'package:drawing_notes_app/features/drawing/application/services/layer_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/services/selection_service.dart';
 import 'package:drawing_notes_app/features/drawing/application/services/history_service.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_palette.dart';
 import 'package:drawing_notes_app/core/operation/operation_log.dart';

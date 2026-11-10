@@ -1,6 +1,6 @@
 # Drawing Notes App（绘图笔记）
 
-A cross-platform **drawing and note-taking** application for **Windows desktop + Android**, built with **Flutter (Dart)**.
+A cross-platform **drawing and note-taking** application for **Windows desktop + Android + macOS**, built with **Flutter (Dart)**.
 **Local-first**: fully offline by default — **no accounts, no AI features**; sync is **optional user-configured WebDAV end-to-end encrypted sync** (no vendor cloud, zero network requests unless enabled).
 中文说明见 [README.md](README.md)。
 
@@ -39,9 +39,10 @@ All three are managed in the **All Docs workspace**: grouped timeline, favorites
 
 ## Requirements
 
-- Flutter 3.47.0 (Dart 3.12.2) or later stable
+- Flutter 3.47.9 (Dart 3.13.7) or later stable
 - Windows build: Visual Studio 2022+ (C++ desktop development workload)
 - Android build: Android SDK (compileSdk 36) + JDK 17+
+- macOS build: Xcode 15+ (minimum macOS 13 Ventura); **unsigned/notarized** — runs locally
 
 ## Quick Start
 
@@ -49,15 +50,17 @@ All three are managed in the **All Docs workspace**: grouped timeline, favorites
 flutter pub get
 flutter run -d windows     # Windows desktop
 flutter run -d android     # Android device/emulator
+flutter run -d macos       # macOS desktop (local dev, unsigned/notarized)
 flutter build windows --debug
 flutter build apk --debug
+flutter build macos --debug
 ```
 
 ## Tests & Quality Gates
 
 ```bash
 flutter analyze   # must report "No issues found" (commit gate)
-flutter test      # 1851 tests (canvas / block docs / security audit regressions /
+flutter test      # ~2750 tests (canvas / block docs / security audit regressions /
                   # WebDAV sync / export pipelines + 2026-09 full audit regressions;
                   # real-KDF cases split into a serial tagged suite)
 flutter test test/architecture_test.dart   # 9 architecture rules (layer direction incl.

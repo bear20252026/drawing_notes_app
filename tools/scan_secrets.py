@@ -5,6 +5,11 @@ Gitleaks 模式（regex + keywords 快速过滤 + 熵检测）的轻量实现：
 文本文件中的敏感模式（私钥/API 令牌/凭据/高熵字符串），CI 阻断性检查——
 发现即退出码 1。生产密钥/口令禁止入仓（专家要求）。
 
+2026-10 审计扩展：规则 7 → 14（新增 JWT / GitLab PAT / GCP API key /
+GCP service account / Azure 连接串 / NPM token / PyPI token），并新增
+凭据类**文件名**检测（.env* / credentials* / secrets* / id_rsa / *.pem …）
+——文件名命中即报告，作为内容扫描的补充面。
+
 用法：python tools/scan_secrets.py [--path .] [--exclude sbom.cdx.json]
 """
 from __future__ import annotations
@@ -16,7 +21,14 @@ import sys
 from pathlib import Path
 
 # 敏感模式（Gitleaks 式：regex + 关键字描述——命中即报告）。
+#
+# 2026-10 审计扩展：原有 7 条保留（编号 1-7，见下），新增 JWT / GitLab /
+# GCP / Azure / NPM / PyPI 等供应商令牌规则（编号 8-14）。新增规则均先做
+# 双向验证：① 正对照——用真实格式的令牌样本确认能命中；② 负对照——在
+# 本仓 1000+ 文件上跑，确认 0 误报（尤其避免把 base64 图片/长标识符/哈希
+# 常量误判成密钥）。
 RULES = [
+    # ── 原有 7 条（未改动）────────────────────────────────────────────────
     (re.compile(r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----"), "私钥（PEM）"),
     (re.compile(r"AKIA[0-9A-Z]{16}"), "AWS Access Key"),
     (re.compile(r"github_pat_[0-9A-Za-z_]{22,}"), "GitHub PAT"),
@@ -25,6 +37,30 @@ RULES = [
     (re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[=:]\s*['\"][0-9a-zA-Z_\-]{16,}['\"]"),
      "凭据赋值（API key/secret/token/password）"),
     (re.compile(r"(?i)BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY"), "私钥块"),
+    # ── 新增：JWT ───────────────────────────────────────────────────────
+    # 三段式 base64url，首段解码后必是 {" 开头（eyJ）——这是 JWT 的固有
+    # 形态而非任意 base64，故不会误报普通 base64 串。
+    (re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
+     "JWT（JSON Web Token）"),
+    # ── 新增：GitLab ──────────────────────────────────────────────────────
+    # glpat- 前缀是 GitLab PAT 的固定形态（20+ 随机字符）。
+    (re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b"), "GitLab Personal Access Token"),
+    # ── 新增：GCP ────────────────────────────────────────────────────────
+    # AIza 前缀 + 35 字符（Google API key 固定 39 字符总长）。
+    (re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"), "GCP API Key"),
+    # GCP 服务账号 JSON 的固定 type 字段（值为 service_account 字面量）。
+    # 注释里刻意不复写键值对原文——否则扫描器会命中自己的规则说明。
+    (re.compile(r'"type"\s*:\s*"service_account"'), "GCP Service Account JSON"),
+    # ── 新增：Azure ──────────────────────────────────────────────────────
+    # Azure Storage 连接串的固定结构（AccountKey= 后接 base64 密钥）。
+    (re.compile(r"(?i)DefaultEndpointsProtocol=https?;AccountName=[^;]+;AccountKey="),
+     "Azure Storage Connection String"),
+    # ── 新增：NPM ────────────────────────────────────────────────────────
+    # npm_ 前缀 + 36 字符（NPM  classic token 的固定形态）。
+    (re.compile(r"\bnpm_[0-9A-Za-z]{36}\b"), "NPM Access Token"),
+    # ── 新增：PyPI ───────────────────────────────────────────────────────
+    # pypi-AgEIcHlwaS5vcmc 是 PyPI token 的固定前缀（上传用 token）。
+    (re.compile(r"\bpypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{20,}\b"), "PyPI Upload Token"),
 ]
 
 # 扫描排除（构建/缓存/生成的产物）。
@@ -38,6 +74,42 @@ EXCLUDED_FILES = {"sbom.cdx.json", "pubspec.lock", "untranslated_messages.json",
 # 误报豁免（2026-08-16）：base62 字符集 const（fractional_index——默认
 # 参数要求 const——合法字符集常量非密钥——高熵检测误报）。
 EXCLUDED_PATHS = {"lib/core/canvas_model/fractional_index.dart"}
+# 凭据类文件名检测（2026-10 审计新增）：文件名本身形如 `.env` / `credentials`
+# / `secrets` 说明这是凭据文件——这类文件本不该入仓，命中即报告（文件名检测
+# 是内容扫描的补充面，不是替代：内容规则仍会照常扫这些文件的实际内容）。
+#
+# ⚠️ 口径经本仓实测校准（28 个误报 → 0）：第一版把 `*_password_manager.dart`
+# / `*_secret_store.dart` 这类**源码标识符**也算进去，在本仓命中 28 个合法文件
+# （session_secrets.dart / storage_file_password_manager.dart 等）——那是把
+# 「文件名里含敏感词」误当成「这是凭据文件」。故这里只匹配**凭据文件本身的
+# 命名惯例**，且要求敏感词独占文件名（前面是分隔符或位于开头），不匹配
+# `xxx_password_yyy` 这种夹在中间的源码命名：
+#   ✅ .env / .env.local / credentials.json / credentials.yaml / secrets.yaml
+#       id_rsa / id_ed25519 / service_account.json / xxx.pem / xxx.p12 / xxx.pfx
+#   ❌ storage_file_password_manager.dart / session_secrets.dart / password_reset.dart
+CREDENTIAL_FILENAME_PATTERNS = [
+    # .env / .env.local / .env.production.local（dotenv 凭据文件的固定名）。
+    re.compile(r"^\.env(\.|$)", re.IGNORECASE),
+    # 凭据文件：敏感词独占文件名前缀 + **受控的**环境限定词（prod/dev/local…）
+    # + 配置类扩展名。限定词必须来自白名单——写成 `([._-].*)?` 这种任意后缀
+    # 会让 `secret-scan.yml`（本仓真实存在的 workflow 文件名）被命中，实测
+    # 就是一个误报；同时它还会把 `secret_store_test.dart` 之类夹在中间的
+    # 源码标识符一并吃掉。白名单口径：
+    #   ✅ credentials.json / credentials-prod.yaml / secrets.local.json / password.txt
+    #   ❌ secret-scan.yml / session_secrets.dart / password_reset.dart
+    re.compile(r"(?i)^(credentials?|secrets?|password|passwd|account[_-]?key)"
+               r"([._-](prod|production|staging|stage|dev|development|local|test|qa|uat|"
+               r"example|sample|template|private|public|key|keys|store|backup))?"
+               r"\.(json|ya?ml|toml|ini|txt|env|cfg|conf)$"),
+    # 私钥文件名惯例：id_rsa / id_ed25519 / id_ecdsa（OpenSSH 默认名）。
+    re.compile(r"(?i)^id_(rsa|ed25519|ecdsa|dsa)$"),
+    # GCP 服务账号 JSON：`service_account.json`（无分隔）与
+    # `service-account.prod.json`（有分隔）两种命名都要覆盖。
+    re.compile(r"(?i)^(service_account|service-account|serviceaccount)(\..*)?\.json$"),
+    # 密钥材料扩展名（.pem / .p12 / .pfx / .jks / .keystore）——任何目录下的
+    # 这类文件都属凭据文件，本不该入仓。
+    re.compile(r"(?i)\.(pem|p12|pfx|jks|keystore|ppk)$"),
+]
 # 熵检测豁免（2026-09-05，审计 U4 批次发现）：l10n ARB 的 @key 元数据
 # 是生成的标识符命名空间（如 lockVerifyCurrentPassword，熵 4.08）——
 # 键名与密钥无关。仅豁免熵启发式：凭据 regex 规则仍照常扫描 ARB
@@ -115,6 +187,9 @@ def main() -> int:
             continue
         if path.suffix.lower() in SKIP_EXTENSIONS:
             continue
+        # 凭据类文件名检测（内容扫描的补充面——文件名本身即凭据文件的信号）。
+        if any(rx.search(path.name) for rx in CREDENTIAL_FILENAME_PATTERNS):
+            findings.append((str(path), 0, "凭据类文件名（.env*/credential*/secret*/密钥文件）", "<文件名命中>"))
         scanned += 1
         if not scan_file(
             path, findings, skip_entropy=rel.as_posix() in ENTROPY_EXCLUDED_PATHS

@@ -144,6 +144,24 @@ extension _HomePageCreateOps on _HomePageState {
     await _refresh();
   }
 
+  /// 启动画布独立密码「忘记密码」重置流（解耦 2026-10-10）。
+  ///
+  /// 原实现直推 `features/security/presentation/file_password_reset_flow.dart`
+  /// 的 `FilePasswordResetFlow.show`——现经组合根契约
+  /// [AppRouteServices.startFilePasswordReset] 启动，notes 不再横向依赖
+  /// security 的 presentation 层。
+  Future<void> _startFilePasswordReset(String docId, String docTitle) async {
+    final routes = appRouteServices;
+    if (routes == null) {
+      _showSnack(_l10nSafe?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配');
+      return;
+    }
+    await routes.startFilePasswordReset(
+      context,
+      FilePasswordResetRequest(docId: docId, docTitle: docTitle),
+    );
+  }
+
   /// 打开已有画布继续编辑。
   ///
   /// 批次②：受独立密码保护的画布先输密码（4–12 位可变长度密码盘，
@@ -180,12 +198,9 @@ extension _HomePageCreateOps on _HomePageState {
       onVerify: (p) => _docStorage.verifyFilePassword(meta.id, p),
       footerLabel: _l10nSafe?.homeForgotPasswordLink ?? '忘记密码？',
       onFooter: () {
-        FilePasswordResetFlow.show(
-          context,
-          storage: _docStorage,
-          docId: meta.id,
-          docTitle: meta.title,
-        );
+        // 解耦（2026-10-10）：原直推 security 的 `FilePasswordResetFlow`；
+        // 现经组合根契约启动（见 `app/app_routes.dart`）。
+        _startFilePasswordReset(meta.id, meta.title);
       },
     );
     // pin 非空 = 验证通过；null 但会话已有密码 = 刚被重置流解锁。
@@ -196,27 +211,17 @@ extension _HomePageCreateOps on _HomePageState {
 
   Future<void> _createNote() async {
     // M12.6 模板库：新建时选择模板（空白/会议纪要/每日日志/待办清单）。
-    final template = await GlassDialog.show<DocTemplate>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(_l10nSafe?.homeSelectTemplate ?? '选择笔记模板'),
-        children: [
-          for (final t in DocTemplate.values)
-            // 键盘可达：首个模板选项初始聚焦。
-            Focus(
-              autofocus: t == DocTemplate.values.first,
-              child: SimpleDialogOption(
-                onPressed: () => Navigator.of(ctx).pop(t),
-                child: ListTile(
-                  leading: Icon(_templateIcon(t)),
-                  title: Text(_docTemplateNameOf(context, t) ?? t.label),
-                  subtitle: Text(_docTemplateDescOf(context, t)),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
+    //
+    // 解耦（2026-10-10）：选择器 UI 自组合根注入的
+    // `AppRouteServices.showTemplatePicker`（原实现直接拼 SimpleDialog +
+    // `_docTemplateNameOf`/`_docTemplateDescOf`/`_templateIcon` 三个私有
+    // helper）——notes 不再自持模板的展示层。
+    final routes = appRouteServices;
+    if (routes == null) {
+      _showSnack(_l10nSafe?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配');
+      return;
+    }
+    final template = await routes.showTemplatePicker(context);
     if (template == null || !mounted) return;
 
     var blockId = 0;
@@ -234,36 +239,17 @@ extension _HomePageCreateOps on _HomePageState {
     }
     widget.onDataChanged?.call();
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DocPage(
-          document: doc,
-          // EUI-12 重采（R42）抓到的一格：`DocPage.blockDocStore` 的注释承诺
-          // 「各入口（搜索/笔记本管理/首页）无需各自接线即可获得完整能力」，
-          // 而这条**新建**腿以前一个都没传 ⇒ 刚建好的笔记里没有「管理密码」入口
-          // （doc_page.dart:260 的门控）也没有反向链接面板（doc_page_link_outline.dart:75/93）。
-          // 首页「打开已有笔记」那条腿一直是接好的（home_page_tabs.dart:281），差的只有这里。
-          blockDocStore: _blockDocStore,
-          controller: DocController(
-            onSave: (d) => _blockDocStore.saveDocument(d),
-          ),
-        ),
+    // 打开新建笔记（经组合根路由；解锁拦截/收藏/反向链接能力由实现侧装配）。
+    await routes.openNotePage(
+      context,
+      DocOpenArgs(
+        id: doc.id,
+        title: doc.title,
+        body: doc.body,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
       ),
     );
     await _refresh();
-  }
-
-  /// 模板 → 图标（application 层不依赖 material，图标在展示层映射）。
-  IconData _templateIcon(DocTemplate t) {
-    switch (t) {
-      case DocTemplate.blank:
-        return Icons.crop_square_rounded;
-      case DocTemplate.meeting:
-        return Icons.groups_rounded;
-      case DocTemplate.daily:
-        return Icons.today_rounded;
-      case DocTemplate.todoList:
-        return Icons.checklist_rounded;
-    }
   }
 }

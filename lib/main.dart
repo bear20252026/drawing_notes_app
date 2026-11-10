@@ -6,10 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/single_instance.dart';
+// window_manager 0.6.0 原生 API：0.5.x 的 windowManager 兼容层已标废弃，
+// 这里直接用 nativeapi 的 WindowManager/Window——setMinimumSize 对应
+// Window.minimumSize 的 native 赋值。
 import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
@@ -129,8 +133,8 @@ Future<void> main() async {
   // 防止窗口拖得过窄触发布局溢出。尽力而为：失败不阻塞启动。
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     try {
-      await windowManager.ensureInitialized();
-      await windowManager.setMinimumSize(const Size(360, 560));
+      WindowManager.instance.getCurrent()?.minimumSize =
+          const Size(360, 560).toNative();
     } catch (_) {
       AuditLogger.log('app.desktop_window_min_size', success: false);
     }
@@ -202,12 +206,23 @@ class _BuildErrorFallback extends StatelessWidget {
     // P2-18：深色模式用户此前会看到刺眼纯白错误页。platformBrightness 是
     // 纯 dart:ui API，不依赖 Theme/l10n——保持「零依赖」动机的同时适配
     // 深浅（构建失败兜底常量对，不经过任何 token 层）。
+    //
+    // 颜色来源（本次收编）：不再自造 `Color(0xFF...)` 前景/背景对，改走
+    // 令牌层——底色取 [AppleColor] 的 navy/white 档，前景与次级前景取
+    // ColorScheme 的 onSurface / onSurfaceVariant 语义（由 _navyScheme /
+    // _appleLightScheme 定义的同一组值）。仍刻意不取 Theme.of：出错上下文
+    // 可能已损坏，零依赖动机不变。
     final isDark =
         WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark;
-    final bg = isDark ? const Color(0xFF101521) : Colors.white;
-    final fg = isDark ? const Color(0xFFEBEDF3) : Colors.black87;
-    final fgMuted = isDark ? const Color(0xFF98989F) : Colors.black54;
+    // 与主题同一组 ColorScheme：亮档走 AppDesign.appleLightScheme()，
+    // 暗档走 AppDesign.navyScheme()（公开只读入口，避免此处直连私有名）。
+    final scheme = isDark
+        ? AppDesign.navyScheme()
+        : AppDesign.appleLightScheme();
+    final bg = isDark ? AppleColor.canvansDark : AppleColor.surfaceWhite;
+    final fg = scheme.onSurface;
+    final fgMuted = AppleColor.mutedOf(scheme);
     return ColoredBox(
       color: bg,
       child: Center(

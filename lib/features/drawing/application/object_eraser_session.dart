@@ -1,7 +1,7 @@
 import 'dart:ui' show Offset, Rect;
 
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 import 'package:drawing_notes_app/features/drawing/application/selection_geometry_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';

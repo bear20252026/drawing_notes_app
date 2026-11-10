@@ -34,7 +34,7 @@ import 'package:drawing_notes_app/features/drawing/application/eraser_mode_store
 import 'package:drawing_notes_app/features/drawing/application/editor_exporter.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/pdf_export_panel.dart';
 import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pencil_shader.dart';
+import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/editor_image_crop.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';

@@ -326,7 +326,11 @@ abstract final class BackupService {
       final decoder = ZipDecoder();
       final Archive archive;
       try {
-        archive = decoder.decodeStream(input);
+        // archive 4.6.0 起解码器契约变更：默认（无 flags）不再对损坏数据抛错，
+        // 而是返回部分/空 Archive。备份恢复是安全路径，必须 fail-closed——
+        // 显式 throwOnError: true 恢复 4.5.x 时代「损坏即 ArchiveException」
+        // 的行为，让下面的 notZip 分支继续生效。
+        archive = decoder.decodeStream(input, throwOnError: true);
       } catch (e) {
         return _reject(
           'notZip',

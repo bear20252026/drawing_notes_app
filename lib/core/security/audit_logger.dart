@@ -24,12 +24,14 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 /// 不实现**。
 ///
 /// 落盘（2026-10-10，挂账轻项）：每条记录同步进内存链、异步追加写
-/// `<数据根>/security/audit.log`（JSONL，含链字段——**文件格式**支持离线重放，
-/// 但**重放验证的生产代码目前不存在**，见下方 [AuditLogger.verifyIntegrity]
-/// 的能力缺位登记），超 1 MiB 轮转为 audit.log.1（保留一代）。追加失败**静默
-/// 吞掉**——审计永不阻断业务；内存链仍是权威实时视图。`flutter test` 环境默认
-/// **不落盘**（FLUTTER_TEST 护栏——测试不得污染用户真实数据根），测试经
-/// [sinkOverrideForTest] 注入临时目录。
+/// `<数据根>/security/audit.log`（JSONL，含链字段），超 1 MiB 轮转为
+/// audit.log.1（保留一代）。追加失败**静默吞掉**——审计永不阻断业务；内存链
+/// 仍是权威实时视图。`flutter test` 环境默认**不落盘**（FLUTTER_TEST 护栏——
+/// 测试不得污染用户真实数据根），测试经 [sinkOverrideForTest] 注入临时目录。
+///
+/// **文件侧回读重放（2026-11-10）**：[verifyIntegrity] 现在同时重放内存链与
+/// 落盘文件（`audit.log.1` + `audit.log`）——进程重启后的历史参与校验，
+/// 删除/插入段中条目、篡改字段都会断链。保证等级不变（仍是无密钥链，见上）。
 class AuditLogger {
   AuditLogger._();
 
@@ -46,12 +48,11 @@ class AuditLogger {
   static String _lastHash = _genesisHash;
 
   /// 滚动裁剪后的链起点锚（checkpoint）：被丢弃尾部之后、当前首条的
-  /// prevHash。verifyIntegrity 从此处而非 genesis 重放——否则一旦裁剪过
-  /// 就恒报「已篡改」（裁剪条目仍是新首条的 prevHash，genesis 重放必断）。
-  /// 内存链需要这个锚，文件链不需要：追加行按写入顺序成链、连续性由行序
-  /// 保证（`log()` 裁剪尾部时落锚）。但文件侧**也谈不上全量历史**——轮转只
-  /// 保留一代（`audit.log` + `audit.log.1`，再轮转即覆盖上一代），且**没有
-  /// 生产代码回读这些文件做重放**（见 [verifyIntegrity] 的能力缺位登记）。
+  /// prevHash。verifyIntegrity 的**内存链**从此处而非 genesis 重放——否则一旦
+  /// 裁剪过就恒报「已篡改」（裁剪条目仍是新首条的 prevHash，genesis 重放必断）。
+  /// 文件链不需要这个锚：追加行按写入顺序成链、连续性由行序保证，且进程重启
+  /// 后新链从 genesis 重新起（见 [_verifyFileChain] 的多段口径）。轮转只保留
+  /// 一代（`audit.log` + `audit.log.1`，再轮转即覆盖上一代）。
   static String _anchorPrevHash = _genesisHash;
 
   /// 累计被丢弃条数（内存内 checkpoint 分量；文件侧按行序追加、轮转只留一代，
@@ -75,6 +76,14 @@ class AuditLogger {
   static Future<File> Function()? _sinkResolver;
   static bool _resolverChecked = false;
 
+  /// 最近一次解析到的落盘 [File]（[_verifyFileChain] 同步回读用）。
+  ///
+  /// 落盘解析器是 async 的（默认 `AppDataRoot.securityFile`），而
+  /// [verifyIntegrity] 是**同步** API（设置页诊断导出在异步回调里同步调用）——
+  /// 无法在同步方法里等待 Future。故首次落盘拿到 [File] 后缓存于此，之后的
+  /// [verifyIntegrity] 可同步回读；测试经 [sinkOverrideForTest] 注入时同步可见。
+  static File? _sinkFileCache;
+
   /// 写入顺序链：log() 是同步 API，文件追加异步化后靠此链保序；
   /// 任一失败不断链（catchError 继续）。
   static Future<void> _writeChain = Future<void>.value();
@@ -84,6 +93,7 @@ class AuditLogger {
   @visibleForTesting
   static set sinkOverrideForTest(File? file) {
     _sinkResolver = file == null ? null : () async => file;
+    _sinkFileCache = file;
     _resolverChecked = true;
   }
 
@@ -95,6 +105,7 @@ class AuditLogger {
   @visibleForTesting
   static void resetSinkForTest() {
     _sinkResolver = null;
+    _sinkFileCache = null;
     _resolverChecked = true;
     maxFileBytesOverrideForTest = null;
     _writeChain = Future<void>.value();
@@ -133,6 +144,8 @@ class AuditLogger {
       } catch (_) {
         return; // 解析失败 = 本次不落盘。
       }
+      // 缓存供 verifyIntegrity 同步回读（解析 async、校验 sync 的桥）。
+      _sinkFileCache = sink;
       try {
         final parent = sink.parent;
         if (!parent.existsSync()) await parent.create(recursive: true);
@@ -187,21 +200,28 @@ class AuditLogger {
       List.unmodifiable(_entries.map((e) => e.display));
 
   /// 哈希链完整性验证（Thalian verify_audit_chain / 掘金 verify_integrity
-  /// 模式）：从**当前链真实起点**（_anchorPrevHash，未裁剪时即 genesis）重放
-  /// ——prevHash 链接 + 重算哈希——任何字段篡改立即检出。滚动裁剪后从锚点起
-  /// 重放，不再假装从 genesis 起（否则正常运行的长会话日志被误判为已篡改）。
+  /// 模式）：**内存链 + 落盘文件链**两段分别重放——prevHash 链接 + 重算哈希
+  /// ——任何字段篡改立即检出。内存链从当前链真实起点（_anchorPrevHash，未裁剪
+  /// 时即 genesis）重放，滚动裁剪后不再假装从 genesis 起（否则正常运行的长
+  /// 会话日志被误判为已篡改）。
   ///
   /// **校验范围（消费方必须如实转达——`DiagnosticsExporter` / 设置页诊断报告
-  /// 的「通过」只意味着下面这一句）**：本方法**只遍历内存 `_entries`**，
-  /// 一个文件都不读，覆盖的是**本进程保留的最近 ≤[_maxEntries]（1000）条**。
-  ///
-  /// **能力缺位登记（未实现，勿当作已完成）**：
-  /// - 对落盘 `security/audit.log`（全量历史）与轮转出的 `audit.log.1` 做
-  ///   **文件侧重放验证**——无实现；进程重启后旧历史完全不参与校验，
-  ///   「跨重启的历史审计链是否完好」目前**没有任何代码能回答**。
-  /// - 防「整链重算」的**带密钥**校验（HMAC 段 / 签名链）或**外部追加锚**——
-  ///   无实现（属能力升级，待业主裁决；见文件头「保证等级」）。
+  /// 的「通过」只意味着下面这一句）**：
+  /// - 内存链：本进程保留的最近 ≤[_maxEntries]（1000）条；
+  /// - 文件链：本进程已解析到落盘 sink 后写出的 `audit.log.1` + `audit.log`
+  ///   （含进程重启前的历史；多段独立链，段内严格连续）。
+  /// - 边界：全新进程在**首次 `log()` 之前**无法同步解析 async 落盘路径
+  ///   （本方法是同步 API），此时文件侧跳过、只校验内存链（通常首次 log 即
+  ///   触发解析，之后文件侧纳入校验）。落盘文件不存在 = 无内容可校验。
+  /// - 保证等级不变：链是**无密钥** SHA-256，能改文件的攻击者仍可整链重算
+  ///   （见文件头「保证等级」）；防「整链重算」的带密钥校验/外部锚仍未实现。
   static bool verifyIntegrity() {
+    if (!_verifyMemoryChain()) return false;
+    return _verifyFileChain();
+  }
+
+  /// 内存链重放（从 [_anchorPrevHash] 起）。
+  static bool _verifyMemoryChain() {
     var prev = _anchorPrevHash;
     for (final e in _entries) {
       if (e.prevHash != prev) return false; // 链接断裂（删除/插入中间记录）。
@@ -212,6 +232,63 @@ class AuditLogger {
         return false; // 哈希不符（字段被篡改）。
       }
       prev = e.hash;
+    }
+    return true;
+  }
+
+  /// 文件侧回读重放：读 `audit.log.1`（轮转前代）+ `audit.log`（当前），
+  /// 逐行重算哈希并核对 prevHash 链接。
+  ///
+  /// 进程重启后内存链从 genesis 重新起链，故文件里允许出现**多段**独立链
+  /// （每段首条 prevHash = genesis）——段内连续性仍严格校验，删除/插入段中
+  /// 条目、篡改字段都会断链；整段删除无法检出（无密钥链的固有边界，见文件头）。
+  /// sink 未解析（全新进程首次 log 之前）时跳过。坏行/读失败一律 fail-closed
+  /// 判为不完整（篡改或损坏）。
+  static bool _verifyFileChain() {
+    final sink = _sinkFileCache;
+    if (sink == null) return true;
+    var prev = _genesisHash;
+    for (final file in [File('${sink.path}.1'), sink]) {
+      if (!file.existsSync()) continue;
+      final List<String> lines;
+      try {
+        lines = file.readAsLinesSync();
+      } catch (_) {
+        return false; // 读失败 = 无法确认完整性（fail-closed）。
+      }
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue; // 容忍尾部空行。
+        final Map<String, dynamic> map;
+        try {
+          final decoded = jsonDecode(line);
+          if (decoded is! Map<String, dynamic>) return false;
+          map = decoded;
+        } catch (_) {
+          return false; // 坏行 = 篡改/损坏。
+        }
+        final time = map['time'];
+        final operation = map['operation'];
+        final success = map['success'];
+        final detail = map['detail'];
+        final prevHash = map['prevHash'];
+        final hash = map['hash'];
+        if (time is! String ||
+            operation is! String ||
+            success is! bool ||
+            (detail != null && detail is! String) ||
+            prevHash is! String ||
+            hash is! String) {
+          return false;
+        }
+        if (prevHash != prev && prevHash != _genesisHash) {
+          return false; // 段中断链（删除/插入）。
+        }
+        if (hash !=
+            _sha256(_payload(time, operation, success, detail, prevHash))) {
+          return false; // 哈希不符（字段被篡改）。
+        }
+        prev = hash;
+      }
     }
     return true;
   }

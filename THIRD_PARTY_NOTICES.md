@@ -71,6 +71,8 @@ SOFTWARE.
 | `hotkey_manager` / `window_manager` | 全局快捷键 / 桌面窗口 | MIT |
 | `flutter_secure_storage` | OS 凭据库（DPAPI/Keychain/Keystore） | BSD-3-Clause（发版前以 pub.dev 复核） |
 | `cupertino_ui` | Apple 风格组件 | 以 pub.dev 声明为准（发版前复核） |
+| `editor_core`（path: `packages/editor_core`） | 纯 Dart 编辑器核心（不可变文档/命令/几何/历史/序列化） | MIT（随主包；`publish_to: none`，不独立分发） |
+| `notebook_domain`（path: `packages/notebook_domain`） | 纯 Dart 笔记本安全域（会话/密钥句柄/锁定策略/用例/仓储端口） | MIT（随主包；`publish_to: none`，不独立分发） |
 
 子包 `packages/editor_core` 与 `packages/notebook_domain`：零运行时依赖，
 `publish_to: none`，不独立分发，随主包 MIT 许可。

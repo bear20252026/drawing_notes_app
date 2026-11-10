@@ -180,11 +180,28 @@ jobs:
     # 涉密红线已由领导批准解除：允许在评审流程中使用 LLM 端点。
     # 端点经 GitHub Secrets 注入（OCR_LOCAL_ENDPOINT / OCR_LOCAL_MODEL /
     # OCR_API_KEY）；配置后即执行真实行级评审并正式生效（无 || true）。
+    #
+    # ⚠ 密钥落盘红线（CI/CD 加固）：**不得**把 OCR_API_KEY 写进
+    # `ocr config set`（那会落盘到 ~/.opencodereview/config.json，密钥进 runner
+    # 文件系统，且随 job 结束不保证清除）。OCR 原生支持三条环境变量直传，
+    # 本 job 全程只把它们放在进程环境里（GitHub Actions 的 secret 注入本就
+    # 不进日志、不进 artifact）：
+    #   OCR_LLM_URL    ← OCR_LOCAL_ENDPOINT
+    #   OCR_LLM_TOKEN ← OCR_API_KEY
+    #   OCR_LLM_MODEL ← OCR_LOCAL_MODEL
+    # 三条齐全时 OCR 直接使用，**不需要任何 config 文件**（见 ocr 源码
+    # 提示串「no valid LLM endpoint configured; one of OCR_LLM_URL/
+    # OCR_LLM_TOKEN/OCR_LLM_MODEL, ~/.opencodereview/config.json, …」）。
+    # 因此下面的「配置模型端点」步骤只在端点缺失时打印提示，不再落盘密钥。
     env:
+      # OCR_PROVIDER 仅作标识（OCR 走环境变量直传，不再需要 config set provider）。
       OCR_PROVIDER: my-gateway
       OCR_LOCAL_ENDPOINT: ${{ secrets.OCR_LOCAL_ENDPOINT }}
       OCR_LOCAL_MODEL: ${{ secrets.OCR_LOCAL_MODEL }}
       OCR_API_KEY: ${{ secrets.OCR_API_KEY }}
+      OCR_LLM_URL: ${{ secrets.OCR_LOCAL_ENDPOINT }}
+      OCR_LLM_TOKEN: ${{ secrets.OCR_API_KEY }}
+      OCR_LLM_MODEL: ${{ secrets.OCR_LOCAL_MODEL }}
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -195,8 +212,8 @@ jobs:
         # P3-7：钉版（原「官方最新版」）。
         run: npm install --ignore-scripts -g @alibaba-group/open-code-review@1.12.13
 
-      - name: 涉密预检（评审前红线检查）
-        # 白名单外目录或涉密内容（密钥/口令）一律拦截，禁止提交给 OCR。
+      - name: 涉密预检（评审前红线检查——**阻断式**）
+        # 白名单外目录或涉密内容（密钥/口令）一律拦截，**禁止上传**给 OCR。
         # 依据 docs/OCR_REVIEW_POLICY.md 第三节。
         #
         # ⚠ 审计 TE-TST-05 / CTL-02（2026-10-16）：原实现固定用
@@ -211,6 +228,13 @@ jobs:
         # ② 基线算出空变更集就判失败，不再判通过。
         # 误拦风险已实测回看：以父提交为基线，最近 12 次推送的凭据赋值命中数全部为 0
         # （变更文件数 1~17，均非空）⇒ 换基线之后这条检查才开始真跑，且不会回头拦历史。
+        #
+        # ⚠ 审计 2026-11（外部 LLM 上传红线）：本步是**唯一**的阻断闸门。
+        # 上一版虽然命中即 exit 1，但它只检查了「凭据赋值」这一种形态，且
+        # 在**它之后**才执行 `ocr review`——一旦本步被绕过（基线算错、正则漏配、
+        # 或将来有人在本步与 review 之间插入步骤），diff 就会**直接上传**给外部
+        # LLM 端点。现在把口径写死为：**本步不过 ⇒ 绝不允许执行 review**。
+        # review 步骤显式依赖 `success()`，且本步失败时 job 立即终止。
         run: |
           set -euo pipefail
           ZERO_SHA="0000000000000000000000000000000000000000"
@@ -260,28 +284,44 @@ jobs:
           fi
           echo "涉密预检通过（扫了 $(echo "$CHANGED" | wc -l) 个文件、$(echo "$ADDED" | grep -c . || true) 行新增）"
 
-      - name: 配置模型端点（Secrets 注入；领导批准后正式生效）
+      - name: 端点就绪检查（**不落盘任何密钥**）
+        # 审计 2026-11：原版在此执行 `ocr config set ... api_key`，把 OCR_API_KEY
+        # 明文写进 ~/.opencodereview/config.json（runner 磁盘）。即使 job 结束
+        # runner 被回收，这也是「密钥落盘」——与 GitHub Secrets 的设计意图相悖。
+        #
+        # 现改为：端点三条环境变量（OCR_LLM_URL / OCR_LLM_TOKEN /
+        # OCR_LLM_MODEL）由 job 级 env 直接注入，OCR 原生读取，**不写任何
+        # config 文件**。本步只做「是否配齐」的判定，不搬运密钥。
         run: |
-          if [ -n "$OCR_LOCAL_ENDPOINT" ]; then
-            ocr config set provider "$OCR_PROVIDER"
-            ocr config set custom_providers.my-gateway.url "$OCR_LOCAL_ENDPOINT"
-            ocr config set custom_providers.my-gateway.model "$OCR_LOCAL_MODEL"
-            if [ -n "$OCR_API_KEY" ]; then
-              ocr config set custom_providers.my-gateway.api_key "$OCR_API_KEY"
-            fi
-            echo "模型端点已配置（领导批准，正式评审）"
+          set -euo pipefail
+          if [ -n "$OCR_LLM_URL" ] && [ -n "$OCR_LLM_TOKEN" ] && [ -n "$OCR_LLM_MODEL" ]; then
+            echo "端点已就绪（走 OCR_LLM_URL / OCR_LLM_TOKEN / OCR_LLM_MODEL 环境变量，未落盘密钥）"
           else
-            echo "尚未配置 OCR_LOCAL_ENDPOINT——领导已批准，请配置后激活真实评审"
+            echo "尚未配齐 OCR_LOCAL_ENDPOINT / OCR_API_KEY / OCR_LOCAL_MODEL——请配置后激活真实评审"
             echo "endpoint_configured=false" >> "$GITHUB_ENV"
+          fi
+          # 双保险：确认没有历史遗留的配置文件把密钥留在磁盘上。
+          if [ -f "$HOME/.opencodereview/config.json" ]; then
+            echo "::warning::检测到 ~/.opencodereview/config.json 存在——请确认其中不含 api_key（本工作流不应产生该文件）。"
+            grep -iE '"api_key"[[:space:]]*:[[:space:]]*"[^"]+' "$HOME/.opencodereview/config.json" \
+              && { echo "::error::配置文件中出现 api_key 明文，禁止继续"; exit 1; } \
+              || true
           fi
 
       - name: 行级评审（diff 模式，正式门禁）
         # 领导批准上传：配置端点后执行真实评审，发现问题即失败（无 || true）。
-        if: env.endpoint_configured != 'false'
+        #
+        # ⚠ 阻断式预检闸门（审计 2026-11）：`success()` 保证上一步「涉密预检」
+        # 失败时本步**绝不执行**——即 diff 含涉密内容时，评审根本不会被调用，
+        # 外部 LLM 端点收不到任何数据。这是本仓唯一把「不上传」变成机器约束
+        # 的地方，不要为了「让评审跑起来」把它改成 always()。
+        if: success() && env.endpoint_configured != 'false'
+        # 密钥只经环境变量传递（job 级 env 已注入 OCR_LLM_*），本步不写任何文件。
         run: ocr review --base origin/master --head HEAD --format markdown
 
       - name: 委派模式评审（端点未配置时的离线兜底）
-        if: env.endpoint_configured == 'false'
+        # success() 同上：涉密预检没过时连兜底提示也不跑（否则会掩盖红灯）。
+        if: success() && env.endpoint_configured == 'false'
         run: |
           echo "建议在本地开发时使用委派模式："
           echo "  ocr delegate preview"
@@ -301,19 +341,28 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 安装 pyscn 等（P3-7 钉版 pyscn；辅助工具不锁）
+      - name: 安装 pyscn 等（P3-7 钉版 pyscn + py-cq 钉版 tag）
+        # 审计 2026-11（未钉版）：原 `pip install git+https://github.com/rhiza-fr/py-cq.git`
+        # 拉默认分支 HEAD —— 上游一次 force push 或仓库失陷就会让门禁静默换规则
+        # （本仓 W3 同款教训：未锁版即规则漂移）。现钉到 tag v0.3.1。
+        # 升级流程：本地评估新版 → 改 tag → 单独提交写明动机。
         run: |
-          pip install git+https://github.com/rhiza-fr/py-cq.git
+          pip install "git+https://github.com/rhiza-fr/py-cq.git@v0.3.1"
           pip install pyscn==1.29.0 ruff ty bandit vulture radon interrogate
 
       - name: py-cq 聚合门禁（tools/ Python 辅助脚本）
-        # 聚合 11 工具评分；先报告不阻断（continue-on-error）
+        # 聚合 11 工具评分。
+        # 【观测期，待稳定后改为阻断】2026-11 起本步 continue-on-error：
+        # py-cq 刚钉版（v0.3.1），且本仓 tools/ 首次纳入其 11 工具聚合，
+        # 需要先积累几轮数据确认阈值与误报率；观测期结束后**应改为阻断**
+        # （去掉 continue-on-error 与 `|| true`），口径与上方 Skylos 安全域一致。
         continue-on-error: true
         run: |
           cd tools && cq check . -o score || true
 
       - name: pyscn 架构分析（tools/，A-F 评分）
-        # 循环依赖/复杂度/死代码门禁；报告模式先观测
+        # 循环依赖/复杂度/死代码门禁。
+        # 【观测期，待稳定后改为阻断】同上：先积累几轮评分数据再定阈值。
         continue-on-error: true
         run: |
           pyscn analyze tools --skip-clones --skip-communities --skip-lcom --json || true
@@ -328,12 +377,31 @@ jobs:
         with:
           fetch-depth: 0  # --base 需要完整历史
 
-      - name: Install RepoPilot (官方预编译二进制)
+      - name: Install RepoPilot (官方预编译二进制——钉版 + SHA-256 校验)
         # 本地优先 Rust CLI；零上传、无 LLM 调用——契合政府涉密红线。
+        #
+        # 审计 2026-11（下载产物无校验）：原实现直接 `curl | tar` 解到 /usr/local/bin，
+        # 供应链上一旦 release 资产被篡改/替换，CI 会静默执行恶意二进制。
+        # 现按 GitHub Release API 公布的 digest 钉死 SHA-256（上游 release 页
+        # 同时提供 .sha256 旁挂文件，两者应一致）：
+        #   repopilot-v0.21.0-x86_64-unknown-linux-gnu.tar.gz
+        #     sha256:df00a1e1505012586836e8f0804825101df8e0606b30524c6ec380ba13924e1f
+        # 升级流程：改 URL 里的版本号**必须同时改这里**的 EXPECTED_SHA。
+        env:
+          RP_VERSION: v0.21.0
+          EXPECTED_SHA: df00a1e1505012586836e8f0804825101df8e0606b30524c6ec380ba13924e1f
         run: |
-          curl -sL -o /tmp/repopilot.tar.gz \
-            "https://github.com/MykytaStel/repopilot/releases/download/v0.21.0/repopilot-v0.21.0-x86_64-unknown-linux-gnu.tar.gz"
+          set -euo pipefail
+          url="https://github.com/MykytaStel/repopilot/releases/download/${RP_VERSION}/repopilot-${RP_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl -fsSL -o /tmp/repopilot.tar.gz "$url"
+          actual=$(shasum -a 256 /tmp/repopilot.tar.gz | awk '{print $1}')
+          echo "SHA256: $actual"
+          if [ "$actual" != "$EXPECTED_SHA" ]; then
+            echo "::error::RepoPilot 产物 SHA-256 不符（期望 $EXPECTED_SHA，实际 $actual）——拒绝安装。"
+            exit 1
+          fi
           tar -xzf /tmp/repopilot.tar.gz -C /usr/local/bin
+          rm -f /tmp/repopilot.tar.gz
           repopilot --version
 
       - name: RepoPilot git diff 证据门禁（正式）

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Drawing Notes</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>$(PRODUCT_COPYRIGHT)</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+
+	<!-- macOS 应用类别：告诉 Launchpad / Finder 「这是什么类型的 App」。
+	     public.app-category.graphics 与设计/绘图类应用匹配。 -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.graphics</string>
+
+	<!-- 高分辨率屏支持：Retina 下按点（point）布局，不做像素拉伸。 -->
+	<key>NSHighResolutionCapable</key>
+	<true/>
+
+	<!-- 文档类型关联：.dnproj 项目文件（与 lib/core/platform/file_association.dart
+	     的 macOS 分支一致）。角色 Editor = 可读写；Viewer 用于 Quick Look。 -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Drawing Notes Project</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>gov.drawingnotes.drawing-notes-project</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- 导出的 UTI：声明 .dnproj 的归属类型，与上面 DocumentTypes 引用一致。 -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>gov.drawingnotes.drawing-notes-project</string>
+			<key>UTTypeDescription</key>
+			<string>Drawing Notes Project</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dnproj</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+
+	<!-- 相机/麦克风用途说明：local_auth（Face ID/Touch ID）与未来语音笔记。
+	     macOS 14+ 对未声明的用途会直接拒绝授权。 -->
+	<key>NSCameraUsageDescription</key>
+	<string>Drawing Notes 使用相机进行文档扫描批注。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Drawing Notes 使用麦克风进行语音笔记录制。</string>
+
+</dict>
+</plist>

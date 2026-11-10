@@ -56,9 +56,21 @@ import 'package:flutter_test/flutter_test.dart';
 /// - 源 feature = 路径首段 `lib/features/<src>/`，目标 = import URI 里的
 ///   `features/<dst>/`，`src == dst`（同 feature 内分层 import）不计。
 ///
-/// 本次实测（与本测试同口径）：notes->doc 9、notes->security 5、
-/// notes->drawing 6、doc->notes 0、notes->all_docs 0、doc->security 0、
+/// 本次实测（与本测试同口径）：notes->doc 2、notes->security 0、
+/// notes->drawing 0、doc->notes 0、notes->all_docs 0、doc->security 0、
 /// all_docs->notes 0、security->notes 0、security->doc 0、drawing->notes 0。
+///
+/// notes->security 5→0 与 notes->doc 9→2（2026-10-10 解耦）：notes 的三个入口
+/// （home_page / search_page / notebook_view_page）不再直接 import
+/// `features/doc/presentation/doc_page.dart` 与
+/// `features/security/presentation/*_reset_flow.dart`；改为经组合根契约
+/// `app/app_routes.dart` 的 `AppRouteServices` 打开页面/启动重置流，
+/// 实现落在 `app/default_route_services.dart`（组合根是唯一允许全量装配处）。
+/// 同时模板库自 `features/doc/application/doc_templates.dart` 迁至
+/// `core/documents/note_templates.dart`（全仓唯一消费方是 notes 的
+/// 「新建笔记」选择器，doc 内零引用）。
+/// 剩下 notes->doc 的 2 条均为 `doc/domain/clone_ref.dart`（领域值对象
+/// 被 `NotebookPage.cloneOf` 引用），不属本次解耦范围。
 /// R49（审计 2026-10-17）doc->notes 1→0：`migrateNotebookPage` 那份合一实现从
 /// doc/domain 搬到 notes/domain（它的唯一 feature 依赖是 NotebookPage），
 /// 于是 doc→notes 归零；R48 合一当初新增的那条 notes→doc 也随之消失（回 9）。
@@ -69,17 +81,26 @@ import 'package:flutter_test/flutter_test.dart';
 /// 基线全部收紧至实测值（棘轮只紧不松）；原值 29/6/7/3 系 2026-09-06 快照，
 /// 其后 v1.17.26「home_page 直连 infra 收口」等迁移已实际下降但基线未回跟。
 ///
-/// notes->drawing 现值 6（v1.17.51 重立快照实测）：无限画布整图 PDF 导出复用
-/// 全仓唯一 PDF 引擎 `pdf_hybrid_exporter`——与 notebook_pdf_exporter 同源的
-/// 「单一事实来源」先例，非新横向耦合面。历史注释曾记「6→7（v1.17.17）」，
-/// 属 v1.17.51 重立快照前的中间态，已随基线回跟作废（以本行现值为准）。
+/// notes->drawing 6→0（2026-10-20，R-49 下沉）：那 6 条全部是
+/// notes 的画布渲染/PDF 导出复用 drawing/rendering 的三个渲染器
+/// （ink_layer_painter / shape_renderer / pdf_hybrid_exporter）及其传递依赖
+/// （stroke_renderer / pencil_shader / stroke_picture_cache / layer_compositor）。
+/// 这七个文件只依赖 core/canvas_model 与 core/theme，属共享渲染能力，
+/// 遂整体下沉 `lib/core/rendering/`——notes 侧改指 core，横向直连归零。
+/// 历史注释曾记「现值 6（v1.17.51）」「6→7（v1.17.17）」，均为下沉前快照，
+/// 已随本次基线回跟作废。
 const Map<String, int> _baseline = {
   // notes->doc 29→9（2026-10-01，C-16 重立快照）：home_page 对
   // doc/infrastructure 的 BlockDocSearchAccessorImpl 直连已改 core 契约 +
   // 组合根注入（v1.17.26，审计 #17），基线回跟实测。
-  'notes->doc': 9,
-  'notes->security': 5,
-  'notes->drawing': 6,
+  // notes->doc 9→2（2026-10-10 解耦）：见上方文件头说明；余 2 条是
+  // `doc/domain/clone_ref.dart`（领域值对象），不在本次范围。
+  'notes->doc': 2,
+  // notes->security 5→0（2026-10-10 解耦）：三条重置流 + 模板展示层
+  // 均迁至组合根实现，notes 内不再出现 security 的 presentation import。
+  'notes->security': 0,
+  // notes->drawing 6→0（2026-10-20，R-49 下沉）：见上方文件头说明。
+  'notes->drawing': 0,
   'doc->notes': 0,
   'notes->all_docs': 0,
   'security->notes': 0,
@@ -281,13 +302,20 @@ void main() {
     );
 
     // 棘轮判据本身也要能红：超线一位、恰好到线、新方向各一格。
+    //
+    // 数值从 `_baseline` 推导而非写死：写死会让每次「下调基线」都顺手把
+    // 这条自证用例改坏（2026-10-10 下调 notes->doc 9→2 时就踩到了——
+    // 自证用例把旧基线值钉死在字面量里，于是「恰好等于基线」那一格报红）。
+    final docBaseline = _baseline['notes->doc']!;
     expect(
-      ratchetViolations(const {'notes->doc': 10}, _baseline),
+      ratchetViolations({'notes->doc': docBaseline + 1}, _baseline),
       hasLength(1),
-      reason: '10 > 基线 9 ⇒ 必须报（突变：把 `actual > allowed` 改成恒 false，这里就零报了）',
+      reason:
+          '$docBaseline+1 > 基线 $docBaseline ⇒ 必须报'
+          '（突变：把 `actual > allowed` 改成恒 false，这里就零报了）',
     );
     expect(
-      ratchetViolations(const {'notes->doc': 9}, _baseline),
+      ratchetViolations({'notes->doc': docBaseline}, _baseline),
       isEmpty,
       reason: '恰好等于基线不算违规——棘轮只紧不松，不能把已达标的迁移判红',
     );

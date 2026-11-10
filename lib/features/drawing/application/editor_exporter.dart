@@ -22,8 +22,8 @@ import 'package:drawing_notes_app/core/rtf_exporter.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart'
     show LockExemption;
 import 'package:drawing_notes_app/features/drawing/application/pdf_export_options.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/svg_exporter.dart';
 
 /// 画布导出域（参考 Saber 的 editor_exporter 模块化设计）。

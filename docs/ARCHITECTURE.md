@@ -8,7 +8,7 @@
 
 - Flutter（Dart），单仓库单应用：`drawing_notes_app`
 - 目录：`lib/core`（跨模块基础设施）+ `lib/features/*`（业务模块）+ `lib/l10n` + `lib/app`（组合根）
-- 测试：`test/`，与 lib 结构镜像（约 1950 项，全绿基线）
+- 测试：`test/`，与 lib 结构镜像（约 2750 项，全绿基线）
 
 ## 2. 功能模块地图
 
@@ -59,7 +59,17 @@ app（组合根，唯一知道所有实现的地方）
 - ✅ 死模块 features/home 已删除
 - ✅ 块编辑 UI 迁入 `features/doc/presentation/`（notes↔doc 表示层循环消除）
 - ✅ 共享页面对象模型抽至 `core/canvas_model/`
-- ✅ 渲染器移至 `features/drawing/rendering/`
+- ✅ 渲染器移至 `features/drawing/rendering/`（2026-10-20 再下沉：见下条）
+- ✅ **跨 feature 共享渲染器下沉 `core/rendering/`**（2026-10-20，R-49）：
+  notes 的画布渲染 / PDF 导出复用了 drawing/rendering 的三个渲染器，形成
+  notes→drawing 的横向直连（6 条）。这七个文件（`ink_layer_painter` /
+  `shape_renderer` / `pdf_hybrid_exporter` 及传递依赖 `stroke_renderer` /
+  `pencil_shader` / `stroke_picture_cache` / `layer_compositor`）只依赖
+  `core/canvas_model` 与 `core/theme`，属共享渲染能力，遂整体下沉。
+  notes 侧改指 `core/rendering`，**notes→drawing 依赖归零**；
+  drawing 专属的七个渲染器（`render_context` / `render_pipeline` /
+  `render_stage` / `shape_binding_geometry` / `shape_recognizer` /
+  `stroke_geometry_cache` / `svg_exporter`）仍留在 drawing/rendering。
 - ✅ 保存机制统一：DocPage 复用 `core/saving/SaveScheduler`
 - ✅ DocEditor 拆分（focus/richtext/outline/blocks 四个 part）
 - ✅ all_docs_page / edgeless_page 拆分 widgets part

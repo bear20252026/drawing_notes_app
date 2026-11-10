@@ -48,9 +48,14 @@ import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
-import 'package:drawing_notes_app/features/doc/application/doc_templates.dart';
-import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
-import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';
+// 解耦（2026-10-10）：原 `features/doc/application/doc_templates.dart`
+// 改为 core 的模板库（经 notes 侧 facade 再导出，路径稳定）；原
+// `features/doc/application/doc_controller.dart` 与
+// `features/doc/presentation/doc_page.dart` 两条跨 feature 依赖**已删除**——
+// 打开笔记改经组合根契约 `app/app_routes.dart` 的
+// [AppRouteServices.openNotePage]。
+import 'package:drawing_notes_app/app/app_routes.dart';
+import 'package:drawing_notes_app/features/notes/application/note_templates.dart';
 import 'package:drawing_notes_app/features/notes/presentation/search_page.dart';
 // 首页刷新修复②（2026-09-01）：RouteAware 可见性兜底——从编辑器/笔记本页
 // 返回时自动刷新，覆盖所有遗漏的写路径（IndexedStack 保活下 initState 不再执行）。
@@ -59,10 +64,9 @@ import 'package:drawing_notes_app/core/navigation/app_refresh.dart'
     show AppRefresh, AppRefreshRouteAware;
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
-// N4 批 2：忘记密码重置流 + 设密时插盘绑定重置密码盘。
-import 'package:drawing_notes_app/features/security/presentation/file_password_reset_flow.dart';
-// N2：笔记（块文档）文件密码——解锁拦截与忘记密码重置流。
-import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
+// N4 批 2：设密时插盘绑定重置密码盘（重置**流**本身经组合根契约启动，
+// 见 2026-10-10 解耦：原 `features/security/presentation/*_reset_flow.dart`
+// 两条跨 feature 依赖已删除）。
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 
 part 'home_page_widgets.dart';

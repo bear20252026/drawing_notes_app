@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart'
     show PageTextItem, TextAlignType;
-import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 

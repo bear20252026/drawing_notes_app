@@ -121,6 +121,42 @@ abstract final class AppleColor {
   static Color subtleOf(ColorScheme scheme) =>
       scheme.onSurface.withValues(alpha: 0.55);
 
+  // ---------------------------------------------------------------------------
+  // 画布内容层（domain）色——审计 D-03/D-02 的具名收编点
+  //
+  // **域边界（docs/AUDIT_2026-09-16.md §六「方法备注」）**：
+  // 画布内容层（纸型网格、用户笔迹色、PDF 导出白底、画布底色）按
+  // domain 豁免，**不进 UI 铬/组件主题的计违规范围**。但豁免的是「可以
+  // 有自己的一套色」，不是「可以留裸字面量」——原写法是散落在
+  // canvas_painter / editor_painters 里的 `Color(0xFF...)` 内联字面量，
+  // 每次审计扫描都会误报，也无法一处改全局生效。
+  // 现按 D-03（具名收编）收进本层：数值逐字不变，语义具名，颜色来源
+  // 仍是令牌层而非调用点字面量。**只新增，不删除/不改任何现有令牌。**
+  // ---------------------------------------------------------------------------
+
+  /// 无限画布底色（浅色纸面）。
+  ///
+  /// 原 `CanvasPainter.canvasPaperBackground` 的画布域同值。导出产物
+  /// 呈现的底色属内容层，故刻意**不等于** `parchment`（#F5F5F7）——
+  /// 合并即改视觉，两个灰阶并存。
+  static const Color canvasPaperBackground = Color(0xFFF4F5F7);
+
+  /// 多选锁定态选框琥珀（Excalidraw 同款锁定警示色）。
+  ///
+  /// 原 `CanvasPainter.lockedSelectionAmber`。属内容层警示反馈，
+  /// 与系统橙 [favourite]（#FF9F0A）不同值，不合并。
+  static const Color lockedSelectionAmber = Color(0xFFF59E0B);
+
+  /// 缩放提示角标描边（画布域半透明灰）。
+  ///
+  /// 原 `CanvasPainter.zoomBadgeOutline`；同时用于像素橡皮擦实时圆环。
+  static const Color zoomBadgeOutline = Color(0xB0636B78);
+
+  /// 对齐参考线红（Excalidraw 同款对齐可视化）。
+  ///
+  /// 原 `SnapGuidePainter` 的局部 `alignmentGuideRed`。内容层数据色。
+  static const Color alignmentGuideRed = Color(0xFFFF5252);
+
   /// 次级**面板**底色：分组列头、附件卡、数据库块、反向链接面板、
   /// 画板浮层面板（左侧工具条 / 图层 / 属性 / 选中条 / 状态栏）。
   ///
@@ -185,6 +221,19 @@ abstract final class AppleType {
   static const double control = 13;
   static const double caption = 11.5;
   static const double headline = 22;
+
+  /// 对话框正文（短交互文案）字号：15px / 400 / 行高 1.47。
+  ///
+  /// **为什么梯子外还有一档**：DESIGN.md 的 15 项排版梯子从 17px 起
+  ///（:379「Body copy at 17px, not 16px」是**营销长文**档）；而对话框
+  /// 是短交互文案，17px 会把确认弹窗撑成半屏。1.47 的行高规矩照办
+  /// （:506 明令行高不得低于 1.47），只把字号收到 UI 尺度。
+  ///
+  /// 此前 `app_design.dart` 的 dialogTheme 写的是
+  /// `AppleType.bodyStyle(...).copyWith(fontSize: 15)`——**裸数字 15**，
+  /// 既绕过梯子也没有具名来源。本次收编为令牌（数值逐字未变，故
+  /// `apple_dialog_test` 的 `fontSize == 15` 断言照旧通过）。
+  static const double dialogBody = 15;
 
   /// 正文行高。DESIGN.md:346「Body uses 1.47」、:506「Don't tighten
   /// line-height below 1.47 for body copy — the editorial leading is part of

@@ -10,7 +10,7 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 // C-06（审计 2026-09-27）：NotebookPdfExporter 改实例类——媒体解密依赖
 // 构造注入（测试注入生产同一全局单例，语义与此前 static 直取一致）。
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 

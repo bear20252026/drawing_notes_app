@@ -8,7 +8,7 @@ import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/rendering/notebook_page_canvas_painter.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';

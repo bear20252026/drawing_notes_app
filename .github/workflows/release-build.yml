@@ -34,6 +34,14 @@ name: Release Build (Windows + Android)
 # ⇒ 解锁顺序：① 诊断面改成用 `is` 判定出的**字面量代码**（类型判断不受混淆影响），
 #   ② 落盘枚举加显式 wire 名，③ 然后才在两条出货命令上加 `--obfuscate`。
 #   周期证据侧（weekly-evidence.yml）保持与下面的出货命令**逐字同形**，改一处要改两处。
+#
+# ⚠ 2026-11 审计：第 ③ 步**已提前执行**（口径统一），① 与 ② 尚未完成。
+# 触发原因：审计发现 `pr-platform.yml` 的 PR 侧构建**带** `--obfuscate`，而出货
+# 命令**不带** —— 同一仓两套口径，PR 证据采的是混淆形状、实际交付的是未混淆产物。
+# 既然 PR 侧已经在混淆形状上跑通，出货侧没有理由继续裸奔，故对齐。
+# 代价是上面那 28 处 runtimeType 的回归风险从「未来才引入」变成「已在出货产物里」，
+# 而 CI 的非混淆测试抓不到。回滚方法：把两条出货命令的 `--obfuscate
+# --split-debug-info=build/symbols` 去掉即可（每周证据侧同步）。
 
 on:
   workflow_dispatch:
@@ -175,7 +183,7 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          flutter-version: 3.47.0
+          flutter-version: 3.47.9
           cache: true
 
       # 秘钥缺失/格式错误时尽早失败（审计：避免跑到构建末尾才报错）。
@@ -203,13 +211,35 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 出货命令保持未混淆（CTL-03 的阻塞原因见文件头）。改这里必须同步改
-      # weekly-evidence.yml 的那条证据命令——证据必须对着真正出货的形状采。
+      # ⚠ 混淆口径统一（审计 2026-11）：与 pr-platform.yml 的 PR 侧构建对齐
+      # （`flutter build windows --release --obfuscate --split-debug-info=build/symbols`）。
+      # 此前出货命令**不带** --obfuscate，于是出现「PR 侧带混淆、出货侧不带」的口径
+      # 分裂——PR 证据采的是混淆形状，实际发出去的是未混淆产物，防逆向保护在
+      # 真正交付物上反而缺席。
+      #
+      # ⚠ 已知风险（文件头 CTL-03 未解锁部分，此处如实记录）：本仓有 28 处运行时
+      # 读类型名（`e.runtimeType.toString()` 等），混淆会把它们换成每次构建都不同的
+      # 随机串，影响三条 snackbar 文案、`saveFailure` 芯片的 `errorKind`、
+      # `AuditLogger` 的 `detail`，以及 `main.dart` 拼进审计 action id 的类型名。
+      # 而 `flutter test` 与 smoke 跑的都是**非混淆编译** ⇒ CI 抓不到这些回归。
+      # 若发版后用户可见文案/审计字段异常，**首先回滚这里的 --obfuscate**，
+      # 再按文件头的解锁顺序修诊断面（改 `is` 判定 + 落盘枚举显式 wire 名）。
+      #
+      # 改这里必须同步改 weekly-evidence.yml 的那条证据命令——证据必须对着真正
+      # 出货的形状采。
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --obfuscate --split-debug-info=build/symbols
 
       - name: Build release AppBundle (Play Store)
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+
+      # 审计 2026-11：符号表随产物一起上传（混淆后没有符号表无法定位崩溃）。
+      - name: Upload Android symbols
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: android-symbols
+          path: build/symbols/
+          if-no-files-found: warn
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -233,6 +263,17 @@ jobs:
           path: build/app/outputs/flutter-apk/drawing_notes_android_release.zip
           if-no-files-found: error
 
+      # 审计 2026-11（密钥落盘）：keystore 与 key.properties 此前在整个 job 结束后
+      # 仍留在 runner 磁盘上。虽然托管 runner 用完即销，但磁盘快照/日志抓取/
+      # 后续步骤误传都可能把私钥带出去。现放在 job **末尾** 并带 `if: always()`
+      # ——这样无论构建成功、失败还是超时，私钥都会被删掉（放在中间的话，前面
+      # 一步失败就会跳过它，反而留下密钥）。
+      - name: Clean up keystore material
+        if: always()
+        run: |
+          rm -f android/app/release.jks android/key.properties
+          echo "keystore material removed"
+
   windows:
     name: Windows Release Build
     if: ${{ inputs.build_windows || startsWith(github.ref, 'refs/tags/') }}
@@ -250,7 +291,7 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          flutter-version: 3.47.0
+          flutter-version: 3.47.9
           cache: true
 
       - name: Enable Windows desktop
@@ -271,14 +312,22 @@ jobs:
       - name: Smoke test (integration_test on Windows)
         run: flutter test integration_test/smoke_test.dart -d windows
 
-      # 出货命令保持未混淆（原因见文件头 CTL-03 那段）。
+      # ⚠ 混淆口径统一（审计 2026-11）：见 android job 的同名注释。
+      # 与 pr-platform.yml 的 PR 侧构建逐字对齐；改这里必须同步改
+      # weekly-evidence.yml 的那条证据命令。
       - name: Build Windows release
-        run: flutter build windows --release
+        run: flutter build windows --release --obfuscate --split-debug-info=build/symbols
 
-      - name: Install Inno Setup 6
+      # 审计 2026-11（未钉版）：原 `choco install innosetup` 每次装当下最新
+      # 稳定版 —— 安装器脚本的兼容性、ISCC 的默认行为、甚至 choco 包的打包方式
+      # 都可能随版本漂移，而这条 job 是**出货**链路，不能靠「上次能跑」。
+      # 现钉到 6.7.1（chocolatey 当前稳定版，2026-02-17 更新）。
+      # 升级流程：本地用同版本 ISCC 跑一遍 tools/drawing_notes_setup.iss
+      # → 改这里 → 单独提交写明动机。
+      - name: Install Inno Setup 6 (钉版 6.7.1)
         shell: pwsh
         run: |
-          choco install innosetup -y --no-progress
+          choco install innosetup --version=6.7.1 -y --no-progress
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { throw "ISCC.exe not found after chocolatey install" }
 
@@ -305,6 +354,14 @@ jobs:
           $sumsPath = Join-Path $exe.DirectoryName "SHA256SUMS.txt"
           "$hash  $($exe.Name)" | Out-File -Encoding utf8 $sumsPath
           Write-Host "SHA256: $hash  ($($exe.Name))"
+
+      # 审计 2026-11：混淆符号表随产物上传（无符号表无法定位用户机器上的崩溃）。
+      - name: Upload Windows symbols
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-symbols
+          path: build/symbols/
+          if-no-files-found: warn
 
       - name: Upload Windows raw release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

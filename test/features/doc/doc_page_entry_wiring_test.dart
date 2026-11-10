@@ -79,12 +79,18 @@ void main() {
     final (sites, viaFallback) = _lastScan;
     expect(
       sites,
-      greaterThanOrEqualTo(8),
+      greaterThanOrEqualTo(5),
       reason:
-          '实测 lib/ 里有 8 个 DocPage 构造点：app_shell_routes.dart:86/388/486、'
-          'doc_page_link_outline.dart:134、home_page_create.dart:239、'
-          'home_page_tabs.dart:281、notebook_view_page_manage.dart:169、'
-          'search_page.dart:153。读出小于 8 说明抽取失效——'
+          '2026-10-10 解耦后实测 lib/ 里有 5 个 DocPage 构造点：'
+          'app/default_route_services.dart（**新增**——notes 侧四条腿合并到'
+          '组合根路由服务，传 blockDocStore）、'
+          'app_shell_routes.dart:108/425/523、'
+          'doc_page_link_outline.dart:134。'
+          '旧值 8 = app_shell_routes 3 + doc_page_link_outline 1 + '
+          'notes 侧四条腿（home_page_create/home_page_tabs/'
+          'notebook_view_page_manage/search_page）。notes 那四条已合为 '
+          '组合根的一处（跨 feature 反向依赖解除的预期结果），'
+          '故分母 8→5。读出小于 5 才说明抽取失效——'
           '那时下一条判据会「空集通过」（TE-TST-04 同族）',
     );
     expect(

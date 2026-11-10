@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
+import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_contrast.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
@@ -20,6 +21,9 @@ import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
+import 'package:drawing_notes_app/app/app_routes.dart';
+import 'package:drawing_notes_app/app/default_route_services.dart';
+import 'package:drawing_notes_app/app/composition_root.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
@@ -139,10 +143,35 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // 设置页开启后生效）。仅作用于开屏锁；文件密码不参与。
   late final QuickUnlockService _quickUnlockService = QuickUnlockService();
 
+  // ── 跨 feature 路由服务（2026-10-10 解耦） ─────────────────────────────
+  //
+  // notes 侧的三个入口（home_page / search_page / notebook_view_page）
+  // 不再直接 import doc/security 的 presentation 层，而是经组合根契约
+  // `AppRouteServices`（app/app_routes.dart）打开页面/启动重置流。
+  // 本字段在 initState 末装配，并把实例写入全局 `appRouteServices`
+  // ——notes 侧的消费点（含历史测试的大量直构）无需逐个改签名即可取到。
+  late final DefaultRouteServices _routeServices = DefaultRouteServices(
+    services: CompositionRoot.createAppServices(
+      blockDocStore: _blockDocStore,
+      favoriteStore: _favoriteStore,
+      tagStore: _tagStore,
+      mediaCrypto: _mediaCrypto,
+    ),
+    editorPageBuilderProvider: () => _editorPageBuilder,
+    notebookStorageProvider: () => _notebookStorage,
+    documentStorage: _documentStorage,
+  );
+
+  /// 注入给 `DefaultEditorPageBuilder` 的构建器（与 AppShell 同一实例，
+  /// 避免笔记页/画布页各持一份导致会话不同源）。
+  EditorPageBuilder? _editorPageBuilder;
+
   @override
   void initState() {
     super.initState();
     _themeController = widget.themeController ?? AppThemeController();
+    _editorPageBuilder = DefaultEditorPageBuilder.build;
+    appRouteServices = _routeServices;
     _localeController = AppLocaleController();
     // 批次①c：注册共享保险库实例——无 context 的底层管线（图片裁剪
     // 写回等）经 VaultKeyService.sharedMasterKeyOrNull 取解锁态主密钥。
@@ -196,6 +225,10 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   @override
   void dispose() {
     hotKeyManager.unregisterAll();
+    // 全局路由契约句柄随 State 释放——避免下一个实例装配前遗留旧引用。
+    if (identical(appRouteServices, _routeServices)) {
+      appRouteServices = null;
+    }
     _themeController.dispose();
     _localeController.dispose();
     super.dispose();

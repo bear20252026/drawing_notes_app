@@ -52,16 +52,19 @@ dependencies:
   # 系统本地身份验证（批D1）：Windows Hello（人脸/指纹/PIN）快速解锁开屏；
   # Android BiometricPrompt 批D2 接入。官方插件（BSD-3）。
   local_auth: ^3.0.0
-  pdf: ^3.11.1
+  pdf: ^3.13.1
   # MIT：基于 PDFium 的跨平台本地 PDF 读取与逐页渲染，供资料批注导入使用。
   # E-05 收口（2026-09-29）：升到 2.6.5（Dart 3.13+/Flutter 3.47+），
   # 上游已自带 pdfrx_engine 0.6.x，移除 dependency_overrides；2.4.7 时代的
   # PdfFileCache 可空性 override（0.4.6）不再需要。低层 API（openFile/
   # ensureLoaded/page.render）未破坏。
   pdfrx: 2.6.5
-  hotkey_manager: ^0.2.3
+  hotkey_manager: ^0.3.0
   # 与 pdfrx 的 PDFium 渲染引擎共用 image 4.x 依赖树。
-  archive: ^4.0.9
+  # 4.6.0（2026-10-31）：解码器契约变更（默认不再对损坏数据抛错）——
+  # 备份恢复侧必须显式传 throwOnError: true 才能保住 fail-closed 语义，
+  # 见 lib/core/storage/backup_service.dart 的 decodeStream 调用。
+  archive: ^4.6.0
   file_selector: ^1.0.3
   # MIT：将压感输入点转为连续的填充轮廓，避免粗笔分段成离散圆点。
   perfect_freehand: ^2.5.2+1
@@ -78,12 +81,12 @@ dependencies:
   # 向量/矩阵数学（本地化适配 2026-08-15：视口变换矩阵化，原为传递依赖）
   vector_math: ^2.4.2
   # 图片编解码（本地化适配 2026-08-15：PDF 导出 JPEG 压缩，原为传递依赖）
-  image: ^4.3.0
+  image: ^4.12.0
   # WebDAV 本地优先同步：HTTP 客户端 + XML（PROPFIND 多状态响应解析）。
   http: ^1.2.2
-  xml: ^6.5.0
+  xml: ^7.1.0
 
-  window_manager: ^0.5.2
+  window_manager: ^0.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

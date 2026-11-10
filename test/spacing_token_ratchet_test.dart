@@ -107,7 +107,7 @@ const Map<String, int> _baseline = {
   'lib/core/theme/apple_design.dart': 2,
   'lib/features/notes/presentation/notebook_reader_page.dart': 2,
   'lib/features/drawing/presentation/editor_page_persistence.dart': 2,
-  'lib/features/drawing/rendering/pdf_hybrid_exporter.dart': 1,
+  'lib/core/rendering/pdf_hybrid_exporter.dart': 1,
   'lib/features/drawing/presentation/selection_action_button.dart': 1,
   'lib/features/drawing/presentation/editor_page_editing.dart': 1,
   'lib/features/doc/presentation/database/database_cell_editor.dart': 1,

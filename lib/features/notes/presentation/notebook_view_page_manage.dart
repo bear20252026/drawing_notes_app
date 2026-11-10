@@ -142,7 +142,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
         onVerify: (p) => store.verifyBlockDocPassword(page.id, p),
         footerLabel: AppLocalizations.of(context)?.docForgotPassword ?? '忘记密码？',
         onFooter: () {
-          BlockDocPasswordResetFlow.show(context, store: store, docId: page.id);
+          // 解耦（2026-10-10）：重置流已随打开链路下沉到实现侧
+          // （`DefaultRouteServices.openNotePage` 内的 UnlockFlow 页脚），
+          // 此处不再直推 security 的 presentation 层。
         },
       );
       if (pin == null && !store.isBlockDocUnlocked(page.id)) return;
@@ -164,24 +166,32 @@ extension _NotebookPageManage on _NotebookViewPageState {
     }
     if (!mounted) return;
     final noteDoc = doc; // 此时 doc 已被提升为非空
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DocPage(
-          document: noteDoc,
-          blockDocStore: store,
-          controller: DocController(
-            onSave: (updatedDoc) async {
-              await store.saveDocument(updatedDoc);
-              // M12.5 根修：回写笔记本页（title/updatedAt）——块文档副本
-              // 与源页保持同源一致，两处列表显示不再分叉。
-              page.title = updatedDoc.title;
-              page.updatedAt = updatedDoc.updatedAt;
-              // 加密笔记本必须走 _save 的 encryptAndSave 分支——直接
-              // storage.save 对密文笔记本抛 StateError，每次保存必失败。
-              await _save();
-            },
-          ),
-        ),
+    // 解耦（2026-10-10）：原直推 `DocPage` + 自建 `DocController`；
+    // 现经组合根契约 [AppRouteServices.openNotePage]。保存后的领域回写
+    // （页标题/时间戳同源 + 加密本 encryptAndSave）经 `onSaved` 钩子回注。
+    final routes = appRouteServices;
+    if (routes == null) {
+      _showSnack(_l10nSafe?.shellEditorNotAssembled ?? '编辑器尚未由应用层装配');
+      return;
+    }
+    await routes.openNotePage(
+      context,
+      DocOpenArgs(
+        id: noteDoc.id,
+        title: noteDoc.title,
+        body: noteDoc.body,
+        createdAt: noteDoc.createdAt,
+        updatedAt: noteDoc.updatedAt,
+        tags: noteDoc.tags,
+        onSaved: (NoteBlockDoc updatedDoc) async {
+          // M12.5 根修：回写笔记本页（title/updatedAt）——块文档副本
+          // 与源页保持同源一致，两处列表显示不再分叉。
+          page.title = updatedDoc.title;
+          page.updatedAt = updatedDoc.updatedAt;
+          // 加密笔记本必须走 _save 的 encryptAndSave 分支——直接
+          // storage.save 对密文笔记本抛 StateError，每次保存必失败。
+          await _save();
+        },
       ),
     );
   }

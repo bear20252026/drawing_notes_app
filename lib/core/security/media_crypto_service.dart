@@ -118,26 +118,19 @@ class MediaCryptoService implements SessionSecretsHolder {
     final cipher = data.sublist(12, data.length - 16);
     final mac = data.sublist(data.length - 16);
     final aes = AesGcm.with256bits();
-    // 旧媒体兼容（K_note 迁移 2026-08-16）：AAD 绑定 noteId 前加密的媒体
-    // （AAD 'media'）解密失败时回退旧 AAD——渐进迁移，旧数据可读。
-    try {
-      final clear = await aes.decrypt(
-        SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
-        secretKey: SecretKey(key),
-        aad: _currentAad,
-      );
-      return Uint8List.fromList(clear);
-    } on SecretBoxAuthenticationError {
-      final legacy = await aes.decrypt(
-        SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
-        secretKey: SecretKey(key),
-        aad: _mediaAad,
-      );
-      return Uint8List.fromList(legacy);
-    }
+    // 单一 AAD 口径（2026-11-10）：只认当前 [_currentAad]——存在每笔记上下文
+    // 时绑定 notebookId，否则为应用级 'drawing-notes|media|v1'。旧版『无
+    // noteId 回退分支』已移除（不兼容旧版媒体密文）：AAD 不符即认证失败，
+    // 不做第二次尝试（避免把 AAD 降级变成可试探的旁路）。
+    final clear = await aes.decrypt(
+      SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
+      secretKey: SecretKey(key),
+      aad: _currentAad,
+    );
+    return Uint8List.fromList(clear);
   }
 
-  /// 媒体 AAD：绑定应用/用途/版本（NIST SP 800-38D 上下文绑定）；
+  /// 媒体 AAD 基：绑定应用/用途/版本（NIST SP 800-38D 上下文绑定）。
   /// 存在每笔记上下文时附加笔记本 ID（'|notebookId'——Knovya AAD
   /// binding note_id——防跨笔记密文交换）。
   static final Uint8List _mediaAad = Uint8List.fromList(

@@ -40,6 +40,20 @@ exclude = [
 # 校验 + sourcePath 存在性/大小/扩展名校验）——静态污点误报。
 # SKY-S101：高熵——audit_logger 运行时 SHA-256 hash + fractional_index
 # base62 字符集（合法常量）——非硬编码凭据（inline 豁免未生效——规则级）。
+# ── 2026-10 复核结论：保留，不因 scan_secrets.py 增强而移除 ──────────────────
+# 审计曾提出「scan_secrets.py 规则增强后能否移除本全局 ignore」。复核结论是
+# **不能**，两者不是同一层、不可互相替代：
+#   · 本 ignore 是**规则级**抑制。文件级 exclude（:34-38）虽覆盖那 3 个文件，
+#     但注释已记载「inline 豁免未生效——规则级」——即作者试过 inline 抑制、
+#     不生效，才退到规则级。故 exclude 与 ignore 是互补，不是重复。
+#   · scan_secrets.py 是**独立 workflow**（.github/workflows/secret-scan.yml），
+#     与 Skylos `--gate --secrets` 并行运行；它变强不会让 Skylos 变强，只会让
+#     两道门更严。移除本 ignore 只是单方面放松 Skylos 这一道。
+#   · 三处已知误报中 editor_page.dart（长标识符 4.13）**没有 inline 抑制**，
+#     一旦移除全局 ignore，它很可能让 `--gate --secrets` 变红；本地未装
+#     skylos==4.33.2，无法实测，故不做无验证的放松。
+# 若日后要移除：先在本机装 skylos==4.33.2 实测 `--gate --secrets`，并给
+# editor_page.dart 补 inline 抑制，确认 3 处误报全部有兜底后再删。
 # SKY-D309/D299：open-code-review secrets env（工作流配置——job 级 env
 # 暴露——修复成本高——豁免记录）。
 # SKY-D325：tools 脚本 symlink/unbounded read（本地开发工具读受控项目

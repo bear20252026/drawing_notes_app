@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 应用沙盒：macOS 分发的强制要求（App Store 与 Notarization 前提）。 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Flutter 引擎在 Debug/Profile 下需要 JIT 编译（AOT 仅 Release）。 -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+
+	<!-- 网络访问：WebDAV 同步（E2E 口令派生/备份上传下载）与自动更新检测。
+	     outgoing 覆盖客户端连接；incoming 允许本地回环（调试期 NSDistributedNotification）。 -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+
+	<!-- 用户选择的文件读写：file_selector_macos 的 open/save 面板返回的安全作用域 URL。
+	     仅授予「用户显式选择」的文件，不做全磁盘访问。 -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- 音频输入：预留给后续语音笔记（当前未启用，但插件链已含 av_foundation）。
+	     不声明则调用时会 crash；声明后在未授权时只是返回失败，不影响启动。 -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>

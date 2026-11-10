@@ -36,7 +36,7 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          flutter-version: 3.47.0
+          flutter-version: 3.47.9
           cache: true
 
       - name: Enable Flutter Windows desktop support
@@ -65,6 +65,18 @@ jobs:
         # 唯一残余风险是「上游已停维护并归档 ⇒ 包被下架 ⇒ 激活失败把整个 CI job 打死」，
         # 那是工具供应链故障、不是代码质量问题 ⇒ 降级为**可见告警**（warning 注解 +
         # Step Summary），不静默；DCM 门禁本身在可用时照常拦截违规。
+        #
+        # ⚠ 2026-11 审计确认（保持现状）：**激活失败时降级为 warning，不阻断 CI，
+        # 但需人工处置**。这不是「静默失败」——`::warning::` 注解 + Step Summary
+        # 双重可见。处置口径：
+        #   1. 先确认是否上游下架（`dart pub global activate dart_code_metrics 5.7.6`
+        #      在本机复现）；
+        #   2. 若确已下架，按文件头 E-02 记录的选项逐一评估（入 dev_dependencies
+        #      受 sdk <3.0.0 限制不可行；迁闭源 dcm 需商业 license；移除门禁需
+        #      用户同意）——三者都不采则必须**另找替代静态度量工具**，不能让
+        #      DCM 门禁长期缺席；
+        #   3. 长期缺席（连续多轮 warning）应升级为待办 issue，而不是容忍。
+        # 不做自动重试/自动切换版本：那会把「上游故障」变成「门禁口径悄悄漂移」。
         run: |
           dart pub global activate dart_code_metrics 5.7.6
           if ($LASTEXITCODE -eq 0) {

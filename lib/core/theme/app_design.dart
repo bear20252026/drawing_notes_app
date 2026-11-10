@@ -239,12 +239,13 @@ abstract final class AppDesign {
         //   取 15 而非 :504 的 17：17px 是**营销正文**（长文阅读）档，
         //   对话框是短交互文案，17px 会把确认弹窗撑成半屏；1.47 的行高
         //   规矩照办，只把字号收到 UI 尺度。
+        //   字号来源 = [AppleType.dialogBody]（本次收编，此前是裸 `15`）。
         // - 内容用 onSurfaceVariant，与标题形成层级差（shadcn 的信息层级
         //   做法：主信息用强色，说明性信息降一档）。
         titleTextStyle: AppleType.titleStyle(colorScheme.onSurface),
         contentTextStyle: AppleType.bodyStyle(
           colorScheme.onSurfaceVariant,
-        ).copyWith(fontSize: 15),
+        ).copyWith(fontSize: AppleType.dialogBody),
         actionsPadding: const EdgeInsets.fromLTRB(
           AppleSpacing.lg,
           0,
@@ -317,6 +318,26 @@ abstract final class AppDesign {
       surfaceTint: Color(0xFF0066CC),
     );
   }
+
+  /// 明亮模式 ColorScheme 的公开只读入口（**本次新增，不改动现有私有名**）。
+  ///
+  /// 注：本类**不做**「梯子外的值一律禁止」的裁决——DESIGN.md 的排版梯子
+  /// 覆盖的是营销/正文档，短交互文案（对话框正文）另有一档，已具名为
+  /// [AppleType.dialogBody]。此处提供的是该档的**颜色**来源。
+  ///
+  /// 存在的理由：`lib/main.dart` 的构建失败兜底 `_BuildErrorFallback`
+  /// 刻意不取 `Theme.of(context)`（出错上下文可能已损坏，见该处注释），
+  /// 但它仍需要一个「与 ColorScheme 语义一致」的前景色——此前是自造
+  /// `Color(0xFFEBEDF3)` / `Colors.black87` 常量对。改为引用本入口后，
+  /// 兜底前景色与主题的 `onSurface` / `onSurfaceVariant` 恒等，
+  /// 且不需要新增对 `BuildContext` 的依赖。
+  ///
+  /// 与私有名并存是刻意的：现有测试与调用点仍走 `lightTheme()` /
+  /// `darkTheme()`，本次只做「新增一个只读视图」，不改任何既有签名。
+  static ColorScheme appleLightScheme() => _appleLightScheme();
+
+  /// 深蓝（navy）黑暗模式 ColorScheme 的公开只读入口（同上）。
+  static ColorScheme navyScheme() => _navyScheme();
 
   /// 深蓝（navy）黑暗模式 ColorScheme —— 保留既有应用身份。
   static ColorScheme _navyScheme() {

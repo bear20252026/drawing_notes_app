@@ -70,7 +70,7 @@ void main() {
         for (final wire in [fromMain, fromWorker]) {
           final map = jsonDecode(utf8.decode(wire)) as Map<String, dynamic>;
           expect(map['mode'], 'sync-doc');
-          expect(map['v'], 1);
+          expect(map['v'], 2);
           expect(base64Decode(map['n'] as String), hasLength(12));
           expect(base64Decode(map['m'] as String), hasLength(16));
         }

@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/pdf_hybrid_exporter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:flutter_test/flutter_test.dart';

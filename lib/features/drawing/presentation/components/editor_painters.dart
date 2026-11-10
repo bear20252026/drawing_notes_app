@@ -357,12 +357,11 @@ class SnapGuidePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // D-02（审计 2026-09-27）：具名收编（原内联字面量）——对齐参考线红
-    // 为画布域数据色（Excalidraw 同款，随导出产物呈现），域豁免不进
-    // AppleColor 令牌表。
-    const Color alignmentGuideRed = Color(0xFFFF5252);
+    // D-02（审计 2026-09-27）：对齐参考线红为画布域数据色（Excalidraw 同款，
+    // 随导出产物呈现），域豁免不进 UI 铬计违规范围；本次收编为令牌层
+    // [AppleColor.alignmentGuideRed]，调用点不再持裸字面量。数值逐字未变。
     final paint = Paint()
-      ..color = alignmentGuideRed
+      ..color = AppleColor.alignmentGuideRed
       ..strokeWidth = 1.2;
     final canvasPoint = Offset.zero;
     for (final g in guides) {

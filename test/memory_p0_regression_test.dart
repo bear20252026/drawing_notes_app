@@ -14,7 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_image_cache.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_picture_cache.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_picture_cache.dart';
 
 import 'helpers/wait_until.dart';
 

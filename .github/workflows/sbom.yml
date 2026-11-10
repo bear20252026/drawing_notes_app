@@ -5,9 +5,19 @@ name: SBOM（软件物料清单门禁）
 # sbomify 官方 Dart 指南：pubspec.lock 为 SBOM 首选源——精确版本+sha256）。
 # push master 触发——生成 SBOM 制品（发布门禁材料——发布流水线附件/审计；
 # 后续可接 GitHub 官方 attest-sbom@v2 签名——Sigstore 来源证明）。
+#
+# 2026-11 审计（口径不一致）：此前只有 push master + dispatch，**PR 侧没有 SBOM
+# 证据**。而 pr-security.yml 里有一条 SBOM 生成步骤（只生成、不上传），
+# 于是 PR 链路上 SBOM 产物拿不到、也不归档——「PR 侧也有 SBOM 证据」这句话
+# 在机器上是不成立的。现补 pull_request 触发；产物仍走 upload-artifact 归档。
+# 与 pr-security.yml 的分工：那边是 PR 合并前的**依赖面**快速证据（含秘密扫描
+# 与 check_deps），这边是**独立可归档**的 SBOM 制品，两者互补、不重复跑同一个
+# 上传动作。
 
 on:
   push:
+    branches: [master]
+  pull_request:
     branches: [master]
   workflow_dispatch:
 

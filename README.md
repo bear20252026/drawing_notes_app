@@ -1,6 +1,6 @@
 # 绘图笔记 App（Drawing Notes）
 
-面向 **Windows 桌面 + Android** 的跨平台绘图与笔记应用，使用 **Flutter (Dart)** 开发。
+面向 **Windows 桌面 + Android + macOS** 的跨平台绘图与笔记应用，使用 **Flutter (Dart)** 开发。
 **本地优先**：默认全部功能本地离线（**不涉及**账号系统、AI 功能）；同步为**可选的、
 用户自配 WebDAV 端到端加密同步**（无官方云、不经过第三方服务器），
 不用即零网络请求。
@@ -39,9 +39,10 @@
 
 ## 环境要求
 
-- Flutter 3.47.0（Dart 3.12.2）或更高稳定版
+- Flutter 3.47.9（Dart 3.13.7）或更高稳定版
 - Windows 构建：Visual Studio 2022+（含"使用 C++ 的桌面开发"组件）
 - Android 构建：Android SDK（compileSdk 36）+ JDK 17 及以上
+- macOS 构建：Xcode 15+（最低 macOS 13 Ventura）；**暂不签名/公证**，本地可跑
 
 ## 快速开始
 
@@ -55,9 +56,13 @@ flutter run -d windows
 # Android 设备/模拟器运行
 flutter run -d android
 
+# macOS 桌面运行（本地开发，未签名/公证）
+flutter run -d macos
+
 # 构建产物
 flutter build windows --debug
 flutter build apk --debug
+flutter build macos --debug
 ```
 
 > 说明：若克隆到含中文/非 ASCII 字符的目录，Android 构建需在
@@ -70,7 +75,7 @@ flutter build apk --debug
 # 静态检查（提交门禁：必须 No issues found）
 flutter analyze
 
-# 全部单元/组件测试（当前 1851 项——覆盖画布/块文档/安全审计回归/
+# 全部单元/组件测试（约 2750 项——覆盖画布/块文档/安全审计回归/
 # WebDAV 同步/导出链路 + 2026-09 全量审计回归；真 KDF 用例按标签拆分串行）
 flutter test
 
@@ -157,7 +162,7 @@ python tools/code_guard.py --dir lib --force-native --json
 
 ## 开发计划约束遵守情况
 
-- ✅ 仅声明 `windows` 与 `android` 平台，无 iOS/macOS/Web 适配代码
+- ✅ 声明 `windows` / `android` / `macos` 平台（macOS 暂不签名/公证，本地可跑），无 iOS/Web 适配代码
 - ✅ 默认零网络请求、无云服务 API、无账号系统（同步为可选的用户自配 WebDAV 端到端加密）
 - ✅ 无 AI 功能、图层混合模式、蒙版、PSD 导出、录音、协作、内购
 - ✅ UI 层 / 绘图引擎层 / 数据存储层严格分层（见架构文档）

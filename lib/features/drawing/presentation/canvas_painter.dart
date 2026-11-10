@@ -2,10 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/ink_layer_painter.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/layer_compositor.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/shape_renderer.dart';
-import 'package:drawing_notes_app/features/drawing/rendering/stroke_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
+import 'package:drawing_notes_app/core/rendering/layer_compositor.dart';
+import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';
+import 'package:drawing_notes_app/core/rendering/stroke_renderer.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/render_context.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/render_pipeline.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/render_stage.dart';
@@ -37,16 +37,18 @@ class CanvasPainter extends CustomPainter {
   /// 纸型点阵点色（同上 domain 豁免）。
   static const Color paperDotColor = Color(0x5542A5F5);
 
-  /// D-03（审计 2026-09-27）具名收编（原内联字面量，随导出产物呈现的
-  /// 画布域数据色——domain 豁免，不进 AppleColor 令牌表）。
   /// 无限画布底色（浅色纸面）。
-  static const Color canvasPaperBackground = Color(0xFFF4F5F7);
+  ///
+  /// D-03（审计 2026-09-27）具名收编，本次改为**别名引用令牌层**：
+  /// 画布域数据色统一进 [AppleColor]，调用点不再持有字面量（domain 豁免
+  /// 域同样禁止裸 `Color(0xFF...)`）。数值逐字未变。
+  static const Color canvasPaperBackground = AppleColor.canvasPaperBackground;
 
   /// 多选锁定态选框琥珀（Excalidraw 同款锁定警示色）。
-  static const Color lockedSelectionAmber = Color(0xFFF59E0B);
+  static const Color lockedSelectionAmber = AppleColor.lockedSelectionAmber;
 
   /// 缩放提示角标描边（画布域半透明灰）。
-  static const Color zoomBadgeOutline = Color(0xB0636B78);
+  static const Color zoomBadgeOutline = AppleColor.zoomBadgeOutline;
 
   CanvasPainter({required this.controller})
     : super(

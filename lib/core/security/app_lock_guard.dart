@@ -243,11 +243,21 @@ class LockoutGuard {
     return key;
   }
 
+  /// 恒定时间字符串比较（防时序侧信道）。
+  ///
+  /// 输入是 HMAC-SHA256 hex（定长 64 字符），但**不因长度不等提前返回**——
+  /// 长度差折算进 diff、循环按两者较长者遍历，避免「长度是否相等」这一点点
+  /// 时间差成为侧信道。UTF-8 字节比较对 ASCII hex 与 codeUnit 等价，且对
+  /// 任意输入都成立（不依赖输入是 ASCII）。
   static bool _constantTimeEquals(String a, String b) {
-    if (a.length != b.length) return false;
-    var diff = 0;
-    for (var i = 0; i < a.length; i++) {
-      diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    final aBytes = utf8.encode(a);
+    final bBytes = utf8.encode(b);
+    var diff = aBytes.length ^ bBytes.length;
+    final n = aBytes.length > bBytes.length ? aBytes.length : bBytes.length;
+    for (var i = 0; i < n; i++) {
+      final x = i < aBytes.length ? aBytes[i] : 0;
+      final y = i < bBytes.length ? bBytes[i] : 0;
+      diff |= x ^ y;
     }
     return diff == 0;
   }

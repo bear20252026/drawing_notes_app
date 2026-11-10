@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 应用沙盒：Release 同样强制；关了会导致 Gatekeeper 拒绝/notarization 失败。 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Release 走 AOT，不需要 JIT；显式不声明。 -->
+
+	<!-- 网络访问：WebDAV 同步与自动更新检测。 -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+
+	<!-- 用户选择的文件读写：导入 PDF / 导出笔记 / 备份恢复。 -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<!-- 音频输入：预留给语音笔记（同 DebugProfile 口径）。 -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>
