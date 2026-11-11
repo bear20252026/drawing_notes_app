@@ -447,17 +447,23 @@ class _NameDialogState extends State<_NameDialog> {
           hintText: AppLocalizations.of(context)?.homeNameHint ?? '请输入名称',
           filled: true,
           border: OutlineInputBorder(
+            // 圆角必须显式给：OutlineInputBorder 的默认值是 4.0，而 4 不在
+            // DESIGN.md:127-135 的合法档位里（0/5/8/11/18）。与同族命名对话框
+            // （editor_page_dialogs / notebook_view_page_widgets）一致取 xs=5。
+            borderRadius: BorderRadius.circular(AppleRadius.xs),
             borderSide: BorderSide(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
           enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppleRadius.xs),
             borderSide: BorderSide(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
           focusedBorder: const OutlineInputBorder(
             // 键盘焦点环：Focus Blue + 2px 实线（DESIGN.md:300、440）。
+            borderRadius: BorderRadius.all(Radius.circular(AppleRadius.xs)),
             borderSide: BorderSide(color: AppleColor.focusBlue, width: 2),
           ),
         ),
