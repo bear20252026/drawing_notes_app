@@ -280,13 +280,16 @@ class StorageMediaStore {
     // 最近备份都读不出来，但读路径仍然认得它（`StorageService.load` 的轮转回退）。
     // 漏掉这些级别 = 把「还能读回来的画布」引用的图片判成孤儿删掉。
     for (var level = 0; level < StorageWritePipeline.backupLevels; level++) {
+      // [suffix] 含 `.json`，用于 endsWith 匹配与还原 docId；
+      // [bakOnly] 只含 `.bak[.N]`，从备份路径切回正文路径。
       final suffix = StorageWritePipeline.bakLevelSuffix('.json', level);
+      final bakOnly = StorageWritePipeline.bakLevelSuffix('', level);
       await for (final entity in dir.list()) {
         if (entity is! File) continue;
         if (!entity.path.endsWith(suffix)) continue;
         final primaryPath = entity.path.substring(
           0,
-          entity.path.length - suffix.length,
+          entity.path.length - bakOnly.length,
         );
         // 正文还在 ⇒ 上面那趟已经算过它的引用；侧车只是上一版，不该让 GC
         // 把「新版已经不再引用」的图片永久供起来（那会堆垃圾）。

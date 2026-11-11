@@ -67,6 +67,12 @@ class _MemBaselineStore implements SyncBaselineStore {
   }
 }
 
+// H2 修复（2026-11-11）：`_buildCipher` 不再回落 NoopSyncCipher（空盐/口令
+// 会抛异常，fail-closed）。本文件聚焦端到端装配，故用**非空**口令与盐走真实
+// AES 路径。盐用固定 base64 值（16B），口令任意非空串。
+const _kSyncPassphrase = 'test-passphrase';
+const _kSyncSalt = 'c2FsdC10ZXN0LTEyMzQ1Ng==';
+
 /// 本地回环假 WebDAV 服务器：MKCOL→201、GET→404、PUT→201；
 /// [alwaysFail] 时一律 500（验证有界重试收敛）。
 class _FakeDav {
@@ -295,7 +301,7 @@ void main() {
   });
 
   group('syncNow：转发注入桩（本地回环 HTTP 端到端一轮）', () {
-    test('无口令（Noop cipher）：上传一轮成功，进度与基线经注入桩回写', () async {
+    test('有口令（AES cipher）：上传一轮成功，进度与基线经注入桩回写', () async {
       final dav = _FakeDav();
       await dav.start();
       addTearDown(dav.close);
@@ -315,8 +321,8 @@ void main() {
         baseUrl: dav.baseUrl,
         username: 'u',
         password: 'p',
-        passphrase: '',
-        syncSalt: null,
+        passphrase: _kSyncPassphrase,
+        syncSalt: _kSyncSalt,
         conflictHandler: const LwwConflictHandler(),
         onProgress: (p) => phases.add(p.phase),
       );
@@ -331,10 +337,10 @@ void main() {
       expect(docStore.readCalls, contains('doc-1'));
       expect(baselineStore.saved, isNotNull);
       expect(baselineStore.saved!.entries.keys, contains('doc-1'));
-      // 远端收到文档字节与明文 manifest（Noop：无口令 → 明文透传）。
+      // 远端收到文档字节（AES 密文）与 manifest（v2 密文信封，mode 字段明文）。
       expect(dav.uploaded, isNotEmpty);
       expect(dav.manifestBody, isNotNull);
-      expect(dav.manifestBody!, contains('doc-1'));
+      expect(dav.manifestBody!, contains('sync-manifest'));
       // 进度回调转发：覆盖连接→规划→上传→写清单→完成。
       expect(
         phases,
@@ -363,8 +369,8 @@ void main() {
         baseUrl: dav.baseUrl,
         username: 'u',
         password: 'p',
-        passphrase: '',
-        syncSalt: null,
+        passphrase: _kSyncPassphrase,
+        syncSalt: _kSyncSalt,
         conflictHandler: const LwwConflictHandler(),
       );
 
@@ -372,6 +378,28 @@ void main() {
       expect(outcome.error, isA<WebDavSyncException>());
       final error = outcome.error! as WebDavSyncException;
       expect(error.statusCode, 500);
+    });
+
+    test('空口令/缺盐：fail-closed 抛 FormatException（不回落明文透传）', () async {
+      final controller = SyncController(
+        configStore: WebDavConfigStore(),
+        secretStore: MemorySyncSecretStore(),
+        documentStore: _MemDocStore({}),
+        baselineStore: _MemBaselineStore(),
+      );
+      // H2：`_buildCipher` 不再回落 NoopSyncCipher——空盐/空口令是确定性
+      // 装配失败，原样抛出（设置页 try/catch 变成失败摘要），绝不静默明文上云。
+      await expectLater(
+        controller.syncNow(
+          baseUrl: Uri.parse('http://127.0.0.1:9/sync/'),
+          username: 'u',
+          password: 'p',
+          passphrase: '',
+          syncSalt: null,
+          conflictHandler: const LwwConflictHandler(),
+        ),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

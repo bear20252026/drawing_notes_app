@@ -109,10 +109,8 @@ extension _EditorPageAppBar on _EditorPageState {
                         onTap: _renameCanvas,
                         borderRadius: BorderRadius.circular(AppleRadius.xs),
                         child: ConstrainedBox(
-                          // M4（UI/UX 规范修复）：重命名入口是可点控件，
-                          // 但内边距仅 4+文字高度 ≈ 25px < 44px 触控下限。
-                          // 用 ConstrainedBox 兜底到 AppleTouch.minTarget，
-                          // 视觉不变（Row 居中），命中区达标。
+                          // M4：可点控件内边距不足 44px 触控下限，兜底到
+                          // AppleTouch.minTarget（视觉不变，命中区达标）。
                           constraints: const BoxConstraints(
                             minHeight: AppleTouch.minTarget,
                           ),

@@ -605,7 +605,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     _selectionScaleDisplay.dispose();
     _selectionRotationDisplay.dispose();
     _appLifecycle?.dispose();
-    // M3：移除 overlay plan 缓存失效监听器（removeListener 允许在源已释放后调用）。
+    // M3：移除 overlay plan 缓存失效监听器。
     _controller.removeListener(_invalidateOverlayPlanCache);
     // _controller 生命周期由 drawingControllerProvider(ref.onDispose) 管理。
     super.dispose();
@@ -680,25 +680,12 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   bool get _isNotebookMode => widget.session != null;
 
-  // ---------------- M3：overlay plan 缓存 ----------------
-
-  /// overlay 显示计划缓存（M3 性能优化）。
-  ///
-  /// `EditorOverlayItemPlan.forPage/forCanvas` 每次调用都重建 plan（含
-  /// z-order 排序），被 frameTick 驱动逐帧执行。文档对象增删/重排会触发
-  /// `_controller.notifyListeners`，此时缓存失效；frameTick 只读缓存的 plan。
+  // M3：overlay plan 缓存。frameTick 逐帧驱动重建，plan 含 z-order 排序；
+  // 文档对象增删/重排触发 notifyListeners 时失效，frameTick 只读缓存。
   List<EditorOverlayItemPlanEntry>? _cachedOverlayPlan;
 
-  /// 注册控制器监听器：文档对象集合变化时使 overlay plan 缓存失效。
-  void _registerOverlayPlanCacheInvalidator() {
-    _controller.addListener(_invalidateOverlayPlanCache);
-  }
+  void _invalidateOverlayPlanCache() => _cachedOverlayPlan = null;
 
-  void _invalidateOverlayPlanCache() {
-    _cachedOverlayPlan = null;
-  }
-
-  /// 取得缓存的 overlay 显示计划（懒计算，仅在文档对象变化时重建）。
   List<EditorOverlayItemPlanEntry> _getOverlayPlan() {
     final cached = _cachedOverlayPlan;
     if (cached != null) return cached;
@@ -711,8 +698,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             shapes: page.shapes,
             charts: page.charts,
           );
-    _cachedOverlayPlan = plan;
-    return plan;
+    return _cachedOverlayPlan = plan;
   }
 
   @override
@@ -805,8 +791,8 @@ class _EditorPageState extends ConsumerState<EditorPage> {
       onPause: _releaseLayerBitmapsOnBackground,
       onResume: () => unawaited(_rebuildLayerBitmapsOnResume()),
     );
-    // M3：注册 overlay plan 缓存失效监听器（文档对象增删/重排时清空缓存）。
-    _registerOverlayPlanCacheInvalidator();
+    // M3：注册 overlay plan 缓存失效监听器。
+    _controller.addListener(_invalidateOverlayPlanCache);
   }
 
   bool get _hasObjectSelection =>

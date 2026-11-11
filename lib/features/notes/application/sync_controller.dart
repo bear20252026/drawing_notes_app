@@ -451,8 +451,8 @@ class SyncController {
   // （明文透传），是 fail-open——调用方一旦漏配即静默明文上云。现改为
   // **抛异常**（fail-closed）：UI 层已先行拦截空口令/缺盐（见设置页
   // `webdavNeedSyncPassword` / `syncMissingSalt` 两条 toast），此处只兜
-  // 任何漏网的装配路径。异常经 [SyncRunOutcome] 的 error 通道返回给用户，
-  // 不会进退避重试（与 [SyncKeyMismatchException] 同属确定性失败）。
+  // 任何漏网的装配路径。与「装配失败原样抛出」同口径（见 [syncNow] 注释）：
+  // 设置页的 try/catch 会把它变成失败摘要，不进重试（重试也永不会成功）。
   Future<SyncCipher> _buildCipher({
     required String? syncSalt,
     required String syncPassphrase,

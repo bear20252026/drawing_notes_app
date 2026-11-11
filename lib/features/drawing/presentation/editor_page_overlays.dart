@@ -26,9 +26,7 @@ extension _EditorPageOverlays on _EditorPageState {
   }
 
   /// 构建画布上方的混排对象（文字块/图片块）。
-  ///
-  /// M3：plan 由 [_getOverlayPlan] 缓存（文档对象变化时失效），frameTick
-  /// 驱动的逐帧重建只读取缓存，不再每帧重新排序。
+  /// M3：plan 由 [_getOverlayPlan] 缓存，逐帧重建只读缓存。
   List<Widget> _buildOverlayItems() {
     final plan = _getOverlayPlan();
     final items = <Widget>[];

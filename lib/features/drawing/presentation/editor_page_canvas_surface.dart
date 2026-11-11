@@ -105,10 +105,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 网格显示层（借鉴 Excalidraw 画布导航）。
   ///
-  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder，
-  /// 本层只负责构建 painter（手型平移/双指缩放/滚轮缩放都只 tick 画布——
-  /// 此前网格层不监听，视口变换期间点阵与画布内容错位漂移，
-  /// 直到下一次 setState 才纠正）。
+  /// H2：frameTick 监听已上提到 _buildCanvasArea，本层只构建 painter。
   Widget _buildCanvasGridLayer() {
     return Positioned.fill(
       child: IgnorePointer(
@@ -126,12 +123,12 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 框选反馈层：拖拽轨迹/吸附参考线/框选矩形。
   ///
-  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
-  /// 与混排对象 overlay 解耦（独立画布无文字块时也要有框选视觉反馈）；
-  /// 三个 painter 空数据时零绘制，常驻成本可忽略。
+  /// H2：frameTick 监听已上提到 _buildCanvasArea；与 overlay 解耦。
   Widget _buildCanvasSelectionFeedbackLayer() {
     if (_trailPoints.isEmpty && _snapGuides.isEmpty && _marqueeRect == null) {
-      return const SizedBox.shrink();
+      // 必须保持 Positioned：Stack 的 size 由非定位子级决定，裸
+      // SizedBox.shrink() 会把整块画布塌成 0×0，指针命中全丢。
+      return const Positioned.fill(child: SizedBox.shrink());
     }
     return Positioned.fill(
       child: IgnorePointer(
@@ -166,12 +163,10 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 形状草稿层：所有工作区均可见，且不拦截正在创建形状的指针。
   ///
-  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
-  /// 拖拽创建的高频指针移动只 tick 不 setState，草稿框由本层逐帧重算
-  /// [_shapeDraft]（getter 现算）。出现/消失仍由起笔/收笔的 setState 驱动。
+  /// H2：frameTick 监听已上提到 _buildCanvasArea；草稿框逐帧重算。
   Widget _buildCanvasShapeDraftLayer() {
     final draft = _shapeDraft;
-    if (draft == null) return const SizedBox.shrink();
+    if (draft == null) return const Positioned.fill(child: SizedBox.shrink());
     return Positioned.fill(
       child: IgnorePointer(
         child: _readingInverted
@@ -185,8 +180,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   }
 
   /// 连接线 + 混排对象层（轨迹/参考线/框选已拆到独立反馈层）。
-  ///
-  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
+  /// H2：frameTick 监听已上提到 _buildCanvasArea。
   Widget _buildCanvasObjectOverlayLayer() {
     final overlay = Stack(
       children: [
@@ -225,14 +219,14 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 独立画布：线性元素端点编辑手柄（审计二-2）。
   ///
-  /// H2：controller + frameTick 监听已上提到 _buildCanvasArea 的单一
-  /// ListenableBuilder。
+  /// H2：监听已上提到 _buildCanvasArea。
   Widget _buildCanvasLinearEndpointLayer() {
     final shape = _controller.selectedDocumentShape;
     if (shape == null ||
         !ShapeBindingGeometry.isLinear(shape) ||
         shape.locked) {
-      return const SizedBox.shrink();
+      // 同上：保持 Positioned，避免 Stack 被非定位空盒子塌成 0×0。
+      return const Positioned.fill(child: SizedBox.shrink());
     }
     final endpoints = shape.shapeType == ShapeType.arrow
         ? ShapeBindingGeometry.resolvedArrowEndpoints(
@@ -350,8 +344,7 @@ extension _EditorPageCanvasSurface on _EditorPageState {
       elevation: 4,
       borderRadius: BorderRadius.circular(AppleRadius.xs),
       color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-      // H2：controller + frameTick 监听已上提到 _buildCanvasArea 的单一
-      // ListenableBuilder，小地图随其一起重建（高频绘制/视口变化实时跟手）。
+      // H2：监听已上提到 _buildCanvasArea，小地图随其一起重建。
       child: Semantics(
         container: true,
         label: AppLocalizations.of(context)?.canvasMiniMap ?? '画布小地图',
