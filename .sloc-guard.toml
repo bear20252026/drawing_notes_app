@@ -32,8 +32,10 @@ skip_blank = true
 # 第 41 个探针文件当场 FAILED(exit 1)。台账「diff 模式或使结构门失效」疑点
 # 解除。当前临界：根目录 15/15、application 39/40（warning），新增文件注意。
 # docs/test 为文档与测试目录，文件较多属正常，不计入上限。
+# 2026-11-10 阈值调整：根目录新增 macos/ 平台支持目录（macOS 构建必需），
+# 子目录数 15 → 16。macos/ 是独立平台层，不可合并（Xcode 工程结构约束）。
 max_files = 40
-max_dirs = 15
+max_dirs = 16
 max_depth = 10
 warn_threshold = 0.8
 count_exclude = ["*.md", ".gitkeep", "docs/**", "test/**"]

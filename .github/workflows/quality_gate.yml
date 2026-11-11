@@ -62,6 +62,16 @@ jobs:
       - name: 依赖
         run: flutter pub get
 
+      # packages/editor_core/ 是独立 Dart 包（纯 Dart，无 Flutter 依赖），
+      # 其 test/ 用 package:test/test.dart。根 `flutter analyze` 会分析它的
+      # 全部文件，但 analyzer 需要该包的 package_config.json 才能解析
+      # package:test —— 否则报 undefined_function（expect/test/closeTo）。
+      # 在 analyze 前为该包单独 pub get（2026-11-10 CI 修复）。
+      - name: editor_core 依赖
+        run: |
+          cd packages/editor_core
+          dart pub get
+
       # 版本一致性门禁（2026-09-06 审计）：pubspec 为唯一版本源，
       # 校验安装器脚本（含 VersionInfoVersion 历史残留）与 CHANGELOG 同步。
       - name: 版本一致性校验
