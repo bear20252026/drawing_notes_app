@@ -120,7 +120,7 @@ ENTROPY_EXCLUDED_PATHS = {"lib/l10n/app_zh.arb", "lib/l10n/app_en.arb"}
 # 高熵检测误报（熵 4.01，阈值 4.0 擦边）。
 KNOWN_SAFE_PREFIXES = ("iVBORw0KGgo",)
 # 二进制/无关扩展名跳过。
-SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock"}
+SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock", ".xib"}
 
 
 def shannon_entropy(s: str) -> float:

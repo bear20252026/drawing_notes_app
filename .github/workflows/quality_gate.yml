@@ -51,6 +51,14 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # Linux native assets build hooks 需要 GTK/X11 开发包（window_manager /
+      # hotkey_manager 等插件的 Linux 依赖）。ubuntu-latest runner 默认不带，
+      # 缺失会导致 `dart run` / `flutter pub get` 触发 build hooks 失败。
+      - name: 安装 Linux 构建依赖（GTK/X11）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libx11-dev libxi-dev pkg-config
+
       - name: 依赖
         run: flutter pub get
 

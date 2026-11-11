@@ -138,6 +138,14 @@ jobs:
           flutter-version: 3.47.9
           cache: true
 
+      # Linux native assets build hooks 需要 GTK/X11 开发包（window_manager /
+      # hotkey_manager 等插件的 Linux 依赖）。缺失会导致 `flutter pub get`
+      # 触发 build hooks 失败。
+      - name: Install Linux build deps (GTK/X11)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libx11-dev libxi-dev pkg-config
+
       - run: flutter pub get
       # 照抄 pr-platform.yml:48 的形态（`--debug`）：这条要的是「Android 端还能构建」
       # 的周期证据，不是发布产物——发布产物由 release-build.yml 那条腿负责（已带混淆）。
