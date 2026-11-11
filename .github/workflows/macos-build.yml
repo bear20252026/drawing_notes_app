@@ -38,10 +38,11 @@ concurrency:
 jobs:
   macos-release:
     name: macOS Release Build
-    # macos-13 = Intel runner，是本仓最低部署目标（macOS 13）的同代 runner，
-    # 能最直接地验证「在 macOS 13 上编得动、跑得起来」。
-    # 若换 macos-latest（当前是 Apple Silicon），需在注释里说明架构变化。
-    runs-on: macos-13
+    # macos-14 = Apple Silicon runner。GitHub 的 macos-13（Intel）runner
+    # 队列极长（实测 40+ 分钟未启动），而 macos-14 队列通常更短。
+    # macOS 13 是部署目标（MinimumOSVersion），但用 Apple Silicon runner
+    # 构建的通用二进制（x86_64 + arm64）在 macOS 13 上仍可运行。
+    runs-on: macos-14
     timeout-minutes: 60
 
     steps:
