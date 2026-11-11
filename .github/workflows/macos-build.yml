@@ -42,7 +42,7 @@ jobs:
     # 队列极长（实测 40+ 分钟未启动），而 macos-14 队列通常更短。
     # macOS 13 是部署目标（MinimumOSVersion），但用 Apple Silicon runner
     # 构建的通用二进制（x86_64 + arm64）在 macOS 13 上仍可运行。
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
