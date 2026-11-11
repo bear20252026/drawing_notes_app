@@ -5,10 +5,15 @@ library;
 
 import 'dart:convert';
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 import 'note_attachment.dart';
 
 /// 块类型枚举（借鉴 AFFiNE block suite，含内嵌块供后续 M2 使用）。
-enum NoteBlockType {
+///
+/// [wireName] 不是可选项：块文档的 `type` 字段随工程文件落盘，混淆后 `.name`
+/// 会变成随机串 ⇒ 整篇块文档的类型全部读不回来（CTL-03 ②）。
+enum NoteBlockType implements WireEnum {
   /// 正文段落。
   text,
 
@@ -58,7 +63,28 @@ enum NoteBlockType {
   database,
 
   /// 附件块（文件 / PDF 内嵌 / 书签卡，payload 存 props['attachment']）。
-  attachment,
+  attachment;
+
+  @override
+  String get wireName => switch (this) {
+    NoteBlockType.text => 'text',
+    NoteBlockType.heading => 'heading',
+    NoteBlockType.bullet => 'bullet',
+    NoteBlockType.ordered => 'ordered',
+    NoteBlockType.todo => 'todo',
+    NoteBlockType.code => 'code',
+    NoteBlockType.quote => 'quote',
+    NoteBlockType.divider => 'divider',
+    NoteBlockType.image => 'image',
+    NoteBlockType.callout => 'callout',
+    NoteBlockType.toggle => 'toggle',
+    NoteBlockType.canvas => 'canvas',
+    NoteBlockType.chart => 'chart',
+    NoteBlockType.link => 'link',
+    NoteBlockType.table => 'table',
+    NoteBlockType.database => 'database',
+    NoteBlockType.attachment => 'attachment',
+  };
 }
 
 /// 块属性映射（类型相关的轻量元数据）。
@@ -242,7 +268,7 @@ class NoteBlock {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'type': type.name,
+    'type': type.wireName,
     'text': text,
     if (props.isNotEmpty) 'props': props,
     if (children.isNotEmpty)
@@ -251,10 +277,10 @@ class NoteBlock {
 
   factory NoteBlock.fromJson(Map<String, dynamic> json) => NoteBlock(
     id: json['id'] as String,
-    type: NoteBlockType.values.firstWhere(
-      (t) => t.name == json['type'],
-      orElse: () => NoteBlockType.text,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → text。
+    type:
+        wireEnumOf(NoteBlockType.values, json['type'] as String?) ??
+            NoteBlockType.text,
     text: json['text'] as String? ?? '',
     props: (json['props'] as Map<String, dynamic>?) ?? const {},
     // B11 修复（审计 2026-09-07）：children 元素裸 `as Map` 强转——畸形

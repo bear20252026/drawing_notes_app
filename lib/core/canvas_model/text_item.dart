@@ -1,7 +1,20 @@
 import 'dart:ui' show Offset;
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 /// 文字对齐方式。
-enum TextAlignType { left, center, right }
+enum TextAlignType implements WireEnum {
+  left,
+  center,
+  right;
+
+  @override
+  String get wireName => switch (this) {
+    TextAlignType.left => 'left',
+    TextAlignType.center => 'center',
+    TextAlignType.right => 'right',
+  };
+}
 
 /// 画布/页面上的文字块。
 ///
@@ -111,7 +124,7 @@ class PageTextItem {
     'strikethrough': strikethrough,
     'isTodo': isTodo,
     'todoChecked': todoChecked,
-    'align': align.name,
+    'align': align.wireName,
     'zOrder': zOrder,
     if (width != null) 'width': width,
     if (groupId != null) 'groupId': groupId,
@@ -140,10 +153,10 @@ class PageTextItem {
     groupId: json['groupId'] as String?,
     href: json['href'] as String?,
     fontFamily: json['fontFamily'] as String?,
-    align: TextAlignType.values.firstWhere(
-      (a) => a.name == json['align'],
-      orElse: () => TextAlignType.left,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → left。
+    align:
+        wireEnumOf(TextAlignType.values, json['align'] as String?) ??
+            TextAlignType.left,
     fractionalIndex: json['fractionalIndex'] as String?,
     runs: (json['runs'] as List?)
         ?.map((e) => TextRun.fromJson(e as Map<String, dynamic>))

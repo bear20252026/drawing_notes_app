@@ -44,7 +44,7 @@ zip 在各 job 内随原始包一起上传 Artifact 并挂载到 GitHub Release�
    **业主口径的口头纪律**——AGENTS.md 里并没有写这条，机器上也没有闸门。
    草稿的连带效果（是有意的，不是 bug）：`Latest` 指针只认已发布的 Release ⇒
    推 tag 之后公开面上仍是上一个版本可下载，直到人工点 Publish。
-2. **出货产物仍未混淆**（CTL-03 今天只做了一半，另一半被实测证据挡住）：两条腿还是
+2. **出货产物仍未混淆**（CTL-03 的 ①② 已完成，③ 未做且曾提前执行又回滚）：两条腿还是
    `flutter build apk/appbundle/windows --release`，没有 `--obfuscate`。
    原因是 Flutter 3.47 的混淆文档明写「依赖类名/函数名/库名做匹配的代码会失效」，而本仓
    有 28 处在运行时读类型名（22 个 `e.runtimeType.toString()` + 6 个 `${e.runtimeType}`），
@@ -52,12 +52,20 @@ zip 在各 job 内随原始包一起上传 Artifact 并挂载到 GitHub Release�
    `errorKind`、`AuditLogger` 的 `detail`，以及 `main.dart` 拼进**审计 action id** 的
    类型名，都会变成每次构建都不同的随机串——而 `flutter test` 与 `-d windows` 的 smoke
    跑的都是**非混淆编译** ⇒ CI 永远抓不到，只有装到用户机器上才现形。
-   落盘枚举用 `.name` 那半边（`paperType`/`shapeType`/`strokeStyle`/`type`/`align`/
-   `chartType`/`kind`/`encryptionMode`/`template`/`viewType` 等 14 处 encode）今天是安全的
-   ——官方文档写的是「Enum names are not obfuscated **currently**」，但 "currently"
-   不是承诺，要显式 wire 名才敢长期依赖。**解锁顺序**：① 诊断面改成 `is` 判定出的字面量
-   代码（类型判断不受混淆影响）②落盘枚举加显式 wire 名 ③再加 `--obfuscate` 并配符号表
-   artifact（那时才需要谈「符号挂不挂公开 Release」）。
+
+   **解锁进度**（每步都有机器判据，不靠口头）：
+
+   | 步骤 | 状态 | 判据 |
+   |---|---|---|
+   | ① 诊断面改成 `is` 判定出的字面量代码 | ✅ 已完成（R50，commit `019c4b2c`） | `test/architecture/error_code_coverage_gate_test.dart` |
+   | ② 落盘枚举加显式 wire 名 | ✅ 已完成（2026-11） | `test/architecture/persisted_enum_wire_gate_test.dart` |
+   | ③ 两条出货命令加 `--obfuscate --split-debug-info=build/symbols` | ⛔ **未做** | —— |
+
+   ① ② 的完成后，落盘格式**没有变**：16 个落盘枚举的 `wireName` 与改造前的 `.name`
+   逐字相同（门禁里那条相等断言就是「零迁移」的自我证明），老文件照读、无需迁移。
+   第 ③ 步**仍不要自行开启**：它同时引入「符号表 artifact 挂不挂公开 Release」这条
+   尚未裁决的产品决定，须业主点名后才能动。（2026-11 审计曾把 ③ 提前执行、
+   混淆已落在出货产物里，**已整体回滚**——出货命令重新不带那两个开关。）
 
 另有 `.github/workflows/weekly-evidence.yml`（每周日 + 手动）补直推流程从来拿不到的
 三类证据：依赖清单/秘密扫描/SBOM、**Windows 发布形态构建**、Android 构建。
@@ -90,5 +98,8 @@ gh release download "vX.Y.Z" -D Downloads --pattern "*.exe" --pattern "*.apk" --
 - [ ] 草稿 Release 逐项核对过四件资产与版本号，**再人工点 Publish**（推 tag 不再自动公开）
 - [ ] `preflight` job 绿——它校验的是 **tag 剥出来的那个提交**的 CI 结论（不是本次
       release run 自己）；红了先去看是不是那个提交根本没跑过 CI 或被连推掐成了 cancelled
-- [ ] 出货产物是否已混淆：目前**没有**（CTL-03 受阻，原因见上文「两条口径」第 2 条）
+- [ ] 出货产物是否已混淆：目前**没有**。CTL-03 的 ①（诊断面字面量码）与
+      ②（落盘枚举 wire 名）**均已完成**，③（真正加 `--obfuscate`）**仍不要自行开启**——
+      它附带「符号表 artifact 挂不挂公开 Release」这条未裁决的产品决定，须业主点名。
+      详见上文「两条口径」第 2 条与 `release-build.yml` 文件头。
 - [ ] 下载产物实测安装/启动

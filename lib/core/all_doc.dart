@@ -6,8 +6,14 @@
 // （notes）与 All Docs 页（all_docs）两侧都消费本契约，留任一侧都构成
 // notes⇄all_docs feature 级环的一半——下沉后两侧各自只依赖 core。
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 /// 统一文档种类。
-enum AllDocKind {
+///
+/// [wireName] 不是可选项：[AllDoc.dedupKey] 是收藏集合的**持久化键**
+/// （`all_docs_favorites.json`，见 `favorite_store.dart`），混淆后 `.name`
+/// 会变成随机串 ⇒ 老收藏全部失配（CTL-03 ②）。
+enum AllDocKind implements WireEnum {
   /// 画布文档（drawing）。
   canvas,
 
@@ -15,7 +21,15 @@ enum AllDocKind {
   note,
 
   /// 块文档（blockdoc）。
-  blockdoc,
+  blockdoc;
+
+  /// 落盘 wire 名（收藏键 `kind:id` 的前半段，CTL-03 ②）。
+  @override
+  String get wireName => switch (this) {
+    AllDocKind.canvas => 'canvas',
+    AllDocKind.note => 'note',
+    AllDocKind.blockdoc => 'blockdoc',
+  };
 }
 
 /// 全部文档的时间分组（仿 AFFiNE 分组语义）。
@@ -129,7 +143,7 @@ class AllDoc {
   final bool locked;
 
   /// 用于去重的稳定键：'$kind:$id'。
-  String get dedupKey => '${kind.name}:$id';
+  String get dedupKey => '${kind.wireName}:$id';
 
   /// 不可变 copyWith。
   AllDoc copyWith({

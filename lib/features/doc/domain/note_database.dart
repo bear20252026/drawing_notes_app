@@ -2,11 +2,39 @@
 // 数据库块领域模型（P3-1）：表/看板/列表视图 + 字段/记录/排序/筛选。
 // 纯 Dart，无 flutter/io/外部依赖；不可变输入 → 确定性输出。
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 /// 字段类型。
-enum NoteFieldType { text, number, select, checkbox, date }
+enum NoteFieldType implements WireEnum {
+  text,
+  number,
+  select,
+  checkbox,
+  date;
+
+  @override
+  String get wireName => switch (this) {
+    NoteFieldType.text => 'text',
+    NoteFieldType.number => 'number',
+    NoteFieldType.select => 'select',
+    NoteFieldType.checkbox => 'checkbox',
+    NoteFieldType.date => 'date',
+  };
+}
 
 /// 数据库视图类型。
-enum DatabaseViewType { table, kanban, list }
+enum DatabaseViewType implements WireEnum {
+  table,
+  kanban,
+  list;
+
+  @override
+  String get wireName => switch (this) {
+    DatabaseViewType.table => 'table',
+    DatabaseViewType.kanban => 'kanban',
+    DatabaseViewType.list => 'list',
+  };
+}
 
 /// 字段定义。
 class NoteFieldDef {
@@ -37,17 +65,16 @@ class NoteFieldDef {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'type': type.name,
+    'type': type.wireName,
     'options': List<String>.from(options),
   };
 
   factory NoteFieldDef.fromJson(Map<String, dynamic> json) => NoteFieldDef(
     id: json['id'] as String,
     name: json['name'] as String,
-    type: NoteFieldType.values.firstWhere(
-      (e) => e.name == json['type'],
-      orElse: () => NoteFieldType.text,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → text。
+    type: wireEnumOf(NoteFieldType.values, json['type'] as String?) ??
+        NoteFieldType.text,
     options: (json['options'] as List? ?? const [])
         .map((e) => e as String)
         .toList(),
@@ -313,7 +340,7 @@ class NoteDatabase {
 
   Map<String, dynamic> toJson() => {
     'title': title,
-    'viewType': viewType.name,
+    'viewType': viewType.wireName,
     'sortFieldId': sortFieldId,
     'sortAscending': sortAscending,
     'fields': fields.map((f) => f.toJson()).toList(),
@@ -322,10 +349,10 @@ class NoteDatabase {
 
   factory NoteDatabase.fromJson(Map<String, dynamic> json) => NoteDatabase(
     title: json['title'] as String? ?? '',
-    viewType: DatabaseViewType.values.firstWhere(
-      (e) => e.name == json['viewType'],
-      orElse: () => DatabaseViewType.table,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → table。
+    viewType:
+        wireEnumOf(DatabaseViewType.values, json['viewType'] as String?) ??
+            DatabaseViewType.table,
     sortFieldId: json['sortFieldId'] as String?,
     sortAscending: json['sortAscending'] as bool? ?? true,
     fields: (json['fields'] as List? ?? const [])

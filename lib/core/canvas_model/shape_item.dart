@@ -2,9 +2,25 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:drawing_notes_app/core/canvas_model/shape_endpoint_binding.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 
 /// 图形工具形状类型。
-enum ShapeType { rect, ellipse, diamond, arrow, line }
+enum ShapeType implements WireEnum {
+  rect,
+  ellipse,
+  diamond,
+  arrow,
+  line;
+
+  @override
+  String get wireName => switch (this) {
+    ShapeType.rect => 'rect',
+    ShapeType.ellipse => 'ellipse',
+    ShapeType.diamond => 'diamond',
+    ShapeType.arrow => 'arrow',
+    ShapeType.line => 'line',
+  };
+}
 
 /// 线型（格式 v4 可选键 `strokeStyle`）。
 ///
@@ -12,13 +28,35 @@ enum ShapeType { rect, ellipse, diamond, arrow, line }
 /// 旧文件不带这个键，读出来就是 null，观感必须与升级前逐像素一致。
 /// 只有在用户显式选了 `dotted`（`dash` 表达不了的第三态）或显式改回
 /// `solid`/`dashed` 时才会写入。
-enum StrokeStyle { solid, dashed, dotted }
+enum StrokeStyle implements WireEnum {
+  solid,
+  dashed,
+  dotted;
+
+  @override
+  String get wireName => switch (this) {
+    StrokeStyle.solid => 'solid',
+    StrokeStyle.dashed => 'dashed',
+    StrokeStyle.dotted => 'dotted',
+  };
+}
 
 /// 填充样式（格式 v4 可选键 `fillStyle`）。
 ///
 /// null 同样表示沿用旧推导：有 `fillColor` 时 `rough` → 斜排线、否则实心。
 /// 未知字符串一律降级为 null（迁移层与解码都不新增拒绝路径）。
-enum FillStyle { solid, hachure, crossHatch }
+enum FillStyle implements WireEnum {
+  solid,
+  hachure,
+  crossHatch;
+
+  @override
+  String get wireName => switch (this) {
+    FillStyle.solid => 'solid',
+    FillStyle.hachure => 'hachure',
+    FillStyle.crossHatch => 'crossHatch',
+  };
+}
 
 /// 可同时存在于笔记页和独立绘图文档中的几何形状元素。
 ///
@@ -246,7 +284,7 @@ class PageShapeItem {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'shapeType': shapeType.name,
+    'shapeType': shapeType.wireName,
     'x': x,
     'y': y,
     'width': width,
@@ -263,13 +301,13 @@ class PageShapeItem {
     // dash/rough 开关也不会被定格下来的显式值压住（写两条真相的代价）。
     if (strokeStyle != null &&
         strokeStyle != (dash ? StrokeStyle.dashed : StrokeStyle.solid))
-      'strokeStyle': strokeStyle!.name,
+      'strokeStyle': strokeStyle!.wireName,
     if (fillStyle != null &&
         fillStyle !=
             (fillColor == null
                 ? null
                 : (rough ? FillStyle.hachure : FillStyle.solid)))
-      'fillStyle': fillStyle!.name,
+      'fillStyle': fillStyle!.wireName,
     'flipX': flipX,
     'flipY': flipY,
     if (boundElementId != null) 'boundElementId': boundElementId,
@@ -288,10 +326,10 @@ class PageShapeItem {
 
   factory PageShapeItem.fromJson(Map<String, dynamic> json) => PageShapeItem(
     id: json['id'] as String,
-    shapeType: ShapeType.values.firstWhere(
-      (shape) => shape.name == json['shapeType'],
-      orElse: () => ShapeType.rect,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → rect。
+    shapeType:
+        wireEnumOf(ShapeType.values, json['shapeType'] as String?) ??
+            ShapeType.rect,
     x: (json['x'] as num).toDouble(),
     y: (json['y'] as num).toDouble(),
     width: (json['width'] as num?)?.toDouble() ?? 120,
@@ -304,8 +342,10 @@ class PageShapeItem {
     dash: json['dash'] as bool? ?? false,
     rough: json['rough'] as bool? ?? false,
     elbow: json['elbow'] as bool? ?? false,
-    strokeStyle: _enumFromJson(StrokeStyle.values, json['strokeStyle']),
-    fillStyle: _enumFromJson(FillStyle.values, json['fillStyle']),
+    // 宽容解析可选枚举键：缺失、类型不符或未知取值一律返回 null，
+    // 由 `effective*` 属性回落到 v3 的推导结果（解码层不新增拒绝路径）。
+    strokeStyle: wireEnumOf(StrokeStyle.values, json['strokeStyle'] as String?),
+    fillStyle: wireEnumOf(FillStyle.values, json['fillStyle'] as String?),
     flipX: json['flipX'] as bool? ?? false,
     flipY: json['flipY'] as bool? ?? false,
     boundElementId: json['boundElementId'] as String?,
@@ -321,16 +361,6 @@ class PageShapeItem {
     lineStart: _offsetFromJson(json['lineStart']),
     lineEnd: _offsetFromJson(json['lineEnd']),
   );
-
-  /// 宽容解析可选枚举键：缺失、类型不符或未知取值一律返回 null，
-  /// 由 `effective*` 属性回落到 v3 的推导结果（解码层不新增拒绝路径）。
-  static T? _enumFromJson<T extends Enum>(List<T> values, Object? raw) {
-    if (raw is! String) return null;
-    for (final value in values) {
-      if (value.name == raw) return value;
-    }
-    return null;
-  }
 
   static Offset? _offsetFromJson(Object? value) {
     if (value is! List || value.length != 2) return null;

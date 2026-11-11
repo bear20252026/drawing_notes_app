@@ -51,11 +51,8 @@ class AppThemeNotifier extends Notifier<ThemeMode> {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_prefsKey);
       if (saved != null) {
-        final mode = ThemeMode.values.firstWhere(
-          (m) => m.name == saved,
-          orElse: () => ThemeMode.system,
-        );
-        state = mode;
+        // 回落口径与改造前逐字相同：未知/缺失 → 跟随系统。
+        state = themeModeFromWire(saved);
       }
     } catch (_) {
       // 存储不可用时静默回退到跟随系统。
@@ -69,7 +66,7 @@ class AppThemeNotifier extends Notifier<ThemeMode> {
     state = mode;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefsKey, mode.name);
+      await prefs.setString(_prefsKey, themeModeWire(mode));
     } catch (_) {
       // 持久化失败不影响本次会话内的主题切换。
     }

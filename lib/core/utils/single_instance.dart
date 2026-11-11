@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 /// 单实例检测（ASM-02，第四轮台账 §24；同根判定 R51，台账 §35）。
 ///
 /// **契约：任何输入都不阻止启动。** 这里曾经的做法是「探测到已有实例就直接
@@ -18,7 +20,11 @@ import 'dart:io';
 ///    数据根路径，于是能分出「同一个数据根的第二个实例」（这才值得提醒用户）与
 ///    「另一个数据根的实例」（不该提醒）。老版本写的锁只有 PID 一行 ⇒ 根**未知**，
 ///    这种归 [SingleInstanceStatus.undetectable]：不猜，也不提醒。
-enum SingleInstanceStatus {
+///
+/// [wireName] 不是可选项：本枚举的名字会拼进**落盘**的审计 action id
+/// （`main.dart` 的 `app.instance_*`，见 `audit_logger.dart` 的 JSONL 落盘）——
+/// 混淆后 `.name` 变成随机串，跨构建的审计记录就对不上号（CTL-03 ②）。
+enum SingleInstanceStatus implements WireEnum {
   /// 本实例拿到了锁（含陈旧锁回收后重新拿到）。
   acquired,
 
@@ -34,7 +40,16 @@ enum SingleInstanceStatus {
   ///
   /// 它与 [SingleInstanceStatus.sameDataRootRunning] 分开，是为了不许把「我不知道」
   /// 说成「有人在动你这份数据」。
-  undetectable,
+  undetectable;
+
+  /// 落盘 wire 名（审计 action id `app.instance_*`，CTL-03 ②）。
+  @override
+  String get wireName => switch (this) {
+    SingleInstanceStatus.acquired => 'acquired',
+    SingleInstanceStatus.sameDataRootRunning => 'sameDataRootRunning',
+    SingleInstanceStatus.otherDataRoot => 'otherDataRoot',
+    SingleInstanceStatus.undetectable => 'undetectable',
+  };
 }
 
 /// 启动期一次性事实：`main()` 在 `runApp` 之前写入，UI 侧只读。

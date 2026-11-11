@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/core/documents/migration/document_migration_registry.dart';
 import 'package:drawing_notes_app/core/storage/document_budgets.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 
 // 批次 DN-003：预算与完整性上报随编解码器一并对外可见——消费方（StorageService
 // 门面、测试、未来修复入口）经本文件即可拿到同一事实来源，不必各自新增 import
@@ -161,7 +162,7 @@ class DocumentCodec {
         'width': doc.width,
         'height': doc.height,
         'infinite': doc.infinite,
-        'paperType': doc.paperType.name,
+        'paperType': doc.paperType.wireName,
         'folder': doc.folder,
         'createdAt': timeToIso(doc.createdAt),
         'updatedAt': timeToIso(doc.updatedAt),
@@ -410,10 +411,10 @@ class DocumentCodec {
         width: _restoreCanvasDimension(document['width'], 2048),
         height: _restoreCanvasDimension(document['height'], 1536),
         infinite: document['infinite'] == true,
-        paperType: PaperType.values.firstWhere(
-          (type) => type.name == document['paperType'],
-          orElse: () => PaperType.blank,
-        ),
+        // 回落口径与改造前逐字相同：未知/缺失 → blank。
+        paperType:
+            wireEnumOf(PaperType.values, document['paperType'] as String?) ??
+                PaperType.blank,
         folder: document['folder'] is String ? document['folder'] as String : '',
         layers: layers,
         shapes: shapes,
@@ -670,10 +671,9 @@ class DocumentCodec {
             points: points,
             color: Color(color.toInt()),
             width: safeWidth,
-            type: BrushType.values.firstWhere(
-              (type) => type.name == json['type'],
-              orElse: () => BrushType.pen,
-            ),
+            // 回落口径与改造前逐字相同：未知/缺失 → pen。
+            type: wireEnumOf(BrushType.values, json['type'] as String?) ??
+                BrushType.pen,
             opacity: opacity is num && opacity.toDouble().isFinite
                 ? opacity.toDouble().clamp(0.0, 1.0).toDouble()
                 : 1.0,

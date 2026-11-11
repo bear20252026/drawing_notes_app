@@ -1,11 +1,17 @@
 import 'package:drawing_notes_app/core/documents/notebook_index_source.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook_page.dart';
 
 /// 笔记本加密模式。
-enum EncryptionMode {
+enum EncryptionMode implements WireEnum {
   /// 记忆密码派生密钥。
-  password,
+  password;
+
+  @override
+  String get wireName => switch (this) {
+    EncryptionMode.password => 'password',
+  };
 }
 
 /// 多个页面的分类与持久化聚合。
@@ -77,7 +83,7 @@ class Notebook implements NotebookIndexSource {
     'title': title,
     'pages': encrypted ? const [] : pages.map((page) => page.toJson()).toList(),
     'encrypted': encrypted,
-    'encryptionMode': encryptionMode.name,
+    'encryptionMode': encryptionMode.wireName,
     if (encryptedPayload != null) 'encryptedPayload': encryptedPayload,
     if (searchSummary.isNotEmpty) 'searchSummary': searchSummary,
     'createdAt': timeToIso(createdAt),
@@ -91,10 +97,10 @@ class Notebook implements NotebookIndexSource {
         .map((item) => NotebookPage.fromJson(item as Map<String, dynamic>))
         .toList(),
     encrypted: json['encrypted'] as bool? ?? false,
-    encryptionMode: EncryptionMode.values.firstWhere(
-      (mode) => mode.name == json['encryptionMode'],
-      orElse: () => EncryptionMode.password,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → password。
+    encryptionMode:
+        wireEnumOf(EncryptionMode.values, json['encryptionMode'] as String?) ??
+            EncryptionMode.password,
     encryptedPayload: json['encryptedPayload'] as String?,
     searchSummary: json['searchSummary'] as String? ?? '',
     createdAt: timeFromIso(json['createdAt']),

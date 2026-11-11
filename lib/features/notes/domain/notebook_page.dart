@@ -194,7 +194,7 @@ class NotebookPage implements NotebookPageIndexSource {
     if (cloneOf != null) 'cloneOf': cloneOf!.toJson(),
     'tags': tags,
     'history': history.map((entry) => entry.toJson()).toList(),
-    'template': template.name,
+    'template': template.wireName,
     'favorite': favorite,
     if (lastOpenedAt != null) 'lastOpenedAt': timeToIso(lastOpenedAt!),
     'createdAt': timeToIso(createdAt),
@@ -223,10 +223,10 @@ class NotebookPage implements NotebookPageIndexSource {
           .map((item) => item.toString())
           .toList(),
       history: history,
-      template: PageTemplate.values.firstWhere(
-        (candidate) => candidate.name == json['template'],
-        orElse: () => PageTemplate.blank,
-      ),
+      // 回落口径与改造前逐字相同：未知/缺失 → blank。
+      template:
+          PageTemplate.fromWire(json['template'] as String?) ??
+              PageTemplate.blank,
       favorite: json['favorite'] as bool? ?? false,
       lastOpenedAt: timeFromIso(json['lastOpenedAt']),
       createdAt: timeFromIso(json['createdAt']),

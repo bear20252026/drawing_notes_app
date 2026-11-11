@@ -3,18 +3,29 @@ import 'dart:ui';
 
 import 'package:drawing_notes_app/core/canvas_model/stroke_buffer.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 
 /// 笔画类型（笔刷类型）
 ///
 /// marker 为半透明高亮笔；
 /// laser 仅表示运行时的临时激光指示器，绝不写入工程文件；
 /// eraser 表示橡皮擦笔画，渲染时以“透明擦除”方式生效。
-enum BrushType {
+enum BrushType implements WireEnum {
   pen, // 钢笔：压感纯色线条
   pencil, // 铅笔：低透明度石墨笔触
   marker, // 高亮笔：不叠色局部合成
   laser, // 激光指示器：瞬时尾迹，不持久化
   eraser, // 橡皮擦：透明擦除
+  ;
+
+  @override
+  String get wireName => switch (this) {
+    BrushType.pen => 'pen',
+    BrushType.pencil => 'pencil',
+    BrushType.marker => 'marker',
+    BrushType.laser => 'laser',
+    BrushType.eraser => 'eraser',
+  };
 }
 
 /// 笔画上的一个采样点。
@@ -169,7 +180,7 @@ class Stroke {
     'points': _encodePoints(points),
     'color': color.toARGB32(),
     'width': width,
-    'type': type.name,
+    'type': type.wireName,
     'opacity': opacity,
     'seed': seed,
     'version': version,
@@ -181,10 +192,8 @@ class Stroke {
     points: _decodePoints(json['points']),
     color: Color((json['color'] as num).toInt()),
     width: (json['width'] as num).toDouble(),
-    type: BrushType.values.firstWhere(
-      (t) => t.name == json['type'],
-      orElse: () => BrushType.pen,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → pen。
+    type: wireEnumOf(BrushType.values, json['type'] as String?) ?? BrushType.pen,
     opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
     seed: (json['seed'] as num?)?.toInt(),
     version: (json['version'] as num?)?.toInt() ?? 0,

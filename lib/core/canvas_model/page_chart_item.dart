@@ -1,7 +1,18 @@
 import 'dart:ui';
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 /// 图表类型。
-enum ChartType { bar, line }
+enum ChartType implements WireEnum {
+  bar,
+  line;
+
+  @override
+  String get wireName => switch (this) {
+    ChartType.bar => 'bar',
+    ChartType.line => 'line',
+  };
+}
 
 /// 分页画布上的图表元素。
 ///
@@ -36,7 +47,7 @@ class PageChartItem {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'chartType': chartType.name,
+    'chartType': chartType.wireName,
     'data': data,
     'labels': labels,
     'x': x,
@@ -49,10 +60,9 @@ class PageChartItem {
 
   factory PageChartItem.fromJson(Map<String, dynamic> json) => PageChartItem(
     id: json['id'] as String,
-    chartType: ChartType.values.firstWhere(
-      (chartType) => chartType.name == json['chartType'],
-      orElse: () => ChartType.bar,
-    ),
+    // 回落口径与改造前逐字相同：未知/缺失 → bar。
+    chartType:
+        wireEnumOf(ChartType.values, json['chartType'] as String?) ?? ChartType.bar,
     data: (json['data'] as List? ?? const [])
         .map((value) => (value as num).toDouble())
         .toList(),

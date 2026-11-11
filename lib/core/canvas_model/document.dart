@@ -3,6 +3,7 @@ import 'dart:ui' show Size;
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 
@@ -12,7 +13,20 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 /// - [grid]：网格纸（适合绘图/坐标类笔记）
 /// - [lined]：横线纸（适合书写文字）
 /// - [dot]：点阵纸（适合手写与绘图混合）
-enum PaperType { blank, grid, lined, dot }
+enum PaperType implements WireEnum {
+  blank,
+  grid,
+  lined,
+  dot;
+
+  @override
+  String get wireName => switch (this) {
+    PaperType.blank => 'blank',
+    PaperType.grid => 'grid',
+    PaperType.lined => 'lined',
+    PaperType.dot => 'dot',
+  };
+}
 
 /// 画布文档（一幅画/一页笔记的数据根）。
 ///
@@ -99,7 +113,7 @@ class DrawingDocument {
     'width': width,
     'height': height,
     'infinite': infinite,
-    'paperType': paperType.name,
+    'paperType': paperType.wireName,
     'folder': folder,
     'createdAt': timeToIso(createdAt),
     'updatedAt': timeToIso(updatedAt),
@@ -117,10 +131,10 @@ class DrawingDocument {
         width: (json['width'] as num?)?.toInt() ?? 2048,
         height: (json['height'] as num?)?.toInt() ?? 1536,
         infinite: json['infinite'] as bool? ?? false,
-        paperType: PaperType.values.firstWhere(
-          (p) => p.name == json['paperType'],
-          orElse: () => PaperType.blank,
-        ),
+        // 回落口径与改造前逐字相同：未知/缺失 → blank。
+        paperType:
+            wireEnumOf(PaperType.values, json['paperType'] as String?) ??
+                PaperType.blank,
         folder: json['folder'] as String? ?? '',
         layers: (json['layers'] as List? ?? const [])
             .map((e) => Layer.fromJson(e as Map<String, dynamic>))

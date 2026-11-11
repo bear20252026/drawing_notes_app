@@ -8,6 +8,11 @@ import 'apple_focus.dart';
 // AppleMotion.tooltipDelay（M-10），不在此处自造数值。
 import 'apple_motion.dart';
 
+// `ThemeMode` 的落盘 wire 名适配（CTL-03 ②）——做成 part 而不是独立库，
+// 是为了让 `core/di/providers.dart` 不必为它新增一条 import 边
+// （那会把 Martin instability 从 0.33 推到 0.50，撞上路 3b 的 0.4 基线）。
+part 'theme_mode_wire.dart';
+
 /// 应用统一设计语言。
 ///
 /// 目标不是模仿任何平台的专有控件，而是以内容优先、低噪声表面层级、

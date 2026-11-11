@@ -2,9 +2,21 @@
 // 纯 Dart，无 flutter/io 外部依赖；不可变；值类型 ==/hashCode。
 
 import 'package:drawing_notes_app/core/utils/time_serialization.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 
 /// 附件类型：普通文件 / PDF / 书签。
-enum AttachmentKind { file, pdf, bookmark }
+enum AttachmentKind implements WireEnum {
+  file,
+  pdf,
+  bookmark;
+
+  @override
+  String get wireName => switch (this) {
+    AttachmentKind.file => 'file',
+    AttachmentKind.pdf => 'pdf',
+    AttachmentKind.bookmark => 'bookmark',
+  };
+}
 
 /// 附件/PDF/书签卡的领域模型。
 ///
@@ -103,7 +115,7 @@ class NoteAttachment {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'kind': kind.name,
+    'kind': kind.wireName,
     'mimeType': mimeType,
     'byteSize': byteSize,
     'filePath': filePath,
@@ -117,7 +129,8 @@ class NoteAttachment {
   factory NoteAttachment.fromJson(Map<String, dynamic> json) => NoteAttachment(
     id: json['id'] as String,
     name: json['name'] as String,
-    kind: AttachmentKind.values.byName(json['kind'] as String),
+    // 严格口径与改造前一致：未知 `kind` 直接抛（宽容版是同文件的 tryParse）。
+    kind: wireEnumOfOrThrow(AttachmentKind.values, json['kind'] as String?),
     mimeType: (json['mimeType'] as String?) ?? '',
     byteSize: (json['byteSize'] as int?) ?? 0,
     filePath: (json['filePath'] as String?) ?? '',
@@ -142,13 +155,8 @@ class NoteAttachment {
           kindRaw is! String) {
         return null;
       }
-      AttachmentKind? kind;
-      for (final k in AttachmentKind.values) {
-        if (k.name == kindRaw) {
-          kind = k;
-          break;
-        }
-      }
+      // 宽容口径与改造前逐字相同：未知 `kind` → 整张卡片判为毒数据返回 null。
+      final kind = wireEnumOf(AttachmentKind.values, kindRaw);
       if (kind == null) return null;
       final byteSize = (json['byteSize'] as int?) ?? 0;
       if (byteSize < 0) return null;

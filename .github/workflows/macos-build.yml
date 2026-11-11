@@ -123,8 +123,10 @@ jobs:
       #
       # 回滚原因：本仓 28 处运行时读类型名（`runtimeType.toString()` 等）尚未改造，
       # 混淆会把用户可见文案与审计字段换成每次构建都不同的随机串，而非混淆 CI
-      # （flutter test / smoke）抓不到。恢复的前置条件（CTL-03 的 ①② 两步）见
-      # release-build.yml 文件头注释。
+      # （flutter test / smoke）抓不到。
+      # 进度：CTL-03 的 ①② 两步**均已完成**（① 诊断面字面量码、② 落盘枚举
+      # wire 名，门禁见 test/architecture/）；③ 加混淆仍未做，须业主点名——
+      # 详见 release-build.yml 文件头注释。
       - name: Build macOS release
         run: flutter build macos --release
 
@@ -149,4 +151,5 @@ jobs:
           if-no-files-found: error
 
       # 符号表上传步骤已随混淆一并移除：`--split-debug-info` 是产生 build/symbols/
-      # 的唯一开关，回滚后该目录不存在。（恢复混淆时连同 CTL-03 的 ③ 一起加回。）
+      # 的唯一开关，回滚后该目录不存在。（恢复混淆时连同 CTL-03 的 ③ 一起加回；
+      # ①② 已完成，③ 仍待业主点名。）

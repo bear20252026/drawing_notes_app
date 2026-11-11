@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_design.dart';
+
 /// 应用级主题控制器（Phase 7 深色模式）。
 ///
 /// 负责三件事：
@@ -50,10 +52,8 @@ class AppThemeController extends ChangeNotifier {
       _prefs ??= await SharedPreferences.getInstance();
       final saved = _prefs!.getString(_prefsKey);
       if (saved != null) {
-        _mode = ThemeMode.values.firstWhere(
-          (m) => m.name == saved,
-          orElse: () => ThemeMode.system,
-        );
+        // 回落口径与改造前逐字相同：未知/缺失 → 跟随系统。
+        _mode = themeModeFromWire(saved);
       }
       _highContrastOverride = switch (_prefs!.getString(_hcPrefsKey)) {
         'on' => true,
@@ -78,7 +78,7 @@ class AppThemeController extends ChangeNotifier {
     notifyListeners();
     try {
       _prefs ??= await SharedPreferences.getInstance();
-      await _prefs!.setString(_prefsKey, mode.name);
+      await _prefs!.setString(_prefsKey, themeModeWire(mode));
     } catch (_) {
       // 持久化失败不影响本次会话内的主题切换。
     }

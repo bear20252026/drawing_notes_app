@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 import 'package:drawing_notes_app/features/drawing/application/eraser_mode.dart';
 
 /// 橡皮擦模式的跨平台持久化设置。
@@ -17,14 +18,12 @@ class EraserModeStore {
   Future<EraserMode> load() async {
     final preferences = await _preferencesLoader();
     final raw = preferences.getString(storageKey);
-    return EraserMode.values.firstWhere(
-      (mode) => mode.name == raw,
-      orElse: () => EraserMode.stroke,
-    );
+    // 回落口径与改造前逐字相同：未知/缺失 → stroke。
+    return wireEnumOf(EraserMode.values, raw) ?? EraserMode.stroke;
   }
 
   Future<void> save(EraserMode mode) async {
     final preferences = await _preferencesLoader();
-    await preferences.setString(storageKey, mode.name);
+    await preferences.setString(storageKey, mode.wireName);
   }
 }

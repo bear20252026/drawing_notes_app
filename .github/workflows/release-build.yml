@@ -31,8 +31,17 @@ name: Release Build (Windows + Android)
 #  两边一起改名，比较照样成立。落盘枚举那半边也另说：同一份文档写的是
 #  「Enum names are not obfuscated **currently**」——今天不炸，但 "currently" 不是承诺，
 #  要显式 wire 名才能长期把 `.name` 当格式。）
-# ⇒ 解锁顺序：① 诊断面改成用 `is` 判定出的**字面量代码**（类型判断不受混淆影响），
-#   ② 落盘枚举加显式 wire 名，③ 然后才在两条出货命令上加 `--obfuscate`。
+# ⇒ 解锁顺序与进度（每步都要机器判据，不靠口头）：
+#   ① 诊断面改成用 `is` 判定出的**字面量代码**（类型判断不受混淆影响）
+#      —— ✅ **已完成**（R50，commit 019c4b2c）：18 个自定义异常自带
+#      `String get errorCode`，门禁 `test/architecture/error_code_coverage_gate_test.dart`。
+#   ② 落盘枚举加显式 wire 名 —— ✅ **已完成**（2026-11，本批）：16 个落盘枚举
+#      （14 处 JSON encode + 4 处 prefs/预设 + 收藏键 + 审计 action id）实现
+#      `WireEnum.wireName`，codec 改走 `wireEnumOf`；门禁
+#      `test/architecture/persisted_enum_wire_gate_test.dart`（wire 名与现 `.name`
+#      逐字相同 ⇒ 磁盘零迁移）。
+#   ③ 然后才在两条出货命令上加 `--obfuscate --split-debug-info=build/symbols`。
+#      —— ⛔ **未做**，且 2026-11 审计曾把它提前执行、**已回滚**（见下）。
 #   周期证据侧（weekly-evidence.yml）保持与下面的出货命令**逐字同形**，改一处要改两处。
 #
 # ⚠ 2026-11 审计（本批修复）：第 ③ 步的提前执行**已回滚**——出货命令
@@ -42,8 +51,10 @@ name: Release Build (Windows + Android)
 # `AuditLogger` 的 `detail`、`main.dart` 拼进审计 action id 的类型名，全都会变成
 # 每次构建都不同的随机串（如 `a.Q3`），而审计面与错误文案是**给人读**的。
 # 更糟的是 CI 抓不到：`flutter test` 与 smoke 跑的都是非混淆编译，只有装到
-# 用户机器上才现形。⇒ 恢复混淆的前置条件仍是文件头 CTL-03 的 ①② 两步。
-# 周期证据侧（weekly-evidence.yml）已同步回滚，改这里必须同步改那边。
+# 用户机器上才现形。
+# ⇒ 恢复混淆的前置条件 ①② **现已全部完成**（见上）；③ 仍**不要**自行开启——
+#   它同时引入「符号表 artifact 挂不挂公开 Release」这条尚未裁决的产品决定，
+#   须业主点名后才能动。周期证据侧（weekly-evidence.yml）已同步回滚，改这里必须同步改那边。
 
 on:
   workflow_dispatch:

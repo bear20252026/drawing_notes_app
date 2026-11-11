@@ -4,6 +4,49 @@
 
 ## [1.17.68] - 2026-11-05
 
+### CTL-03 ② 落盘枚举显式 wire 名（混淆解锁第二步）
+
+> 2026-11 审计。混淆（`--obfuscate`）此前被回滚，回滚原因里的「① 诊断面字面量码」
+> 已由 R50 完成，剩下的 ② 由本批完成。① ② 都带机器判据；③（真正加混淆）仍待业主点名。
+
+**为什么要做**：Flutter 文档对枚举的原话是「Enum names are not obfuscated **currently**」
+——"currently" 不是承诺。`--obfuscate` 之后 `Enum.name` 与 `values.byName()` 会跟着 Dart
+标识符一起被改名，而 `flutter test` 与 `-d windows` 的 smoke 跑的都是**非混淆**编译
+⇒ 这类失效 CI 天生看不见，只有装到用户机器上才现形（与 ① 同一类「本机看不见」失效）。
+
+**落盘格式零变化**：16 个落盘枚举的 `wireName` 与改造前的 `.name` **逐字相同** ⇒
+磁盘格式不变、老文件照读、无需迁移。变的是「格式不再由 Dart 标识符派生」——
+以后改 Dart 标识符不再等于改格式。
+
+**改动面**：
+
+- 新增 `lib/core/utils/wire_enum.dart`：`WireEnum` 接口 + `wireEnumOf` / `wireEnumOfOrThrow`。
+- `ThemeMode` 是 SDK 枚举、不能 `implements`，单独走 `themeModeWire` / `themeModeFromWire`
+  （回落口径与改造前逐字相同：未知/缺失 → 跟随系统）。这两个函数放在
+  `lib/core/theme/theme_mode_wire.dart`，是 `app_design.dart` 的 **part** 而不是独立库——
+  因为 `core/di/providers.dart` 也持久化主题模式，而那个文件的 Martin 棘轮是 0.33，
+  多一条 import 边就变成 0.50、撞上路 3b 的 0.4 基线。
+- 16 个落盘枚举实现 `WireEnum`：`ShapeType` / `StrokeStyle` / `FillStyle` / `PaperType` /
+  `TextAlignType` / `BrushType` / `ChartType` / `AttachmentKind` / `NoteBlockType` /
+  `EncryptionMode` / `PageTemplate` / `NoteFieldType` / `DatabaseViewType` / `EraserMode` /
+  `AllDocKind` / `SingleInstanceStatus`。
+- 20 处编解码改走 `wireName` / `wireEnumOf`：14 处 JSON encode（`paperType`/`shapeType`/
+  `strokeStyle`/`fillStyle`/`type`/`align`/`chartType`/`kind`/`encryptionMode`/`template`/
+  `viewType`/`fieldType`/块 `type`/笔刷预设簿）+ 4 处 prefs（主题模式 ×2、橡皮模式、
+  笔刷预设簿）+ **收藏键**（`AllDoc.dedupKey` = `kind:id`，写在 `all_docs_favorites.json`）
+  + **审计 action id**（`app.instance_*`，写在 `security/audit.log`）。
+- 后两处是**调研时补漏**的：原台账只记了 14 处 JSON encode，没记「枚举名被拼进另一个
+  持久化键」这一族——它们的失效方式与 JSON 那 14 处完全一样。
+
+**门禁**：`test/architecture/persisted_enum_wire_gate_test.dart`（62 条）
+
+- 契约层：16 个枚举的每个取值 `wireEnumOf` 往返成立、wire 名唯一，且与 `.name` 逐字相同
+  （「零迁移」的自我证明）。
+- 源码层：`lib/` 里五种落盘形状（`values.byName(` / `setString(…name…)` / map 值位置
+  `.name` / `.name ==` 比较 / 枚举 map 键 `.name:`）零命中。
+- 自证：五种形状分别用合成源喂一遍都必须被抓到；`Tag.name` / `File.name` 这类 String
+  属性不误伤（名单里每条都要写理由）。
+
 ### macOS 平台支持
 
 > 提交链：`0b2ee44c`（macOS 平台 + 算法/依赖升级）→ `a2d98000`（CI 补齐 editor_core 依赖）。

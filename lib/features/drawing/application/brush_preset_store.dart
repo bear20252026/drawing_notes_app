@@ -91,7 +91,7 @@ class BrushPresetBook {
   Map<String, Object> toJson() => {
     'schemaVersion': 1,
     'tools': {
-      for (final tool in BrushType.values) tool.name: forTool(tool).toJson(),
+      for (final tool in BrushType.values) tool.wireName: forTool(tool).toJson(),
     },
   };
 
@@ -102,7 +102,7 @@ class BrushPresetBook {
 
     var result = defaults;
     for (final tool in BrushType.values) {
-      final value = rawTools[tool.name];
+      final value = rawTools[tool.wireName];
       if (value is Map) {
         result = result.update(
           BrushPreset.fromJson(tool, Map<String, dynamic>.from(value)),

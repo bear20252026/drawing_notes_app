@@ -124,7 +124,7 @@ Future<void> main() async {
   instanceStatusAtLaunch = instanceStatus;
   if (instanceStatus != SingleInstanceStatus.acquired) {
     AuditLogger.log(
-      'app.instance_${instanceStatus.name}',
+      'app.instance_${instanceStatus.wireName}',
       success: true,
       detail: 'startup_continues',
     );
