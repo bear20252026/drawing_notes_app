@@ -217,7 +217,7 @@ class _PaginationPreviewState extends State<PaginationPreview> {
           margin: const EdgeInsets.all(12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppleColor.surfaceWhite,
             // D-05（审计 2026-09-28）：内容层零阴影，层级靠发丝线。
             border: Border.all(color: AppleColor.hairline),
           ),

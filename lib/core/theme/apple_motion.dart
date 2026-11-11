@@ -78,6 +78,27 @@ abstract final class AppleMotion {
   /// 提示条退场——比入场快约 20%（Expo RECIPES 原文）。
   static const Duration toastOut = Duration(milliseconds: 250);
 
+  /// 提示条**驻留**时长（H2，UI/UX 规范修复 2026-10-17）。
+  ///
+  /// 此前全库 6 处 SnackBar 用裸值 `Duration(seconds: 1/2/5/6/8)`——
+  /// `toastIn`/`toastOut` 只被用作动画时长，从未约束驻留，导致同一种
+  /// 反馈出现 1s–8s 六档（最长的 8s 足够读完一段警告，最短的 1s 连
+  /// 「已保存」都来不及确认）。
+  ///
+  /// 裁决：统一为 **2000ms** 一档。依据：
+  /// - Material 3 对短文本 SnackBar 的默认时长为 4s，但那是**带 action**
+  ///   的复合提示；本项目的 SnackBar 一律无 action（`AppSnack` 注释
+  ///   已写明），纯信息反馈取更短。
+  /// - 2s 是「一眼读完 + 手动关闭前不被打断」的通行下界（iOS/HIG 的
+  ///   「非模态提示」同口径），且与 `toastIn`(300ms) 入场后仍有 1.7s
+  ///   稳定可读窗口。
+  /// - 超过 2s 的长文案（如 U 盘绑定警示）改用**常驻说明条**或弹窗，
+  ///   不靠拉长 Toast 解决——Toast 是「已发生」的回执，不是阅读面板。
+  ///
+  /// 与原裸值的对应：1s→2s（已保存回执，略延长保证可读）、2s→2s、
+  /// 5s/6s/8s→2s（长文案交由说明条/弹窗，见各调用点注释）。
+  static const Duration toastVisible = Duration(milliseconds: 2000);
+
   /// 列表错位入场：单项时长。
   ///
   /// **预留（M-09，审计 2026-09-27）**：全库暂无错位入场消费方（列表入场

@@ -26,16 +26,11 @@ extension _EditorPageOverlays on _EditorPageState {
   }
 
   /// 构建画布上方的混排对象（文字块/图片块）。
+  ///
+  /// M3：plan 由 [_getOverlayPlan] 缓存（文档对象变化时失效），frameTick
+  /// 驱动的逐帧重建只读取缓存，不再每帧重新排序。
   List<Widget> _buildOverlayItems() {
-    final page = widget.session;
-    final plan = page == null
-        ? EditorOverlayItemPlan.forCanvas(_controller.document.textItems)
-        : EditorOverlayItemPlan.forPage(
-            textItems: page.textItems,
-            imageItems: page.imageItems,
-            shapes: page.shapes,
-            charts: page.charts,
-          );
+    final plan = _getOverlayPlan();
     final items = <Widget>[];
     // 就地编辑中的临时文字块尚未加入页面，始终优先渲染在最上层。
     final pending = _pendingTextItem;
@@ -418,8 +413,8 @@ extension _EditorPageOverlays on _EditorPageState {
                       ? Image(
                           // C-06（审计 2026-09-27）：解密服务组合根传线
                           // （widget.mediaCrypto，见 EditorPage.mediaCrypto）。
-                          image: EncryptedFileImage(
-                            File(item.filePath),
+                          image: EncryptedFileImage.fromPath(
+                            item.filePath,
                             mediaCrypto: widget.mediaCrypto,
                           ),
                           fit: BoxFit.contain,

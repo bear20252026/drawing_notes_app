@@ -47,7 +47,9 @@ extension _EditorPagePersistence on _EditorPageState {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
         content: Text(saveFailureLabel(AppLocalizations.of(context), notice)),
-        duration: const Duration(seconds: 6),
+        // H2（UI/UX 规范修复）：6s → AppleMotion.toastVisible（2s）。
+        // 保存失败详情由顶栏常驻芯片承载，Toast 只作「已发生」回执。
+        duration: AppleMotion.toastVisible,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -415,8 +417,9 @@ extension _EditorPagePersistence on _EditorPageState {
       result = await commitCropPairing(
         sourceBounds: Rect.fromLTWH(img.x, img.y, img.width, img.height),
         cropRect: rect,
-        writeToDisk: (crop, bounds) => const EditorImageCropWriter().writeCrop(
-          file: File(filePath),
+        writeToDisk: (crop, bounds) => const EditorImageCropWriter()
+            .writeCropFromPath(
+          path: filePath,
           cropRect: crop,
           imageBounds: bounds,
         ),

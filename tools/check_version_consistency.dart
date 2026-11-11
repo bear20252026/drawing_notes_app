@@ -80,5 +80,34 @@ void main() {
     fail('windows/runner/Runner.rc 未使用 FLUTTER_VERSION 宏');
   }
 
+  // 6. macos/Runner/Info.plist：版本必须来自 Flutter 注入宏（防字面量版本回退）。
+  //    CFBundleShortVersionString = 版本名，CFBundleVersion = 构建号。
+  final plist = File(
+    '$root/macos/Runner/Info.plist',
+  ).readAsLinesSync().join('\n');
+  final shortVersionOk = RegExp(
+    r'<key>CFBundleShortVersionString</key>\s*<string>\$\(FLUTTER_BUILD_NAME\)</string>',
+  ).hasMatch(plist);
+  final buildVersionOk = RegExp(
+    r'<key>CFBundleVersion</key>\s*<string>\$\(FLUTTER_BUILD_NUMBER\)</string>',
+  ).hasMatch(plist);
+  if (!shortVersionOk || !buildVersionOk) {
+    fail(
+      'macos/Runner/Info.plist 未使用 FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER 宏'
+      '（shortVersion=$shortVersionOk, buildVersion=$buildVersionOk）',
+    );
+  }
+
+  // 7. macos/Runner/Configs/AppInfo.xcconfig：PRODUCT_BUNDLE_IDENTIFIER 必须存在。
+  final xcconfig = File(
+    '$root/macos/Runner/Configs/AppInfo.xcconfig',
+  ).readAsLinesSync().join('\n');
+  if (!RegExp(
+    r'^PRODUCT_BUNDLE_IDENTIFIER\s*=\s*\S+',
+    multiLine: true,
+  ).hasMatch(xcconfig)) {
+    fail('macos/Runner/Configs/AppInfo.xcconfig 缺少 PRODUCT_BUNDLE_IDENTIFIER');
+  }
+
   stdout.writeln('版本一致性校验通过：pubspec=$version（安装器/CHANGELOG/平台注入一致）');
 }

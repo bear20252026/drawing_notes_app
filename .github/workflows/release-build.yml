@@ -35,13 +35,15 @@ name: Release Build (Windows + Android)
 #   ② 落盘枚举加显式 wire 名，③ 然后才在两条出货命令上加 `--obfuscate`。
 #   周期证据侧（weekly-evidence.yml）保持与下面的出货命令**逐字同形**，改一处要改两处。
 #
-# ⚠ 2026-11 审计：第 ③ 步**已提前执行**（口径统一），① 与 ② 尚未完成。
-# 触发原因：审计发现 `pr-platform.yml` 的 PR 侧构建**带** `--obfuscate`，而出货
-# 命令**不带** —— 同一仓两套口径，PR 证据采的是混淆形状、实际交付的是未混淆产物。
-# 既然 PR 侧已经在混淆形状上跑通，出货侧没有理由继续裸奔，故对齐。
-# 代价是上面那 28 处 runtimeType 的回归风险从「未来才引入」变成「已在出货产物里」，
-# 而 CI 的非混淆测试抓不到。回滚方法：把两条出货命令的 `--obfuscate
-# --split-debug-info=build/symbols` 去掉即可（每周证据侧同步）。
+# ⚠ 2026-11 审计（本批修复）：第 ③ 步的提前执行**已回滚**——出货命令
+# 重新**不带** `--obfuscate --split-debug-info=build/symbols`。
+# 回滚原因：那 28 处 runtimeType 改造（① 与 ②）尚未完成，混淆已经落在出货
+# 产物里：用户可见的三条 snackbar 文案、`saveFailure` 的 `errorKind`、
+# `AuditLogger` 的 `detail`、`main.dart` 拼进审计 action id 的类型名，全都会变成
+# 每次构建都不同的随机串（如 `a.Q3`），而审计面与错误文案是**给人读**的。
+# 更糟的是 CI 抓不到：`flutter test` 与 smoke 跑的都是非混淆编译，只有装到
+# 用户机器上才现形。⇒ 恢复混淆的前置条件仍是文件头 CTL-03 的 ①② 两步。
+# 周期证据侧（weekly-evidence.yml）已同步回滚，改这里必须同步改那边。
 
 on:
   workflow_dispatch:
@@ -219,35 +221,30 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ⚠ 混淆口径统一（审计 2026-11）：与 pr-platform.yml 的 PR 侧构建对齐
-      # （`flutter build windows --release --obfuscate --split-debug-info=build/symbols`）。
-      # 此前出货命令**不带** --obfuscate，于是出现「PR 侧带混淆、出货侧不带」的口径
-      # 分裂——PR 证据采的是混淆形状，实际发出去的是未混淆产物，防逆向保护在
-      # 真正交付物上反而缺席。
+      # ⚠ 混淆已回滚（2026-11 审计，本批修复）：出货命令**不带**
+      # `--obfuscate --split-debug-info=build/symbols`。
       #
-      # ⚠ 已知风险（文件头 CTL-03 未解锁部分，此处如实记录）：本仓有 28 处运行时
-      # 读类型名（`e.runtimeType.toString()` 等），混淆会把它们换成每次构建都不同的
-      # 随机串，影响三条 snackbar 文案、`saveFailure` 芯片的 `errorKind`、
-      # `AuditLogger` 的 `detail`，以及 `main.dart` 拼进审计 action id 的类型名。
-      # 而 `flutter test` 与 smoke 跑的都是**非混淆编译** ⇒ CI 抓不到这些回归。
-      # 若发版后用户可见文案/审计字段异常，**首先回滚这里的 --obfuscate**，
-      # 再按文件头的解锁顺序修诊断面（改 `is` 判定 + 落盘枚举显式 wire 名）。
+      # 回滚原因（文件头 CTL-03 的 ①② 未完成）：本仓 28 处运行时读类型名会被
+      # 混淆换成每次构建都不同的随机串，污染三条 snackbar 文案、`saveFailure`
+      # 的 `errorKind`、`AuditLogger` 的 `detail` 与 `main.dart` 的审计 action id；
+      # 而 `flutter test` / smoke 跑的都是非混淆编译 ⇒ CI 抓不到。
+      #
+      # 恢复混淆的前置条件（未完成前不得恢复）：
+      #   ① 诊断面改成用 `is` 判定出的字面量代码（类型判断不受混淆影响）；
+      #   ② 落盘枚举加显式 wire 名；
+      #   ③ 然后才在出货命令加回 `--obfuscate`（周期证据侧同步）。
       #
       # 改这里必须同步改 weekly-evidence.yml 的那条证据命令——证据必须对着真正
       # 出货的形状采。
       - name: Build release APK
-        run: flutter build apk --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build apk --release
 
       - name: Build release AppBundle (Play Store)
-        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build appbundle --release
 
-      # 审计 2026-11：符号表随产物一起上传（混淆后没有符号表无法定位崩溃）。
-      - name: Upload Android symbols
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: android-symbols
-          path: build/symbols/
-          if-no-files-found: warn
+      # 符号表上传步骤已随混淆一并移除：`--split-debug-info` 是产生 build/symbols/
+      # 的唯一开关，回滚后该目录不存在，留着只会每周刷一条 warning。（恢复混淆时
+      # 连同 ③ 一起加回。）
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -318,13 +315,15 @@ jobs:
       # 而 App 渲染英文、断言用中文文案（并非当时误诊的「首帧渲染差异」），
       # smoke_test.dart 已强制 localeTestOverride=zh。
       - name: Smoke test (integration_test on Windows)
-        run: flutter test integration_test/smoke_test.dart -d windows
+        run: |
+          flutter test integration_test/smoke_test.dart -d windows
+          flutter test integration_test/toolbar_test.dart -d windows
+          flutter test integration_test/doc_lifecycle_test.dart -d windows
 
-      # ⚠ 混淆口径统一（审计 2026-11）：见 android job 的同名注释。
-      # 与 pr-platform.yml 的 PR 侧构建逐字对齐；改这里必须同步改
-      # weekly-evidence.yml 的那条证据命令。
+      # ⚠ 混淆已回滚（2026-11 审计，本批修复）：见 android job 的同名注释。
+      # 改这里必须同步改 weekly-evidence.yml 的那条证据命令。
       - name: Build Windows release
-        run: flutter build windows --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build windows --release
 
       # 审计 2026-11（未钉版）：原 `choco install innosetup` 每次装当下最新
       # 稳定版 —— 安装器脚本的兼容性、ISCC 的默认行为、甚至 choco 包的打包方式
@@ -363,14 +362,7 @@ jobs:
           "$hash  $($exe.Name)" | Out-File -Encoding utf8 $sumsPath
           Write-Host "SHA256: $hash  ($($exe.Name))"
 
-      # 审计 2026-11：混淆符号表随产物上传（无符号表无法定位用户机器上的崩溃）。
-      - name: Upload Windows symbols
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: windows-symbols
-          path: build/symbols/
-          if-no-files-found: warn
-
+      # 符号表上传步骤已随混淆一并移除（同 android job 的说明）。
       - name: Upload Windows raw release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

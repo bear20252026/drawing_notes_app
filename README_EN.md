@@ -41,7 +41,7 @@ All three are managed in the **All Docs workspace**: grouped timeline, favorites
 
 - Flutter 3.47.9 (Dart 3.13.7) or later stable
 - Windows build: Visual Studio 2022+ (C++ desktop development workload)
-- Android build: Android SDK (compileSdk 36) + JDK 17+
+- Android build: Android SDK (compileSdk 37) + JDK 17+
 - macOS build: Xcode 15+ (minimum macOS 13 Ventura); **unsigned/notarized** — runs locally
 
 ## Quick Start

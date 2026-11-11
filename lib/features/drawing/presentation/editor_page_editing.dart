@@ -551,29 +551,23 @@ extension _EditorPageEditing on _EditorPageState {
       _showSnack(_l10nSafe?.edLinkInvalid ?? '链接无效或不受支持');
       return;
     }
-    try {
-      if (Platform.isWindows) {
-        // 链 F 调用点加固（军工审计 2026-08-15）：cmd /c start 会把 URL 的
-        // & | ^ 解释为命令分隔符（CVE-2026-32948/22168 同源模式），且 %VAR%
-        // 会被展开——改用 rundll32 url.dll,FileProtocolHandler 绕过 cmd.exe，
-        // URL 原样交给 OS 协议处理器（multica PR #1202 社区批准标准修复）。
-        // sanitizeHref 已拒绝 " 和 %（输入侧双保险）。
-        await Process.start('rundll32', ['url.dll,FileProtocolHandler', safe]);
-      } else {
-        await Process.start('xdg-open', [safe]);
-      }
+    // H1（2026-11）：平台调用下沉到 core/utils（presentation 不 import dart:io）。
+    // 链 F 加固（军工审计 2026-08-15）：Windows 走 rundll32 url.dll,
+    // FileProtocolHandler 绕过 cmd.exe——cmd /c start 会把 URL 的 & | ^
+    // 解释为命令分隔符（CVE-2026-32948/22168 同源模式），且 %VAR% 会被展开。
+    // sanitizeHref 已拒绝 " 和 %（输入侧双保险）。
+    final opened = await openExternalUrl(safe);
+    if (opened) {
       _showSnack(_l10nSafe?.edLinkOpened ?? '已打开链接');
-    } catch (e) {
-      // R-04/S-08（审计 2026-09-27）：$e 含完整 URL/命令行等内部信息——
-      // 只透出错误类型，细节按 H-04 口径进审计日志。
+    } else {
       AuditLogger.log(
         'editor.href.open_failed',
         success: false,
-        detail: errorCode(e),
+        detail: 'launch_failed',
       );
       _showSnack(
-        _l10nSafe?.linkOpenFailedSnack(errorCode(e)) ??
-            '无法打开链接：${errorCode(e)}',
+        _l10nSafe?.linkOpenFailedSnack('launch_failed') ??
+            '无法打开链接：launch_failed',
       );
     }
   }

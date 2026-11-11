@@ -8,6 +8,88 @@ import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 
+/// 媒体加密盐 + KDF 版本（M1 修复 2026-11-11）。
+///
+/// 旧版 `media_crypto_salt` 文件只持久 16B 盐，KDF 在 `setSessionPassword`
+/// 里硬编码 PBKDF2-600k——Argon2id 升级无法只靠换 KDF 参数实现（旧盐
+/// 派生的媒体会全部解不开）。故盐文件升级为带版本前缀的自描述格式：
+/// `[1B 版本][16B 盐]`。读路径按版本分派 KDF，新写入恒用 Argon2id。
+///
+/// 版本 1（旧文件，无前缀）：PBKDF2-HMAC-SHA256 600k（向后兼容读旧数据）。
+/// 版本 2（新写入）：Argon2id 生产参数（64 MiB / t2 / p2）。
+class MediaSalt {
+  const MediaSalt({required this.bytes, required this.kdf});
+
+  /// 16 字节盐（明文无害）。
+  final List<int> bytes;
+
+  /// 本盐对应的 KDF 参数（版本分派的单一事实来源）。
+  final KdfParams kdf;
+
+  /// 旧文件格式常量：纯 16B 盐，无版本前缀 ⇒ 版本 1。
+  static const int legacyFileLength = 16;
+  static const int versionByteCount = 1;
+  static const int saltLength = 16;
+
+  /// 版本 1 的 KDF（PBKDF2-600k）——与 H-03 时代产线一致。
+  static const KdfParams legacyKdf = KdfParams.pbkdf2(600000);
+
+  /// 版本 2 的 KDF（Argon2id 生产）——新写入一律用它。
+  static const KdfParams argon2idKdf = KdfParams.argon2idProduction;
+
+  /// 版本 1 标记（旧文件无显式版本字节，靠长度判定）。
+  static const int versionLegacy = 1;
+  static const int versionArgon2id = 2;
+
+  /// 解析盐文件字节：
+  /// - 恰好 16B ⇒ 旧版（版本 1，PBKDF2）。
+  /// - 17B 且首字节 == 2 ⇒ 版本 2（Argon2id）。
+  /// - 其余 ⇒ [ArgumentError]（fail-closed：不猜，避免用错 KDF 解不开
+  ///   已加密媒体）。
+  factory MediaSalt.parse(List<int> raw) {
+    if (raw.length == legacyFileLength) {
+      return MediaSalt(bytes: List.of(raw), kdf: legacyKdf);
+    }
+    if (raw.length == versionByteCount + saltLength) {
+      final v = raw[0];
+      if (v == versionArgon2id) {
+        return MediaSalt(
+          bytes: List.of(raw.sublist(versionByteCount)),
+          kdf: argon2idKdf,
+        );
+      }
+    }
+    throw ArgumentError('媒体加密盐文件格式无法识别（长度 ${raw.length}）');
+  }
+
+  /// 序列化为盐文件字节（新写入恒为版本 2 + 16B 盐）。
+  List<int> encode() => [versionArgon2id, ...bytes];
+
+  /// 旧版纯盐（16B）——供测试与向后兼容路径使用。
+  static MediaSalt legacy(List<int> bytes) =>
+      MediaSalt(bytes: List.of(bytes), kdf: legacyKdf);
+
+  @override
+  bool operator ==(Object other) =>
+      other is MediaSalt &&
+      other.kdf == kdf &&
+      _listEquals(other.bytes, bytes);
+
+  static bool _listEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(kdf, Object.hashAll(bytes));
+
+  @override
+  String toString() => 'MediaSalt(kdf=$kdf, salt=${bytes.length}B)';
+}
+
 /// 媒体加密服务（H-03 跨域专项基础组件，专家审计 2026-08-15）。
 ///
 /// BusinessCrypto 层（掘金 HUKS 四层架构模式）：媒体资产（图片/PDF 副本）
@@ -52,24 +134,36 @@ class MediaCryptoService implements SessionSecretsHolder {
   /// 清除每笔记密钥（锁定时——D-2 内存清零语义）。
   void clearNotebookKey() => clearSessionKey();
 
-  /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：PBKDF2
-  /// 派生 key 后注入（与会话密钥注入统一——服务不感知模式）。
+  /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：按盐版本
+  /// 分派 KDF 派生 key 后注入（与会话密钥注入统一——服务不感知模式）。
   /// [salt] 为全局持久盐（明文无害——盐无需保密）；跨会话用同一全局
   /// 盐重派生（解密媒体 key 一致）。
   ///
   /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐) 重复解锁零重算。
-  /// 批B 注：媒体层 KDF 与既有密文耦合（全局盐持久化），维持 PBKDF2
-  /// 600k 不变（OWASP 合规）——KDF 升级需媒体重加密轮换，另行立项。
-  Future<void> setSessionPassword(String password, List<int> salt) async {
+  ///
+  /// **M1 修复（2026-11-11）**：读取路径按 [MediaSalt.kdf] 版本分派——
+  /// 旧盐（版本 1）仍用 PBKDF2-600k 解旧媒体；新盐（版本 2）用 Argon2id
+  /// 生产参数。新写入一律 [MediaSalt.encode]（版本 2），不再新增 PBKDF2 盐。
+  /// 调用方传入 [MediaSalt]（来自 [NotebookStorage.ensureMediaSalt]）。
+  Future<void> setSessionPassword(String password, MediaSalt salt) async {
     final key = await KekSessionCache.instance.deriveKek(
       password,
-      salt,
-      const KdfParams.pbkdf2(600000),
+      salt.bytes,
+      salt.kdf,
     );
     _sessionKey = List.of(key);
     // KekSessionCache 返回独立副本，注入后源副本就地清零（P0 密钥零化）。
     key.fillRange(0, key.length, 0);
   }
+
+  /// 兼容旧调用点：纯 16B 盐视为 [MediaSalt.legacy]（PBKDF2-600k）。
+  ///
+  /// 仅测试与任何直接传裸盐的旧代码使用；生产路径一律走
+  /// [setSessionPassword] + [MediaSalt]（带版本）。保留此重载是为了
+  /// 不让旧调用点在 KDF 升级后静默改变语义——裸盐没有版本信息，
+  /// fail-closed 地按旧版（PBKDF2）处理。
+  Future<void> setSessionPasswordLegacy(String password, List<int> salt) =>
+      setSessionPassword(password, MediaSalt.legacy(salt));
 
   /// 生成 16 字节全局盐（密码模式媒体加密派生用——明文无害）。
   static List<int> generateSalt() {

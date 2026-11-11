@@ -98,10 +98,12 @@ jobs:
       # 这条要的是「**真正出货的那个命令**在 Windows runner 上编得动」的周期证据。
       # 命令必须与 release-build.yml 的 `Build Windows release` 逐字同形——证据不能
       # 对着一个不出货的形状采。
-      # 2026-11 审计：release-build.yml 的出货命令已加 `--obfuscate
-      # --split-debug-info=build/symbols`（与 pr-platform.yml 口径统一），这里同步。
+      # 2026-11 审计（本批修复）：release-build.yml 的出货命令已**回滚**
+      # `--obfuscate --split-debug-info=build/symbols`——那 28 处 runtimeType 未改造，
+      # 混淆会污染用户可见文案与审计字段，而非混淆 CI 抓不到。这里同步回滚，
+      # 保持与真正出货的形状逐字同形。
       - name: Build Windows release
-        run: flutter build windows --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build windows --release
 
       - name: 失败时开一条待办 issue（不重复开）
         if: failure()
@@ -114,7 +116,7 @@ jobs:
           $title = "每周补证失败：Windows 发布形态构建"
           $existing = gh issue list --search "$title in:title" --state open --limit 1
           if ([string]::IsNullOrWhiteSpace($existing)) {
-            $body = "工作流 [windows-release-build]($env:RUN_URL) 失败。本条是周期证据，不阻断 master；混淆发布构建一旦在此变红，说明下一次发版会当场失败，请优先处理。"
+            $body = "工作流 [windows-release-build]($env:RUN_URL) 失败。本条是周期证据，不阻断 master；发布形态构建一旦在此变红，说明下一次发版会当场失败，请优先处理。"
             gh issue create --title $title --body $body
           } else {
             Write-Host "已有未关闭的同族 issue，跳过创建"
@@ -148,8 +150,9 @@ jobs:
 
       - run: flutter pub get
       # 照抄 pr-platform.yml:48 的形态（`--debug`）：这条要的是「Android 端还能构建」
-      # 的周期证据，不是发布产物——发布产物由 release-build.yml 那条腿负责（已带混淆）。
-      # 本步保持 --debug 不加混淆：debug 产物不交付，加混淆只会让符号表噪声干扰证据。
+      # 的周期证据，不是发布产物——发布产物由 release-build.yml 那条腿负责（混淆已回滚，
+      # 见该文件头 CTL-03）。本步保持 --debug 不加混淆：debug 产物不交付，加混淆只会让
+      # 符号表噪声干扰证据。
       - name: Build Android debug
         run: flutter build apk --debug
 

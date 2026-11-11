@@ -809,6 +809,7 @@ class DrawingController extends ChangeNotifier
     _renderCacheCoordinator.dispose();
     _temporaryInkSession.dispose();
     _documentImageCache.dispose();
+    frameTick.dispose();
     temporaryInkTick.dispose();
     super.dispose();
   }

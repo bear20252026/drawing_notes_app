@@ -154,19 +154,31 @@ void main() {
       expect(conflicts.single.remoteDigest, 'bbbb');
     });
 
-    test('反向锁：两端都没有摘要（旧客户端）⇒ 不报冲突（不得制造升级风暴）', () {
+    // M7 裁决（2026-11-13）：本条原输入是「基线 ts=10、两端 ts=20 同 size 无
+    // 摘要」——即**两端相对基线都改过**，恰好是第三轮专家审计 M7 要求判为
+    // 「不可知 ⇒ 报冲突」的那一格，两条不可能同时成立。
+    //
+    // 裁决结果：M7 胜出，本条改为钉住假红风暴真正的防线——「两端都没动过」
+    // 与「只有一端动过」。后者才是「升级后第一轮把全库旧条目报成冲突」的成因：
+    // 旧客户端条目无摘要，但只要有一端 == 基线，那侧就可判定内容 == 基线，
+    // 走 LWW 安全。M7 新增的那一格（两端都改过、指纹全同、都无摘要）已在
+    // test/core/sync/content_unverifiable_test.dart 钉死。
+    test('反向锁：两端都没动过（旧客户端）⇒ 不报冲突（不得制造升级风暴）', () {
+      const unchanged = SyncSnapshot(id: 'x', updatedAt: 10, size: 7);
+      final conflicts = detectSyncConflicts(
+        {'x': unchanged},
+        SyncManifest(entries: {'x': unchanged}),
+        SyncManifest(entries: {'x': unchanged}),
+      );
+      expect(conflicts, isEmpty);
+    });
+
+    test('反向锁：只有一端改过（旧客户端）⇒ 不报冲突，走 LWW', () {
+      const baseline = SyncSnapshot(id: 'x', updatedAt: 10, size: 7);
       final conflicts = detectSyncConflicts(
         {'x': const SyncSnapshot(id: 'x', updatedAt: 20, size: 7)},
-        SyncManifest(
-          entries: {
-            'x': const SyncSnapshot(id: 'x', updatedAt: 20, size: 7),
-          },
-        ),
-        SyncManifest(
-          entries: {
-            'x': const SyncSnapshot(id: 'x', updatedAt: 10, size: 7),
-          },
-        ),
+        SyncManifest(entries: {'x': baseline}),
+        SyncManifest(entries: {'x': baseline}),
       );
       expect(conflicts, isEmpty);
     });

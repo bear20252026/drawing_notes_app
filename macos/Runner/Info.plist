@@ -40,8 +40,9 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 
-	<!-- 文档类型关联：.dnproj 项目文件（与 lib/core/platform/file_association.dart
-	     的 macOS 分支一致）。角色 Editor = 可读写；Viewer 用于 Quick Look。 -->
+	<!-- 文档类型关联：.dnproj 项目文件（macOS 平台原生声明——CFBundleDocumentTypes
+	     引用下方导出的 UTI；本应用未在 Dart 侧做文件关联注册，打开动作由系统
+	     经此声明唤起应用）。角色 Editor = 可读写；Viewer 用于 Quick Look。 -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

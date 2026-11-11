@@ -924,19 +924,28 @@ void main() {
       expect(server.files['x']!.length, realSize);
     });
 
-    test('同 updatedAt 同 size → 不冲突（真·无变化）', () async {
+    // M7 裁决（2026-11-13）：本条原场景是「两端 ts 同为 20、size 同、基线 10
+    // ⇒ 两端都改过」，恰好是第三轮专家审计 M7 要求判为「不可知 ⇒ 报冲突」的
+    // 那一格，两条不可能同时成立。裁决：M7 胜出（用户确认）。
+    //
+    // 改为钉住它真正要守的那件事——**没有任何一侧相对基线改过时**，同 ts
+    // 同 size 就是同一版字节，不得报冲突、不得产生任何传输（否则每次同步都
+    // 白跑一轮，还会把「真·无变化」误报成全库冲突）。M7 新增的那一格已在
+    // test/core/sync/content_unverifiable_test.dart 端到端钉死（planner 给不出
+    // 操作 ⇒ 补一条 keepBoth 上传）。
+    test('两端都没改过（== 基线）→ 不冲突、零传输（真·无变化）', () async {
       final store = _MemoryDocStore();
-      store.docs['y'] = _Doc('y', _localDocBytes(20), 20);
+      // 本地与远端都还是基线那一版（ts=10）。
+      store.docs['y'] = _Doc('y', _localDocBytes(10), 10);
       final server = _MemoryServer();
-      server.seedDoc('y', 20);
-      server.seedManifest({'y': 20});
+      server.seedDoc('y', 10);
+      server.seedManifest({'y': 10});
       final baseline = _MemoryBaseline()
         ..value = SyncManifest(entries: {'y': _snap('y', 10)});
       final s = _service(store, server, baseline: baseline);
 
       final r = await s.syncNow();
-      // 同 ts 同 size → 真无变化，不报冲突。
-      expect(r.conflictedDocIds, isEmpty);
+      expect(r.conflictedDocIds, isEmpty, reason: '两端都 == 基线 ⇒ 内容确定相同');
       expect(r.uploaded, 0);
       expect(r.downloaded, 0);
       expect(r.changed, isFalse);

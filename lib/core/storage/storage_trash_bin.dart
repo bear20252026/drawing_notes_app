@@ -96,12 +96,17 @@ class StorageTrashBin {
   Future<bool> deleteDocumentToTrash(String id) async {
     await directories.ensureDocuments();
     final file = File(directories.documentPathFor(id));
-    final backup = File('${file.path}.bak');
-    // 只剩侧车也算这篇存在（`StorageService.load` 会回退读 `.bak`）：旧写法在这里
+    // M4：备份级别从近到远排成一列（0 = 最近一版 = 历史命名 `.bak`）。
+    final backups = [
+      for (var level = 0; level < StorageWritePipeline.backupLevels; level++)
+        File(StorageWritePipeline.bakLevelPath(file.path, level)),
+    ];
+    // 只剩侧车也算这篇存在（`StorageService.load` 会回退读备份）：旧写法在这里
     // return false ⇒ 它既删不掉，又会通过「基线有、清单无」被同步推成用户删除并
     // DELETE 云端副本。源按可得性取，两条路都不留第二份。
-    if (!file.existsSync() && !backup.existsSync()) return false;
-    final source = file.existsSync() ? file : backup;
+    final liveBackup = backups.where((b) => b.existsSync()).firstOrNull;
+    if (!file.existsSync() && liveBackup == null) return false;
+    final source = file.existsSync() ? file : liveBackup!;
 
     // 必须在删除主文件前读取其引用；无法读取时不进行资产回收，保证数据安全。
     DrawingDocument? document;
@@ -132,17 +137,24 @@ class StorageTrashBin {
     );
     // 侧车清理失败绝不能把这次删除整个打断：主文件此刻**已经**在回收站里了。
     // 旧写法让 backup.delete() 的异常向外冒 ⇒ 调用方看到「删除失败」而文档已经
-    // 消失，残留的 `.bak` 还留在原地当复活种子。
-    try {
-      if (backup.existsSync()) {
-        await backup.delete();
+    // 消失，残留的侧车还留在原地当复活种子。
+    //
+    // M4：轮转之后每一级都是独立的一份副本，因此**每一级都要清**。只清 `.bak`
+    // 会让 `.bak.1`/`.bak.2` 变成删不掉也看不见的残留——列表只认 `.json` 所以
+    // 首页看不出来，而 `load` 会凭它们把这篇文档读回来（复活）。
+    // 每条审计各带一个级别编号：只写异常码时，「哪一级没删掉」与「为什么」
+    // 在事后都查不出来。
+    for (var level = 0; level < backups.length; level++) {
+      final backup = backups[level];
+      try {
+        if (backup.existsSync()) await backup.delete();
+      } catch (e) {
+        AuditLogger.log(
+          'trash.delete.bak_left',
+          success: false,
+          detail: 'level=$level err=${errorCode(e)}',
+        );
       }
-    } catch (e) {
-      AuditLogger.log(
-        'trash.delete.bak_left',
-        success: false,
-        detail: errorCode(e),
-      );
     }
 
     // 清理缩略图（尽力而为，缩略图缺失不影响使用）。

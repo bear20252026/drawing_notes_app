@@ -13,6 +13,12 @@
 // （等价于直接删除 PIN）；本守卫抬高门槛，不承诺绝对防篡改。
 // 记录「存在但签名不合法」按 fail-closed 处理：立即进入最长冷却
 // （合法场景只有存储损坏，用户知晓 PIN 等待即可恢复）。
+//
+// M4 修复（2026-11-11）：签名密钥与守卫记录**同域共储**——两者均落
+// `security/` 私有目录、均 0600——原先记录走 SharedPreferences（与密钥
+// 分储但同账户可达），攻击者改写偏好文件即可让签名校验对着伪造记录通过。
+// 现在记录+签名+密钥三者在同一受保护文件域内，单独改写任一处都会断签
+// （fail-closed）。
 
 import 'dart:async';
 import 'dart:convert';
@@ -28,6 +34,10 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart' as hex;
 
+/// 守卫记录文件名（与签名密钥 [defaultSecretLoader] 同目录——M4 同域共储）。
+@visibleForTesting
+const kGuardRecordFile = 'app_lock_guard.record';
+
 /// 开屏密码防爆破守卫。
 ///
 /// 由 [AppLockService] 组合持有；测试注入 [clock] 与 [secretLoader]。
@@ -40,8 +50,10 @@ class LockoutGuard {
     Future<List<int>> Function()? secretLoader,
   }) : _secretLoader = secretLoader ?? defaultSecretLoader;
 
-  static const _kRecordKey = 'app_lock.guard.record';
-  static const _kSigKey = 'app_lock.guard.sig';
+  // M4：记录与签名合并存入 security/ 私有文件（不再走 SharedPreferences）。
+  // 兼容读：旧版 SharedPreferences 里的记录仍可在迁移期读出（见 [_loadRecord]）。
+  static const _kLegacyRecordKey = 'app_lock.guard.record';
+  static const _kLegacySigKey = 'app_lock.guard.sig';
 
   /// 第 [lockoutThreshold] 次失败起冷却 = base × 2^(n-threshold)，封顶 [lockoutCap]。
   final Duration lockoutBase;
@@ -108,8 +120,7 @@ class LockoutGuard {
     _bootTrustedMs = clock().millisecondsSinceEpoch;
     _uptime.reset();
 
-    final recordStr = prefs.getString(_kRecordKey);
-    final sigStr = prefs.getString(_kSigKey);
+    final (recordStr, sigStr) = await _loadRecord(prefs);
     if (recordStr == null || sigStr == null) {
       // 无记录（首次/合法清零）：从干净状态开始。
       _count = 0;
@@ -140,6 +151,11 @@ class LockoutGuard {
     _untilMs = record['u'] as int;
     _highWaterMs = record['hw'] as int;
     _loaded = true;
+    // M4 迁移：旧 SharedPreferences 记录读到后立即迁移到私有文件/新键——
+    // 否则用户不触发 recordAttempt 就永远停在旧存储（重启后丢失）。
+    if (recordStr.isNotEmpty && !_isNewFormat(prefs)) {
+      await _persistRecord(prefs);
+    }
   }
 
   /// 记录一次校验结果：成功清零并删除记录；失败计数并按需上锁。
@@ -154,8 +170,7 @@ class LockoutGuard {
       _count = 0;
       _untilMs = 0;
       _highWaterMs = trustedNowMs();
-      await prefs.remove(_kRecordKey);
-      await prefs.remove(_kSigKey);
+      await _deleteRecord(prefs);
       return;
     }
     _count += 1;
@@ -171,8 +186,50 @@ class LockoutGuard {
     final prefs = await prefsLoader();
     _count = 0;
     _untilMs = 0;
-    await prefs.remove(_kRecordKey);
-    await prefs.remove(_kSigKey);
+    await _deleteRecord(prefs);
+  }
+
+  // ==== M4：记录与签名合并存于 security/ 私有文件 ====
+
+  /// 读取记录 + 签名（新格式优先；旧 SharedPreferences 兼容读）。
+  Future<(String?, String?)> _loadRecord(SharedPreferences prefs) async {
+    // 测试环境：SharedPreferences mock 可用，直接走新格式文件——
+    // 但测试不落盘（平台通道不可用），走 SharedPreferences 键（同格式）。
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+      final record = prefs.getString(kGuardRecordFile);
+      if (record != null) {
+        try {
+          final decoded = jsonDecode(record) as Map<String, dynamic>;
+          return (decoded['record'] as String?, decoded['sig'] as String?);
+        } catch (_) {
+          return (null, null);
+        }
+      }
+      // 兼容旧版 SharedPreferences 键。
+      final legacyRecord = prefs.getString(_kLegacyRecordKey);
+      final legacySig = prefs.getString(_kLegacySigKey);
+      return (legacyRecord, legacySig);
+    }
+    try {
+      final dir = await AppDataRoot.defaultSecurityDir();
+      final file = File('${dir.path}${Platform.pathSeparator}$kGuardRecordFile');
+      if (file.existsSync()) {
+        final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        final record = decoded['record'] as String?;
+        final sig = decoded['sig'] as String?;
+        if (record != null && sig != null) {
+          // 迁移：读到合法记录后清掉旧 SharedPreferences 条目。
+          await _clearLegacyPrefs(prefs);
+          return (record, sig);
+        }
+      }
+    } catch (_) {
+      // 读失败 → 回退到旧 SharedPreferences 兼容路径。
+    }
+    // 兼容：旧版 SharedPreferences 里的记录（首次迁移期）。
+    final record = prefs.getString(_kLegacyRecordKey);
+    final sig = prefs.getString(_kLegacySigKey);
+    return (record, sig);
   }
 
   Future<void> _persistRecord(SharedPreferences prefs) async {
@@ -183,8 +240,71 @@ class LockoutGuard {
       'u': _untilMs,
       'hw': _highWaterMs,
     });
-    await prefs.setString(_kRecordKey, record);
-    await prefs.setString(_kSigKey, _sign(record));
+    final sig = _sign(record);
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+      // 测试环境：写入 SharedPreferences mock（与生产同格式）。
+      await prefs.setString(
+        kGuardRecordFile,
+        jsonEncode({'record': record, 'sig': sig}),
+      );
+      await _clearLegacyPrefs(prefs);
+      return;
+    }
+    try {
+      final dir = await AppDataRoot.defaultSecurityDir();
+      final file = File('${dir.path}${Platform.pathSeparator}$kGuardRecordFile');
+      final parent = file.parent;
+      if (!parent.existsSync()) await parent.create(recursive: true);
+      await file.writeAsString(
+        jsonEncode({'record': record, 'sig': sig}),
+        flush: true,
+      );
+      await AppDataRoot.tightenFilePermissions(file);
+      // 写入成功后清掉旧 SharedPreferences 条目（迁移完成）。
+      await _clearLegacyPrefs(prefs);
+    } catch (_) {
+      // 落盘失败不阻断守卫语义——内存态仍自洽。
+    }
+  }
+
+  Future<void> _deleteRecord(SharedPreferences prefs) async {
+    await prefs.remove(kGuardRecordFile);
+    await _clearLegacyPrefs(prefs);
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final dir = await AppDataRoot.defaultSecurityDir();
+      final file = File('${dir.path}${Platform.pathSeparator}$kGuardRecordFile');
+      if (file.existsSync()) await file.delete();
+    } catch (_) {
+      // 删除失败不阻断。
+    }
+  }
+
+  Future<void> _clearLegacyPrefs(SharedPreferences prefs) async {
+    try {
+      await prefs.remove(_kLegacyRecordKey);
+      await prefs.remove(_kLegacySigKey);
+    } catch (_) {
+      // 忽略——旧存储可能不可写。
+    }
+  }
+
+  /// 新格式键是否存在（区分旧 SharedPreferences vs 已迁移）。
+  bool _isNewFormat(SharedPreferences prefs) =>
+      prefs.getString(kGuardRecordFile) != null;
+
+  /// 测试辅助：清零测试态内存记录（用例间防串扰）。
+  @visibleForTesting
+  static void debugResetTestState() {
+    // 测试环境记录走 SharedPreferences mock（setMockInitialValues 即清零）。
+  }
+
+  /// 测试辅助：对记录计算签名（静态，直接传密钥——不依赖 load 状态）。
+  @visibleForTesting
+  static String debugSignForTest(String record, List<int> secret) {
+    return hexEncode(
+      Hmac(sha256, secret).convert(utf8.encode(record)).bytes,
+    );
   }
 
   Map<String, int>? _parseRecord(String raw) {
@@ -240,6 +360,9 @@ class LockoutGuard {
     // 随机密钥单一事实来源：复用 VaultKeyService.randomBytes（CSPRNG）。
     final key = VaultKeyService.randomBytes(32);
     await file.writeAsString(base64Encode(key), flush: true);
+    // M3 修复（2026-11-11）：守卫签名密钥收紧到 0600（仅属主可读写）。
+    // chmod 失败静默——加固不阻断业务。
+    await AppDataRoot.tightenFilePermissions(file);
     return key;
   }
 

@@ -2,7 +2,6 @@
 // WebDAV 本地优先同步：设置页（服务器/认证 + 立即同步 + 端到端加密）。
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -167,10 +166,13 @@ String humanizeWebDavSyncError(Object? e, {AppLocalizations? l10n}) {
         ) ??
         '同步失败：服务器拒绝了这次请求（HTTP ${code ?? '未知'}）';
   }
-  if (e is HandshakeException) {
+  // H1（2026-11）：异常分类改判稳定错误码（core/utils/error_code）——
+  // presentation 不再 import 'dart:io' 判 HandshakeException/SocketException。
+  final errCode = errorCode(e);
+  if (errCode == 'io_handshake') {
     return l10n?.syncFailedHttps ?? '同步失败：安全连接（HTTPS）握手失败，请检查服务器证书';
   }
-  if (e is SocketException || e is TimeoutException) {
+  if (errCode == 'io_socket' || errCode == 'async_timeout') {
     return l10n?.syncFailedConnect ?? '同步失败：连不上服务器，请检查网络或服务器地址';
   }
   return l10n?.syncFailedGeneric ?? '同步失败：请检查网络与账号设置后重试';
@@ -866,7 +868,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 44),
               // P1-5：硬编码 actionBlue 深色下 2.96:1——改走主题（浅 primary
-              // #0066CC / 深 #B5CCFF），发丝线同理用主题 outlineVariant。
+              // #0066CC / 深 #2997FF），发丝线同理用主题 outlineVariant。
               foregroundColor: Theme.of(context).colorScheme.primary,
               side: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,

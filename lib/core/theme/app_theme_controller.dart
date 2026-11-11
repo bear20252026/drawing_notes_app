@@ -126,4 +126,9 @@ class AppThemeController extends ChangeNotifier {
     true => '已开启（点击切换为强制关闭）',
     false => '已关闭（点击切换为跟随系统）',
   };
+
+  /// L7：纯状态 ChangeNotifier，无 Timer/StreamController/监听者，
+  /// 无实际泄漏；补 dispose() 让静态分析确认生命周期终止。
+  @override
+  void dispose() => super.dispose();
 }

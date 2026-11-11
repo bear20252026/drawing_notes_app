@@ -33,6 +33,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String homeTrashRemainingDays(int days) {
+    return 'Restorable for $days more days';
+  }
+
+  @override
+  String get homeTrashExpiresToday => 'Restorable today only';
+
+  @override
   String get homeRecover => 'Recover';
 
   @override

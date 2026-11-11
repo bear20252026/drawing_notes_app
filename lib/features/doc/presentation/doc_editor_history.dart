@@ -179,7 +179,9 @@ extension _DocEditorHistory on DocEditorState {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)?.docSavedToast ?? '文档已保存'),
-          duration: const Duration(seconds: 1),
+          // H2（UI/UX 规范修复）：1s → AppleMotion.toastVisible（2s）。
+          // 1s 连「已保存」都来不及确认；2s 是纯信息 Toast 的通行下界。
+          duration: AppleMotion.toastVisible,
         ),
       );
     }

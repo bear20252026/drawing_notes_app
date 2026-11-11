@@ -152,14 +152,20 @@ SyncController _controller(_MemDocStore docs, _MemBaselineStore baseline) =>
       baselineStore: baseline,
     );
 
+// H2 修复（2026-11-11）：`_buildCipher` 不再回落 NoopSyncCipher（空
+// 盐/口令会抛异常，fail-closed）。本用例聚焦互斥本身，故用**非空**
+// 口令与盐走真实 AES 路径——派生一次 Argon2id（~348ms），远低于本文件
+// 的 60s 超时。盐用固定 base64 值（16B），口令任意非空串。
+const _kSyncPassphrase = 'test-passphrase';
+const _kSyncSalt = 'c2FsdC10ZXN0LTEyMzQ1Ng==';
+
 Future<SyncRunOutcome> _round(SyncController controller, Uri baseUrl) =>
     controller.syncNow(
       baseUrl: baseUrl,
       username: 'u',
       password: 'p',
-      // 空口令 → NoopSyncCipher：零 KDF、纯明文字节，聚焦互斥本身。
-      passphrase: '',
-      syncSalt: null,
+      passphrase: _kSyncPassphrase,
+      syncSalt: _kSyncSalt,
       conflictHandler: const LwwConflictHandler(),
     );
 
@@ -205,7 +211,9 @@ void main() {
       reason: '并发两轮只写一次云端清单（本条要守住的不变量）',
     );
     expect(dav.docPuts, 1);
-    expect(dav.lastManifestBody, contains('doc-1'));
+    // H2 修复后 manifest 经理 AES-256-GCM 密封——不再含明文 docId。
+    expect(dav.lastManifestBody, isNot(contains('doc-1')));
+    expect(dav.lastManifestBody, contains('sync-manifest'));
   });
 
   test('第一轮结束后仍能起下一轮（互斥不得变成永久卡死）', () async {

@@ -213,11 +213,12 @@ class _PageThumbnailPainter extends CustomPainter {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(text.x, text.y, width, height),
+          // L1 规范收编：基准值抽为父文件常量 `_thumbnailStrokeBase`（原裸值 2）。
           // D-16（审计 2026-09-27）豁免：画布域按 `2 / scale` 生成「视觉恒 2px」
           // 的描边半径——scale 是文档→屏幕的缩放，除以它才能在任何缩放下都保持
           // 同样的物理粗细。AppleRadius 是**屏幕逻辑像素**令牌，不参与缩放换算，
           // 套上来会在放大时失真。此处属画布渲染域的换算常量，非 UI 圆角。
-          Radius.circular(2 / scale),
+          Radius.circular(_thumbnailStrokeBase / scale),
         ),
         Paint()..color = Color(text.color).withValues(alpha: 0.72),
       );

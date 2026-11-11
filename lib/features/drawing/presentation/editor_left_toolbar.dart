@@ -275,7 +275,7 @@ class EditorLeftToolbar extends StatelessWidget {
   };
 
   Widget _toolIcon(IconData icon, bool selected) =>
-      Icon(icon, size: 20, color: selected ? Colors.white : null);
+      Icon(icon, size: 20, color: selected ? AppleColor.surfaceWhite : null);
 
   Widget _tool(IconData icon, String tip, bool selected, VoidCallback onTap) {
     // P1-9：选中态此前只靠蓝底颜色——补 Semantics(selected/toggled)，

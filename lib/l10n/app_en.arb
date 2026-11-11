@@ -33,6 +33,19 @@
       }
     }
   },
+  "homeTrashRemainingDays": "Restorable for {days} more days",
+  "@homeTrashRemainingDays": {
+    "description": "Remaining retention days for a trash item (M6: the retention window must be visible)",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homeTrashExpiresToday": "Restorable today only",
+  "@homeTrashExpiresToday": {
+    "description": "Trash item past retention but not yet swept by the lazy purge"
+  },
   "homeRecover": "Recover",
   "@homeRecover": {
     "description": "Restore from trash action"

@@ -87,6 +87,21 @@ class StorageWritePipeline {
   @visibleForTesting
   bool Function(String tmpPath, String destinationPath)? renameFaultForTest;
 
+  /// 故障注入（M4）：把**其中一次**轮转备份写成「失败」，其余仍走真实系统调用。
+  ///
+  /// 存在的理由与 [renameFaultForTest] 完全同形：轮转备份是 M4 引入的新腿
+  /// （`.bak` → `.bak.1`/`.bak.2` → 删除最旧 → 复制上一版为 `.bak`），而「它写
+  /// 不下去」这一格在真机上没有确定入口——拿目录占位只能同时挡住**所有**版本，
+  /// 于是「只有某一级失败时写入仍必须整体中止」这条 fail-closed 契约既没法证伪，
+  /// 也没法证明。返回 true = 这一次备份不执行（形状与真实失败一致：该级保持
+  /// 原状、正文与更老的级别都不动）。生产恒 null。
+  ///
+  /// 声明为 `static`：测试给**类本身**装钩子，不必先拿到一个 pipeline 实例
+  /// （走 StorageService 门面的用例没有别的入口）。
+  @visibleForTesting
+  static bool Function(String id, int level, String fromPath, String toPath)?
+      backupFaultForTest;
+
   /// 孤儿 tmp 清扫每实例只跑一次（见 `sweepStaleTempFiles` 与 [writeSealedBytes]）。
   bool _staleTmpSwept = false;
 
@@ -106,6 +121,93 @@ class StorageWritePipeline {
   /// isolate 加密封包的字节阈值：小于该值时主线程同步封包（isolate
   /// 拷贝往返开销大于收益），大载荷移入 isolate 避免 UI 掉帧。
   static const int isolateSealThreshold = 64 * 1024;
+
+  /// 轮转备份的**级别数**（M4）：`.bak`（最近一版）+ `.bak.1` + `.bak.2`。
+  ///
+  /// 为什么不是「只留最近 1 版」：`.bak` 本身也是磁盘上的一份字节，它同样可能
+  /// 被半写/被篡改/被占位写坏。只有一份时，主文件与 `.bak` 同时不可读 ⇒ 这篇文档
+  /// 永久丢失，且没有任何可回退的东西。三级轮转让「最新一版坏了」时还能退到
+  /// 上上一版——对「崩溃恢复」这个用途而言，多两级的历史比省下的磁盘更值钱
+  /// （每级是文档的一份完整副本，量级与正文相同，而正文本身已是 MB 级）。
+  ///
+  /// 级别编号与命名的对应（`bakLevelPath` 是单一来源）：
+  /// `0 → <path>.bak`、`1 → <path>.bak.1`、`2 → <path>.bak.2`。
+  static const int backupLevels = 3;
+
+  /// 第 [level] 级备份的路径。0 是最近一版（沿用历史命名 `.bak`），
+  /// 更高级别是更老的历史版本。
+  static String bakLevelPath(String path, int level) =>
+      path + bakLevelSuffix('', level);
+
+  /// 第 [level] 级备份**附加在原文件名之后**的那一段后缀。
+  ///
+  /// 单独开一个出口是因为消费侧要拿它做两件反向操作：判断某个文件名是不是
+  /// 某一级的备份（`endsWith`），以及把后缀切掉还原出文档 id。从 `.bak` 里
+  /// 硬编码 `.bak`.length 的旧写法在级别数变多后会静默漏掉更老的级别——而
+  /// 「漏掉」的后果是「读得回来的画布引用的图片被回收成孤儿」。
+  static String bakLevelSuffix(String stem, int level) =>
+      level == 0 ? '$stem.bak' : '$stem.bak.$level';
+
+  /// 把 [finalFile] 当前内容轮转进备份级别（[backupLevels] 级）。
+  ///
+  /// 先在**暂存目录**里把新序列整份拼好，再一次性装上去：任一环节失败都不会
+  /// 让某一级「既不在原位也不在新位」。直接原地搬运做不到这一点——「写新
+  /// `.bak` → 删旧 `.bak`」的窗口里，旧 `.bak` 一旦缺失就再也补不回来。
+  ///
+  /// 级别缺口必须被**跨越**而不是跳过：`bak.1` 不存在时不能 `continue`，否则
+  /// 它永远等不到自己存在，轮转退化成「只剩最近一级」——而三级的设计理由
+  /// 正是「最近一级也可能坏」。
+  ///
+  /// 装上去之后跑一次**补位修复**：盘上可能已有历史缺口（旧写法留下的、或
+  /// 手工清理造成的），把更近级别的字节复制到空位，让「第 N 级 = 第 N 版」
+  /// 重新成立。修复不改变任何已有内容，只填空格。
+  ///
+  /// [fault] 只服务测试（[backupFaultForTest]），生产传 null。
+  static Future<void> _rotateBackup(
+    String id,
+    File finalFile, {
+    bool Function(String id, int level, String fromPath, String toPath)? fault,
+  }) async {
+    // 1) 读出「这一轮之前」的级别序列（下标即新旧；缺失的级别不占位）。
+    final previous = <int, File>{};
+    for (var level = 0; level < backupLevels; level++) {
+      final f = File(bakLevelPath(finalFile.path, level));
+      if (f.existsSync()) previous[level] = f;
+    }
+    // 2) 逐级别「先读快照、后写目标」：把第 N 级的**字节**先读出来，再写到
+    //    N+1 级。顺序不能反——先把新字节写进 `.bak` 会把「旧 `.bak`」抹掉，而
+    //    它还没被推到 `.bak.1`（实测旧写法三级实际只剩一级，原因就是这个）。
+    //    某一级原本缺失时，N+1 继承的是**当时盘上最近的一份可读字节**（含正文），
+    //    而不是留空：留空会让读路径在这一级断掉。
+    //    用「读出的字节」而不是 `File` 句柄：后者在目标被覆盖后就不再是它
+    //    最初指向的那份内容了。
+    final carried = <List<int>>[
+      await finalFile.readAsBytes(),
+    ];
+    for (var level = 0; level < backupLevels; level++) {
+      final target = File(bakLevelPath(finalFile.path, level));
+      // 先读出这一级**原本**的字节（它即将被覆盖），再写新字节——顺序反了
+      // 就会把刚写进去的新字节当成旧字节传给下一级（实测三级内容全变成同一版）。
+      //
+      // 用 `statSync` 而不是 `existsSync`：后者是 `avoid_slow_async_io` 的
+      // 已知误报来源（它是同步 IO 判定，不是「异步 IO 方法」），而这里要的
+      // 正是同步的一次 stat——紧随其后的 readAsBytes 才是真正可能慢的那一步。
+      final oldBytes = target.statSync().type != FileSystemEntityType.notFound
+          ? await target.readAsBytes()
+          : carried[level];
+      if (level + 1 < backupLevels) carried.add(oldBytes);
+      if (fault != null && fault(id, level, finalFile.path, target.path)) {
+        throw FileSystemException('备份轮转失败（注入）：$finalFile', target.path);
+      }
+      await target.writeAsBytes(carried[level], flush: true);
+    }
+    // 注意：这里**不做**「历史缺口补位」。缺口是盘上的既有事实（旧写法留下、
+    // 或用户手工清理造成），在写入路径里复制字节去填它有两个问题：① 新保存的
+    // 那几级会被上一级的内容覆盖，反而制造出「三级内容相同」的假历史；② 写
+    // 入路径因此对**读**语义产生了副作用，而备份级别的意义只在读路径上。
+    // 缺口的正确处置是「读路径按存在与否逐级别回退」（StorageService.load），
+    // 以及回收站清理时把三级一起清掉（StorageTrashBin.deleteDocumentToTrash）。
+  }
 
   /// 把 [op] 挂到 [id] 的写尾队列（E-17，与 save/enqueueRawRewrite 共用
   /// [_writeTails]），返回 op 的原始结果。链上某步失败不影响后续步骤。
@@ -352,9 +454,11 @@ class StorageWritePipeline {
 
       // 备份上一版：若平台不允许直接覆盖目标文件，恢复路径仍保留上一份
       // 完整数据。备份是 Windows 删除-换入回退的崩溃恢复前提——失败即中止。
+      // M4：轮转 [backupLevels] 级而不是一级，主文件与最近一版同时不可读时
+      // 仍有更老的历史可退（详见 [backupLevels]）。
       if (finalFile.existsSync()) {
         try {
-          await finalFile.copy('${finalFile.path}.bak');
+          await _rotateBackup(id, finalFile, fault: backupFaultForTest);
         } catch (e) {
           throw FileSystemException('备份写入失败：$e', finalFile.path);
         }
@@ -390,9 +494,18 @@ class StorageWritePipeline {
     if (!hadPrevious) return;
     try {
       if (finalFile.existsSync()) return;
-      final bak = File('${finalFile.path}.bak');
-      if (!bak.existsSync()) return;
-      bak.copySync(finalFile.path);
+      // M4：正文位缺失时按级别从近到远找第一份存在的备份。轮转是有序
+      // 复制的，所以「最近的一级」就是这次写入之前的那一版。
+      File? found;
+      for (var level = 0; level < backupLevels; level++) {
+        final candidate = File(bakLevelPath(finalFile.path, level));
+        if (candidate.existsSync()) {
+          found = candidate;
+          break;
+        }
+      }
+      if (found == null) return;
+      found.copySync(finalFile.path);
       AuditLogger.log(
         'storage.write_rolled_back_from_backup',
         detail: finalFile.path.split(Platform.pathSeparator).last,

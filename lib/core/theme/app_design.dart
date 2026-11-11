@@ -340,10 +340,16 @@ abstract final class AppDesign {
   static ColorScheme navyScheme() => _navyScheme();
 
   /// 深蓝（navy）黑暗模式 ColorScheme —— 保留既有应用身份。
+  ///
+  /// H1（UI/UX 规范修复，2026-10-17）：`primary` / `surfaceTint` 由
+  /// `#B5CCFF` 改为 [AppleColor.actionBlueOnDark] `#2997FF`——DESIGN.md:299
+  /// 称 `#0066CC` 为「唯一品牌级交互色」，深色档的同族高亮版即
+  /// `actionBlueOnDark`（`apple_focus.dart` 已用同一档做深底焦点环）。
+  /// `onPrimary` 保持 `#102244`：对 `#2997FF` 约 5.6:1，稳过 AA。
   static ColorScheme _navyScheme() {
     return const ColorScheme(
       brightness: Brightness.dark,
-      primary: Color(0xFFB5CCFF),
+      primary: AppleColor.actionBlueOnDark,
       onPrimary: Color(0xFF102244),
       primaryContainer: Color(0xFF294579),
       onPrimaryContainer: Color(0xFFDCE8FF),
@@ -370,7 +376,7 @@ abstract final class AppDesign {
       inverseSurface: Color(0xFFE2E8F4),
       onInverseSurface: Color(0xFF2C3445),
       inversePrimary: Color(0xFF4568A9),
-      surfaceTint: Color(0xFFB5CCFF),
+      surfaceTint: AppleColor.actionBlueOnDark,
     );
   }
 

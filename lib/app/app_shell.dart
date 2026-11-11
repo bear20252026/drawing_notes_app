@@ -18,6 +18,7 @@ import 'package:drawing_notes_app/core/storage/vault_file_codec.dart'
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/all_doc_query.dart';
 import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
@@ -133,7 +134,9 @@ void showInstanceNotice(BuildContext context, SingleInstanceStatus? status) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 8),
+      // H2（UI/UX 规范修复）：8s → AppleMotion.toastVisible（2s）。
+      // 纯信息回执不靠拉长 Toast 解决可读性；长文案走常驻说明条/弹窗。
+      duration: AppleMotion.toastVisible,
       content: Text(
         l10n?.instanceSameDataRootNotice ??
             '检测到另一个窗口可能也在打开同一份数据，建议只用一个窗口编辑。',

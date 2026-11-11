@@ -33,6 +33,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String homeTrashRemainingDays(int days) {
+    return '剩余保留期：$days 天';
+  }
+
+  @override
+  String get homeTrashExpiresToday => '剩余保留期：今天到期';
+
+  @override
   String get homeRecover => '恢复';
 
   @override

@@ -161,13 +161,6 @@ class EditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 退出吸管/文字模式（点击画布其他位置时）。
-  void clearTools() {
-    _eyedropperActive = false;
-    _textToolActive = false;
-    notifyListeners();
-  }
-
   // ---------------- 保存调度（委托 SaveScheduler） ----------------
 
   /// 改动后最多每 5 秒自动保存一次（[SaveScheduler.autoSaveInterval]）；

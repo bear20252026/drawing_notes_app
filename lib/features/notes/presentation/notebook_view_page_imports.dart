@@ -35,11 +35,13 @@ extension _NotebookPageImports on _NotebookViewPageState {
     try {
       // 任务#3（专家审计 2026-08-15）：文本导入大小配额——防超大文件
       // 一次性 readAsString 加载（内存/卡顿）。
-      if (await File(file.path).length() > _maxTextImportBytes) {
+      // H1（2026-11）：文件读写收在 infrastructure（NotebookStorage 例接口），
+      // presentation 不再 import 'dart:io'。
+      if (await NotebookStorage.fileByteLength(file.path) > _maxTextImportBytes) {
         _showSnack(_l10nSafe?.impTextTooLarge ?? '文本文件过大（超过 20MB 限制），拒绝导入');
         return;
       }
-      final content = await File(file.path).readAsString();
+      final content = await NotebookStorage.readTextFile(file.path);
       if (content.trim().isEmpty) {
         _showSnack(_l10nSafe?.impEmptyFile ?? '文件内容为空');
         return;
@@ -134,8 +136,10 @@ extension _NotebookPageImports on _NotebookViewPageState {
         _showSnack(_l10nSafe?.impPdfNoPages ?? 'PDF 没有可导入的页面');
         return;
       }
+      // H1（2026-11）：不再用 Platform.pathSeparator（dart:io）——按两种
+      // 分隔符取末段，桌面/Web 一致。
       final sourceName = selected.path
-          .split(Platform.pathSeparator)
+          .split(RegExp(r'[\\/]'))
           .last
           .replaceFirst(RegExp(r'\.pdf$', caseSensitive: false), '');
       final created = <NotebookPage>[];

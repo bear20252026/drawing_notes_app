@@ -352,4 +352,18 @@ class _HoldingCropWriter implements EditorImageCropWriter {
       imageBounds: imageBounds,
     );
   }
+
+  @override
+  Future<EditorImageCropWriteOutcome> writeCropFromPath({
+    required String path,
+    required Rect cropRect,
+    required Rect imageBounds,
+  }) async {
+    await hold.future;
+    return inner.writeCropFromPath(
+      path: path,
+      cropRect: cropRect,
+      imageBounds: imageBounds,
+    );
+  }
 }

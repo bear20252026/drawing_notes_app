@@ -31,13 +31,19 @@ class StorageFilePasswordManager {
   final StorageMediaStore media;
   final void Function() fireOnWrite;
 
-  /// 读取当前正式文件（缺失回退 .bak）；两者都不存在返回 null。
+  /// 读取当前正式文件（缺失回退到轮转备份，M4：从近到远）；都不存在返回 null。
+  ///
+  /// 这一栏读的是**文件头**（版本字节 / 信封形状），用来回答「这篇设没设密」。
+  /// 主文件缺失时备份级别里任意一级都带着同一篇的信封头，因此从近到远取第一份
+  /// 就够——更老的级别只在前一级也读不出来时才有意义，而这条路径不接异常。
   Future<Uint8List?> _readCurrentRaw(String id) async {
     await directories.ensureDocuments();
     final file = File(directories.documentPathFor(id));
-    final bak = File('${file.path}.bak');
     if (file.existsSync()) return file.readAsBytes();
-    if (bak.existsSync()) return bak.readAsBytes();
+    for (var level = 0; level < StorageWritePipeline.backupLevels; level++) {
+      final backup = File(StorageWritePipeline.bakLevelPath(file.path, level));
+      if (backup.existsSync()) return backup.readAsBytes();
+    }
     return null;
   }
 

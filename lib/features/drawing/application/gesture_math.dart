@@ -32,9 +32,6 @@ double pinchScaleFactor(Offset aNow, Offset bNow, double initialDistance) {
 Offset pinchCenter(Offset a, Offset b) =>
     Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
 
-/// 两点距离（初始捏合距离计算用）。
-double distanceBetween(Offset a, Offset b) => (a - b).distance;
-
 /// 视口变换：画布点 -> 视图点（围绕画布中心 [center] 的旋转+缩放+平移）。
 ///
 /// 数学模型（与 drawing_controller 严格互逆）：

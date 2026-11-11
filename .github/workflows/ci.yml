@@ -66,6 +66,13 @@ jobs:
       - name: Real-KDF encryption suite (serial, dedicated)
         run: flutter test --tags kdf --concurrency=1
 
+      # packages/editor_core/ 是独立 Dart 包，其测试用 package:test。
+      # 必须在该包目录内执行 dart test（与根 flutter test 不同的包解析上下文）。
+      - name: editor_core tests
+        run: |
+          cd packages/editor_core
+          dart test
+
       - name: Install dart_code_metrics
         id: dcm_install
         # E-02（审计 2026-09-27 → 批次 AT 用户拍板「继续钉版 + 激活失败降级」）：

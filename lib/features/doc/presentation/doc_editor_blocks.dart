@@ -384,9 +384,12 @@ extension DocEditorBlocks on DocEditorState {
             // 又小于正文导致层级倒挂；16 落在两者之间，让「1.」只作导航
             // 提示不作正文。同本文件 code 块 15px 的论证口径：等宽/标记类
             // 允许脱离营销字梯，但必须就地写明理由（下方 _styleFor case）。
-            style: AppleType.controlStyle(
+            // M2（UI/UX 规范修复）：16 裸值 → AppleTypeScale.ordinal 具名档。
+            // 落在 14（caption）与 17（body）之间，只作导航提示不作正文。
+            style: AppleTypeScale.of(
+              AppleTypeScale.ordinal,
               Theme.of(context).colorScheme.onSurface,
-            ).copyWith(fontSize: 16),
+            ),
           ),
         );
       case NoteBlockType.todo:
@@ -641,14 +644,15 @@ extension DocEditorBlocks on DocEditorState {
         final level = (block.props['level'] as int? ?? 1).clamp(1, 6);
         return AppleTypeScale.of(_headingSpec(level), onSurface);
       case NoteBlockType.code:
-        // 等宽字形比比例字形显大，且负字距会挤坏字符网格，故保留 15px 与
-        // 0 字距，只承接正文的 1.47 行高与 400 字重。
+        // M2（UI/UX 规范修复）：15 裸值 → AppleTypeScale.uiBody 具名档。
+        // 等宽字形比比例字形显大，且负字距会挤坏字符网格，故字号 15、
+        // 字距 0；行高与字重承接正文梯子。
         return AppleTypeScale.of(
-          AppleTypeScale.body,
+          AppleTypeScale.uiBody,
           onSurface,
           fontFamily: 'monospace',
           backgroundColor: AppleColor.fillOf(theme.colorScheme),
-        ).copyWith(fontSize: 15, letterSpacing: 0);
+        ).copyWith(letterSpacing: 0);
       case NoteBlockType.todo:
         final checked = block.props['checked'] as bool? ?? false;
         return AppleTypeScale.of(

@@ -6,6 +6,8 @@
 // 持久化恢复（重启不清零）、时钟回拨无效（单调钟+高水位线）、
 // 记录被篡改 fail-closed、冷却期内尝试不延长冷却。
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,6 +29,8 @@ void main() {
   setUp(() {
     AppLockService.testPinKdfOverride = KdfParams.testLight;
     KekSessionCache.bypassIsolateForTests = true;
+    // M4：守卫记录测试态（静态内存）在用例间清零。
+    LockoutGuard.debugResetTestState();
   });
   tearDown(() {
     AppLockService.testPinKdfOverride = null;
@@ -219,6 +223,87 @@ void main() {
     expect(service.isLockedOut, isTrue);
     expect(service.lockoutRemaining, lessThanOrEqualTo(cap));
     expect(await service.verify('135790'), isFalse);
+  });
+
+  test('M4：旧 SharedPreferences 记录迁移到私有文件后仍可恢复（重启不清零）', () async {
+    // 模拟旧版持久化：记录与签名都在 SharedPreferences。
+    final secret = VaultKeyService.randomBytes(32);
+    final legacyRecord = '{"c":5,"u":0,"hw":0}';
+    final legacySig = LockoutGuard.debugSignForTest(legacyRecord, secret);
+    SharedPreferences.setMockInitialValues({
+      'app_lock.guard.record': legacyRecord,
+      'app_lock.guard.sig': legacySig,
+    });
+    final clock = FakeClock(DateTime.now());
+    final service1 = AppLockService(
+      preferencesLoader: () async => SharedPreferences.getInstance(),
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: () async => secret,
+      ),
+    );
+    await service1.setPin('135790');
+    await service1.load();
+    // 旧记录被读出，计数恢复。
+    expect(service1.failedAttempts, 5);
+
+    // 模拟重启：全新 service + 同一密钥 + 同一持久化层（记录已迁到新键）。
+    final service2 = AppLockService(
+      preferencesLoader: () async => SharedPreferences.getInstance(),
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: () async => secret,
+      ),
+    );
+    await service2.load();
+    expect(service2.failedAttempts, 5);
+  });
+
+  test('M4：私有文件记录被篡改 → fail-closed（签名不匹配）', () async {
+    // 直接写一份「签名对不上」的私有文件记录，模拟攻击者篡改。
+    final secret = VaultKeyService.randomBytes(32);
+    final tamperedRecord = '{"c":0,"u":0,"hw":0}';
+    final wrongSig = 'deadbeef' * 8; // 64 hex chars, but wrong
+    SharedPreferences.setMockInitialValues({});
+    final clock = FakeClock(DateTime.now());
+    // 先用 service 写一条合法记录，再篡改文件。
+    final service1 = AppLockService(
+      preferencesLoader: () async => SharedPreferences.getInstance(),
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: () async => secret,
+      ),
+    );
+    await service1.setPin('135790');
+    await failNTimes(service1, '135790', 3);
+    expect(service1.failedAttempts, 3);
+
+    // 篡改内存态记录（测试环境不落盘，直接改 SharedPreferences mock）。
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      kGuardRecordFile,
+      jsonEncode({'record': tamperedRecord, 'sig': wrongSig}),
+    );
+
+    final service2 = AppLockService(
+      preferencesLoader: () async => SharedPreferences.getInstance(),
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: () async => secret,
+      ),
+    );
+    await service2.load();
+    // 签名不合法 → fail-closed 进入最长冷却。
+    expect(service2.isLockedOut, isTrue);
+    expect(service2.lockoutRemaining, lessThanOrEqualTo(cap));
   });
 
   test('disable 清除守卫记录：关闭应用锁后冷却状态一并消失', () async {

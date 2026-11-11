@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart'
     show LockExemption;
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 走**合法状态机链路**切到后台：resumed → inactive → hidden → paused。
@@ -76,6 +77,13 @@ Future<void> _enterPin(WidgetTester tester, String pin) async {
   }
   // 输满后异步校验 + 失败抖动动画，等其完成。
   await tester.pumpAndSettle();
+}
+
+/// M2 审计门禁探针：记录 [SessionSecrets.clearAll] 是否被调用。
+class _ProbeHolder implements SessionSecretsHolder {
+  int clearCalls = 0;
+  @override
+  void clearAllSessionSecrets() => clearCalls++;
 }
 
 void main() {
@@ -720,6 +728,89 @@ void main() {
     expect(find.text('输入密码'), findsOneWidget);
     await _enterPin(tester, '1357');
     expect(find.text('输入密码'), findsNothing);
+  });
+
+  // M2 审计门禁（2026-11-11）：会话敏感材料的清理必须走**单一收口**
+  // （`_clearSessionSecrets`），两处生命周期时机（hidden、超宽限落锁）
+  // 都要同时清 KEK 缓存与会话机密注册表。本组钉两件事：
+  //   ① hidden 时机两类材料都被清（既有行为不倒退）；
+  //   ② 超宽限落锁时机同样两类都被清（M2 收口不得漏这一条）。
+  group('M2 会话清理单一收口审计门禁', () {
+    testWidgets('hidden 时机：KEK 缓存与 SessionSecrets 均被清', (tester) async {
+      final service = await _configuredService('1357');
+      await service.setGraceSeconds(0);
+
+      KekSessionCache.instance.clear();
+      await KekSessionCache.instance.deriveKek('seed', const [
+        1,
+        2,
+        3,
+      ], KdfParams.testLight);
+      expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+      final probe = _ProbeHolder();
+      SessionSecrets.register(probe);
+      addTearDown(() {
+        // 弱引用注册表自动清理，无需显式注销；仅防串味。
+        KekSessionCache.instance.clear();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppLockGate(
+            service: service,
+            desktopKeyboardInput: true,
+            child: const Text('SECRET_HOME'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _enterPin(tester, '1357');
+      expect(find.text('输入密码'), findsNothing);
+
+      await _toBackground(tester); // resumed→inactive→hidden→paused
+
+      expect(KekSessionCache.instance.entryCount, 0, reason: 'KEK 缓存已清');
+      expect(probe.clearCalls, greaterThan(0), reason: 'SessionSecrets 注册表已清');
+    });
+
+    testWidgets('超宽限落锁时机：KEK 缓存与 SessionSecrets 均被清', (tester) async {
+      final service = await _configuredService('1357');
+      // 宽限 30s，awayDurationReader 返回 45s ⇒ 回前台时超宽限 ⇒ 落锁。
+
+      KekSessionCache.instance.clear();
+      await KekSessionCache.instance.deriveKek('seed', const [
+        1,
+        2,
+        3,
+      ], KdfParams.testLight);
+      expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+      final probe = _ProbeHolder();
+      SessionSecrets.register(probe);
+      addTearDown(() => KekSessionCache.instance.clear());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppLockGate(
+            service: service,
+            awayDurationReader: () => const Duration(seconds: 45),
+            desktopKeyboardInput: true,
+            child: const Text('SECRET_HOME'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _enterPin(tester, '1357');
+      expect(find.text('输入密码'), findsNothing);
+
+      await _toBackground(tester);
+      await _toForeground(tester);
+
+      expect(find.text('输入密码'), findsOneWidget, reason: '超宽限落锁');
+      expect(KekSessionCache.instance.entryCount, 0, reason: 'KEK 缓存已清');
+      expect(probe.clearCalls, greaterThan(0), reason: 'SessionSecrets 注册表已清');
+    });
   });
 
   // STO-001 的默认阻断半边（业主 2026-10-16 点名）：盘上躺着**另一世主密钥**的

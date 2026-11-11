@@ -82,12 +82,41 @@ extension _HomePageTrashOps on _HomePageState {
     );
   }
 
-  /// 回收站里的一行：文档 id + 删除时间 + 恢复 / 永久删除两个动作。
+  /// 回收站里的一行：文档 id + 删除时间 + **剩余保留天数** + 恢复 / 永久删除。
+  ///
+  /// M6：保留期此前只写在标题（「30 天内可恢复」）与设置文案里，条目自己不说
+  /// 还剩几天——用户看到「删除于 11-11」得自己算，而算错的方向是「以为还能
+  /// 慢慢恢复」。剩余天数直接从删除时刻与 [StorageService.trashRetentionDays]
+  /// 推（与 purge 的过期判据同源），不引入第二处口径。
   Widget _trashTile(BuildContext ctx, (String, String, DateTime) item) {
-    final time = item.$3.toLocal().toString().substring(0, 16);
+    final local = item.$3.toLocal();
+    final time = '${formatShortDate(local)} '
+        '${formatClock(local)}';
+    final retentionDays = StorageService.trashRetentionDays;
+    // 与 purge 的过期判据同源（`deletedAt + retention <= now`），只是这里
+    // 取整到天并保证不为负——剩余 0 天就是「今天到期」，负数对用户无意义。
+    final remaining = DateTime.now().difference(local).inDays;
+    final daysLeft = retentionDays - remaining;
+    final l10n = _l10nSafe;
+    final retentionLabel = daysLeft <= 0
+        ? (l10n?.homeTrashExpiresToday ?? '剩余保留期：今天到期')
+        : (l10n?.homeTrashRemainingDays(daysLeft) ?? '剩余保留期：$daysLeft 天');
     return ListTile(
       title: Text(item.$2),
-      subtitle: Text(_l10nSafe?.homeDeletedAt(time) ?? '删除于 $time'),
+      // 保留期提示单独占一行副标题：用 caption 而非 body——它是说明文字
+      // （DESIGN.md 的「说明文字 11.5」一档），不参与内容层级。
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n?.homeDeletedAt(time) ?? '删除于 $time'),
+          Text(
+            retentionLabel,
+            style: AppleType.captionStyle(
+              Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

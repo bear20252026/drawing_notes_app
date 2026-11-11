@@ -140,6 +140,18 @@ abstract class AppLocalizations {
   /// **'Deleted at {time}'**
   String homeDeletedAt(String time);
 
+  /// Remaining retention days for a trash item (M6: the retention window must be visible)
+  ///
+  /// In en, this message translates to:
+  /// **'Restorable for {days} more days'**
+  String homeTrashRemainingDays(int days);
+
+  /// Trash item past retention but not yet swept by the lazy purge
+  ///
+  /// In en, this message translates to:
+  /// **'Restorable today only'**
+  String get homeTrashExpiresToday;
+
   /// Restore from trash action
   ///
   /// In en, this message translates to:

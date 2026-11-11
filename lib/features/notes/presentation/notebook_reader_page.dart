@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
@@ -242,8 +240,8 @@ class _ReaderSheet extends StatelessWidget {
                           height: image.height,
                           child: Image(
                             // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
-                            image: EncryptedFileImage(
-                              File(image.filePath),
+                            image: EncryptedFileImage.fromPath(
+                              image.filePath,
                               mediaCrypto: mediaCrypto,
                               vaultService: vaultService,
                             ),

@@ -72,6 +72,9 @@ String errorCode(Object error) {
   // 标准库：只列 `lib/` 里真会出现的（逐个 grep 实测；门禁的类数下限钉住这份清点）。
   if (error is FileSystemException) return 'io_file_system';
   if (error is SocketException) return 'io_socket';
+  // H1（2026-11）：WebDAV TLS 握手失败——表现层（webdav 设置页）不再
+  // `import 'dart:io'` 判 `HandshakeException`，改判本稳定码。
+  if (error is HandshakeException) return 'io_handshake';
   if (error is TimeoutException) return 'async_timeout';
   if (error is FormatException) return 'core_format';
   if (error is ArgumentError) return 'core_argument';

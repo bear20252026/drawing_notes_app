@@ -7,6 +7,19 @@
 /// 2. 拒绝含双引号 `"` 的输入——防止破坏 `start "" "url"` 的引号边界。
 ///
 /// 合法 URL 的 `&`（查询参数分隔符）不会被误杀。
+library;
+
+import 'dart:io' show Platform, Process;
+
+/// 超链接安全校验（审计修复 2026-08-15，命令注入面）。
+///
+/// 背景：编辑器超链接在 Windows 经 `cmd /c start` 打开，未校验的 href 可
+/// 注入 cmd 元字符或 `javascript:`/`file:` 等危险 scheme。实测确认 cmd
+/// 双引号内的 `&` 等元字符不会被解析，故净化策略：
+/// 1. scheme 白名单（http/https/mailto）——拦截 javascript:/file:/data: 等；
+/// 2. 拒绝含双引号 `"` 的输入——防止破坏 `start "" "url"` 的引号边界。
+///
+/// 合法 URL 的 `&`（查询参数分隔符）不会被误杀。
 String? sanitizeHref(String? input) {
   final url = input?.trim() ?? '';
   if (url.isEmpty) return null;
@@ -34,6 +47,27 @@ String? sanitizeHref(String? input) {
 /// 本文件为纯顶层函数库（无类宿主），故用顶层 const 而非类内
 /// static const；命名与用途同 [sanitizeImageSrc] 的校验档位。
 const int maxUrlLength = 4096;
+
+/// 打开外部链接（H1 架构修复 2026-11：表现层不再直接 `import 'dart:io'`
+/// 调 `Process.start`）。
+///
+/// 链 F 加固（军工审计 2026-08-15）：Windows 用
+/// `rundll32 url.dll,FileProtocolHandler` 绕过 cmd.exe——cmd /c start 会把
+/// URL 的 `& | ^` 解释为命令分隔符、`%VAR%` 会被展开（CVE-2026-32948/
+/// 22168 同源模式）。调用方须先经 [sanitizeHref] 校验（scheme 白名单 +
+/// 拒绝 `"` `%` 换行）。返回是否成功启动。
+Future<bool> openExternalUrl(String url) async {
+  try {
+    if (Platform.isWindows) {
+      await Process.start('rundll32', ['url.dll,FileProtocolHandler', url]);
+    } else {
+      await Process.start('xdg-open', [url]);
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// 远端图片来源校验（P1 安全修复——`Image.network` 直通块 `props['src']`
 /// 可致 SSRF/内网探测/IP 外泄/巨图 OOM）。

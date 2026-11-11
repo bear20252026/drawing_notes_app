@@ -60,7 +60,7 @@
 
 ---
 
-## 3. 冲突裁决表（共 10 处，已全部裁决）
+## 3. 冲突裁决表（共 11 处，已全部裁决）
 
 | # | 冲突 | 甲说 | 乙说 | **裁决** | 依据 |
 |---|---|---|---|---|---|
@@ -74,6 +74,7 @@
 | 8 | 禁动 width/height 的例外 | `STANDARDS:112` 只动 transform/opacity | `RECIPES` 手风琴动 height、tab pill 动 width | **两处豁免** | ① 手风琴无 transform 等价；② 绝对定位且无子元素的 pill，`scaleX` 会把圆角拉成椭圆。其余一律不豁免 |
 | 9 | 超 300ms 的既有配方 | 滚动揭示 600ms、WAAPI 1000ms、长按确认 2s | 总纲 <300ms | **按性质区分** | 前两者是营销/解释性场景（总纲允许更长）；长按确认 2s 是用户**主动决策**阶段（非对称时序：决策慢、响应快），三者都不是"UI 反馈类动画"，不违反 |
 | 10 | 减弱动效的信号数 | Web 版：reduced-motion + hover 门控 | `apple-design`：**三个独立信号**（motion / transparency / contrast） | **三信号** | 更严格。Flutter 侧：`disableAnimations` 与 `highContrast` 有系统对应，`reduced-transparency` 无，需自建开关 |
+| 11 | `spacing.md` 取值 | `DESIGN.md:377` 明文 **`{spacing.md}` = 17px** | `apple_design.dart:182` **`AppleSpacing.md = 16`**（26 处消费点） | **保留 16** | 17 是 DESIGN.md 的**营销排版节奏常数**（17px 正文 × 1.47 ≈ 25px 行高），属「字格」而非「布局格」。布局间距属 Fluent 4px 网格域（4/8/12/16/20/24/32/40/48/64），16 是该网格的标准档；且 17px 不是 4 的倍数，全库 26 处 `AppleSpacing.md` 用 17 会破坏 4px 网格对齐。**裁决：`AppleSpacing` 是布局间距令牌，走 Fluent 4px 网格；DESIGN.md:377 的 17 是排版常数，两者不冲突**——DESIGN.md 的 `spacing.*` 表在「布局间距」语义下不适用 |
 
 **裁决后仍悬空（待实测）**：第 6 条的 saturation 180 在 Windows 集显上的实际开销未验证；L3 着色器方案必须带性能闸门，低端机自动降级 L2。
 
@@ -164,9 +165,33 @@
 | `modal` | **250ms** | 200–500ms |
 | `sheet` | **300ms** | 200–500ms |
 | `toastIn` / `toastOut` | **300 / 250ms** | 见裁决 #3 |
+| `toastVisible` | **2000ms** | H2 修复：Toast 驻留统一档（见 §4.1） |
 | `staggerItem` / `staggerStep` | **300 / 40ms** | 步长区间 30–80ms |
 
 **硬规则：UI 动画一律 < 300ms。绝不用 `ease-in`**（它起步慢，拖延的正是用户在盯着看的那一瞬间）。
+
+### 4.1 Toast 驻留（H2 规范修复，2026-10-17）
+
+**裁决**：`SnackBar` 的**驻留时长**统一为 `AppleMotion.toastVisible` = **2000ms**。
+全库 6 处裸值（`Duration(seconds: 1/2/5/6/8)`）全部收敛到这一档。
+
+**依据**：
+- `toastIn`(300ms)/`toastOut`(250ms) 是**动画**时长，不约束驻留——此前的裸值
+  与令牌表完全脱节，同一种反馈出现 1s–8s 六档。
+- 2s 是纯信息 Toast（无 action）的通行下界：入场后仍有 1.7s 稳定可读窗口。
+- 长文案（如 U 盘绑定警示）改用**常驻说明条**或弹窗，不靠拉长 Toast 解决——
+  Toast 是「已发生」的回执，不是阅读面板。
+
+**调用点对照**：
+
+| 位置 | 原值 | 现值 |
+|---|---|---|
+| `app_shell.dart` | 8s | `toastVisible` |
+| `editor_page_persistence.dart` | 6s | `toastVisible` |
+| `notebook_view_page_manage.dart` | 6s | `toastVisible` |
+| `app_lock_settings_page.dart` | 5s | `toastVisible` |
+| `embedded_block_view.dart` | 2s | `toastVisible` |
+| `doc_editor_history.dart` | 1s | `toastVisible` |
 
 ### 弹簧
 

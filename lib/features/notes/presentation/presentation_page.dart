@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
@@ -70,8 +68,8 @@ class _PresentationPageState extends State<PresentationPage> {
           child: i.filePath.isNotEmpty
               ? Image(
                   // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
-                  image: EncryptedFileImage(
-                    File(i.filePath),
+                  image: EncryptedFileImage.fromPath(
+                    i.filePath,
                     mediaCrypto: widget.mediaCrypto,
                     vaultService: widget.vaultService,
                   ),

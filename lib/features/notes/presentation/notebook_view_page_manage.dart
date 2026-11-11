@@ -487,7 +487,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
         // 仍是用户在导出面板里自己勾（pdf_export_panel.dart:263），两条口径不同是有意的：
         // 整本导出是一步式菜单动作，不再加一层弹窗。
       ).exportNotebook(_notebook, footer: true);
-      await File(location.path).writeAsBytes(bytes, flush: true);
+      await NotebookStorage.writeFileBytes(location.path, bytes, flush: true);
       _showSnack(
         _l10nSafe?.nbExportedPdf(_notebook.pages.length, location.path) ??
             '已导出整本 ${_notebook.pages.length} 页 PDF：${location.path}',
@@ -531,7 +531,9 @@ extension _NotebookPageManage on _NotebookViewPageState {
           content: Text(
             _l10nSafe?.nbPageDeleted(page.title) ?? '已删除「${page.title}」',
           ),
-          duration: const Duration(seconds: 6),
+          // H2（UI/UX 规范修复）：6s → AppleMotion.toastVisible（2s）。
+          // 撤销入口是 action 按钮，不靠拉长驻留保证可达。
+          duration: AppleMotion.toastVisible,
           action: SnackBarAction(
             label: AppLocalizations.of(context)?.nbUndo ?? '撤销',
             onPressed: () async {

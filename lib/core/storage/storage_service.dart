@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/operation/operation_log.dart';
 import 'package:drawing_notes_app/core/operation/operation_log_recorder.dart';
 import 'package:drawing_notes_app/core/operation/operation_log_store.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/document_codec.dart';
 import 'package:drawing_notes_app/core/storage/local_id_generator.dart';
@@ -95,6 +96,27 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
   /// 原件——见 [save]。
   final IncompleteDocumentLoadGuard _incompleteLoads =
       IncompleteDocumentLoadGuard();
+
+  /// M5：最近一次 [listDocuments] 扫到但没能进列表的「问题文件」。
+  ///
+  /// 为什么要把它拿出来：列表以前对损坏 / 超大 / 非法 ID 的文件一律静默
+  /// `continue`，于是「盘上有 5 篇、首页只有 3 篇」这件事用户完全看不见，
+  /// 只会以为是自己的笔记丢了。这一栏只记**文件名**（不含内容、不含标题），
+  /// 供 UI 提示与测试断言；同一文件名只在集合里存一次。
+  ///
+  /// 与审计的关系：审计是 hash 链的持久记录，这条是**当前状态**的快照
+  /// （每次列表重算）——「现在还有几篇读不出来」与「历史上什么时候坏过」
+  /// 是两件事，后者归审计。
+  final Set<String> _lastListDamagedFiles = <String>{};
+
+  /// 最近一次 [listDocuments] 中被跳过的问题文件（文件名，不含目录）。
+  ///
+  /// 空集合表示上一轮列表一个都没跳过；UI 据此决定要不要提示「有笔记读不出来」。
+  Set<String> get lastListDamagedFiles => Set.unmodifiable(_lastListDamagedFiles);
+
+  /// 本轮列表是否登记过问题文件（[_noteDamaged] 置位）。
+  /// 审计按轮次聚合（一条），而不是每个文件一条——理由见 [_noteDamaged]。
+  bool _notedDamagedThisPass = false;
 
   late final StorageDirectories _directories;
   late final StorageSecretSession _secrets;
@@ -234,8 +256,14 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     await _directories.ensureDocuments();
     final path = _directories.documentPathFor(id);
     final file = File(path);
-    final bak = File('$path.bak');
-    if (!file.existsSync() && !bak.existsSync()) return null;
+    // M4：备份级别从近到远排成一列（0 = 最近一版 = 历史命名 `.bak`）。
+    final backups = [
+      for (var level = 0; level < StorageWritePipeline.backupLevels; level++)
+        File(StorageWritePipeline.bakLevelPath(path, level)),
+    ];
+    if (!file.existsSync() && !backups.any((b) => b.existsSync())) {
+      return null;
+    }
     Future<Uint8List> preparedBytes(File source) async {
       final raw = await StorageWritePipeline.readWithRetry(
         () async => await source.readAsBytes(),
@@ -243,36 +271,38 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       return _pipeline.prepareDocBytes(id, raw);
     }
 
-    try {
-      return _registerDecode(
-        _codec.decodeDetailed(
-          await preparedBytes(file.existsSync() ? file : bak),
-        ),
-      );
-    } on FormatException {
-      // 正式文件损坏（明文解码失败）：尝试备份恢复。
-      if (bak.existsSync()) {
+    // M4：主文件优先；不可读时**按级别从近到远**回退。旧实现只看 `.bak`，
+    // 于是「主文件与最近一版同时坏掉」这一格直接永久丢失——那正是这一栏
+    // 存在的理由（见 [StorageWritePipeline.backupLevels]）。
+    final candidates = [
+      if (file.existsSync()) file,
+      ...backups.where((b) => b.existsSync()),
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      try {
         return _registerDecode(
-          _codec.decodeDetailed(await preparedBytes(bak)),
+          _codec.decodeDetailed(await preparedBytes(candidates[i])),
         );
+      } on FormatException {
+        // 明文解码失败（损坏）：换下一级备份。
+      } on VaultFileException {
+        // R53：加密文档的主文件损坏（载荷截断/被篡改）时，prepareDocBytes 抛的是
+        // VaultFileException，而旧实现只 catch FormatException ⇒ 注释声称的
+        // 「正式文件损坏时尝试备份恢复」对加密文档根本不会触发。加密的正好是
+        // 它该保护的那类数据，偏偏用不上。
+        //
+        // 注意：不 catch VaultFileLockException / VaultFilePasswordLockException——
+        // 那两类的语义是「保险库/文件密码已锁定，读不了」，不是损坏；
+        // 备份同样是加密且锁定的，回退过去一样读不出，不该静默吞掉。
       }
-      rethrow;
-    } on VaultFileException {
-      // R53：加密文档的主文件损坏（载荷截断/被篡改）时，prepareDocBytes 抛的是
-      // VaultFileException，而旧实现只 catch FormatException ⇒ 注释声称的
-      // 「正式文件损坏时尝试备份恢复」对加密文档根本不会触发。加密的正好是
-      // 它该保护的那类数据，偏偏用不上。
-      //
-      // 注意：不 catch VaultFileLockException / VaultFilePasswordLockException——
-      // 那两类的语义是「保险库/文件密码已锁定，读不了」，不是损坏；
-      // .bak 同样是加密且锁定的，回退过去一样读不出，不该静默吞掉。
-      if (bak.existsSync()) {
-        return _registerDecode(
-          _codec.decodeDetailed(await preparedBytes(bak)),
-        );
-      }
-      rethrow;
     }
+    // 一级都读不出来：保留**主文件**那一份异常抛给调用方（损坏如实上报，
+    // 与旧口径一致，不静默返回 null）。
+    return _registerDecode(
+      _codec.decodeDetailed(
+        await preparedBytes(file.existsSync() ? file : backups.first),
+      ),
+    );
   }
 
   /// 落账一次解码结果并返回文档（批次 DN-003）。
@@ -304,6 +334,11 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
       _incompleteLoads.acknowledge(id);
 
   /// 列出所有已保存文档（含元信息），按更新时间倒序。
+  ///
+  /// M5：损坏 / 超大 / 非法 ID 的文件不再静默消失——它们进
+  /// [lastListDamagedFiles] 并落一条审计（只记文件名，不记内容）。
+  /// 跳过本身仍是正确行为（一个坏文件不该让首页整个打不开），但「跳过了」
+  /// 必须可观测，否则用户只会看到「我的笔记少了一篇」。
   @override
   Future<List<DocumentMeta>> listDocuments() async {
     // M-06：列表时自动清理过期回收站项（30 天保留——Android 官方模式）。
@@ -313,13 +348,19 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
     await _trash.purgeTrashThrottled();
     final dir = await _directories.ensureDocuments();
     final metas = <DocumentMeta>[];
+    _lastListDamagedFiles.clear();
+    _notedDamagedThisPass = false;
     await for (final entity in dir.list()) {
       if (entity is! File || !entity.path.endsWith('.json')) continue;
+      final entityName = entity.uri.pathSegments.last;
       try {
         // 链 9 修复（军工审计 2026-08-15）：列表页大小预检——原实现无
         // 限制 readAsBytes + jsonDecode，恶意超大 .json（如 90MB）会在
         // 打开主页时 OOM（D-4 只约束 load 路径）。
-        if (await entity.length() > _maxListMetaBytes) continue;
+        if (await entity.length() > _maxListMetaBytes) {
+          _noteDamaged(entityName);
+          continue;
+        }
         final raw = await entity.readAsBytes();
         // 批次①b：文件名即文档 ID（save 以 doc.id 命名），AAD 绑定用。
         final fileName = entity.uri.pathSegments.last;
@@ -351,7 +392,10 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
         } else if (VaultFileCodec.isEncrypted(raw)) {
           final key = await _pipeline.currentKey();
           // fail-closed：锁定状态不暴露加密文档（跳过，不中断整个列表）。
-          if (key == null) continue;
+          if (key == null) {
+            _noteDamaged(entityName);
+            continue;
+          }
           bytes = await VaultFileCodec.decrypt(
             raw,
             key,
@@ -362,7 +406,10 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
           if (isValidId(fileId)) _pipeline.enqueueRawRewrite(fileId, raw);
         }
         if (locked) {
-          if (!isValidId(fileId)) continue;
+          if (!isValidId(fileId)) {
+            _noteDamaged(entityName);
+            continue;
+          }
           metas.add(
             DocumentMeta(
               id: fileId,
@@ -379,12 +426,18 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
           );
           continue;
         }
+        // 下面这些 continue 都是**进不了列表**的那几格；
+        // M5 之前它们静默得连一条日志都没有，用户只会看到「少了一篇」。
         final root = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
         final doc = root['document'] as Map<String, dynamic>;
         final docId = doc['id'];
         // 链 A 修复（军工审计 2026-08-15）：列表 id 校验——恶意工程文件
         // 可携带任意 id，过滤不合法 id 防路径遍历（load/delete 入口）。
-        if (docId is! String || !isValidId(docId)) continue;
+        if (docId is! String || !isValidId(docId)) {
+          _noteDamaged(entityName);
+          continue;
+        }
+        // M5：以下 continue 一律走 [_noteDamaged]，不得恢复成裸 continue。
         metas.add(
           DocumentMeta(
             id: docId,
@@ -401,14 +454,35 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
           ),
         );
       } on FormatException {
-        // 跳过损坏文件，不中断整个列表。
+        // 跳过损坏文件，不中断整个列表——但必须可观测（M5）。
+        _noteDamaged(entityName);
         continue;
       } catch (_) {
+        _noteDamaged(entityName);
         continue;
       }
     }
     metas.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    // M5：审计按「列表轮次」聚合而不是逐文件一条：审计环只有 1000 条，而列表是
+    // UI 每次重建都会走的热路径（与 `noteUnreadableSidecar` 同一纪律）。
+    // 逐文件的当前状态由 [lastListDamagedFiles] 承担，两者不重叠。
+    if (_notedDamagedThisPass) {
+      AuditLogger.log(
+        'storage.list.damaged_skipped',
+        success: false,
+        detail: 'count=${_lastListDamagedFiles.length}',
+      );
+    }
     return metas;
+  }
+
+  /// M5：登记一个被列表跳过的问题文件（文件名）。
+  ///
+  /// 只记文件名，不记内容与标题——列表是读路径，没有理由把正文再拄一遍；
+  /// 文件名足够定位是哪一篇，而敏感内容不进内存。
+  void _noteDamaged(String fileName) {
+    _lastListDamagedFiles.add(fileName);
+    _notedDamagedThisPass = true;
   }
 
   /// 删除指定文档及其不再被任何其他文档引用的受管图片副本。

@@ -145,7 +145,21 @@ class EditorImageCropWriter {
     required File file,
     required Rect cropRect,
     required Rect imageBounds,
+  }) =>
+      writeCropFromPath(
+        path: file.path,
+        cropRect: cropRect,
+        imageBounds: imageBounds,
+      );
+
+  /// 路径版 [writeCrop]（H1 架构修复 2026-11）：表现层不持 `File`
+  /// （dart:io），只传路径字符串。语义与 File 版逐字一致。
+  Future<EditorImageCropWriteOutcome> writeCropFromPath({
+    required String path,
+    required Rect cropRect,
+    required Rect imageBounds,
   }) async {
+    final file = File(path);
     Image? srcImage;
     Image? outImage;
     Codec? srcCodec;

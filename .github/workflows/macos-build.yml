@@ -118,10 +118,15 @@ jobs:
       # codesign。未签名的 .app 在别的机器上首次打开会被 Gatekeeper 拦，
       # 需要用户手动「允许」—— 这是当前口径的已知代价，不是 bug。
       #
-      # 混淆口径与 release-build.yml / pr-platform.yml 对齐（2026-11 审计统一）。
-      # 符号表落到 build/symbols，随 artifact 上传。
+      # ⚠ 混淆已回滚（2026-11 审计，本批修复）：与 release-build.yml 同口径，
+      # 出货命令不带 `--obfuscate` / `--split-debug-info`。
+      #
+      # 回滚原因：本仓 28 处运行时读类型名（`runtimeType.toString()` 等）尚未改造，
+      # 混淆会把用户可见文案与审计字段换成每次构建都不同的随机串，而非混淆 CI
+      # （flutter test / smoke）抓不到。恢复的前置条件（CTL-03 的 ①② 两步）见
+      # release-build.yml 文件头注释。
       - name: Build macOS release
-        run: flutter build macos --release --obfuscate --split-debug-info=build/symbols
+        run: flutter build macos --release
 
       # ── 产物 ─────────────────────────────────────────────────────────────
       - name: 定位 .app 并打包为 zip
@@ -143,9 +148,5 @@ jobs:
           path: build/*.app.zip
           if-no-files-found: error
 
-      - name: Upload macOS symbols
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: macos-symbols
-          path: build/symbols/
-          if-no-files-found: warn
+      # 符号表上传步骤已随混淆一并移除：`--split-debug-info` 是产生 build/symbols/
+      # 的唯一开关，回滚后该目录不存在。（恢复混淆时连同 CTL-03 的 ③ 一起加回。）

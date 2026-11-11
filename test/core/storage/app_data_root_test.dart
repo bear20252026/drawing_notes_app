@@ -266,4 +266,31 @@ void main() {
       );
     });
   });
+
+  group('M3：敏感文件 POSIX 权限收紧（2026-11-11）', () {
+    test('写入后 tightenFilePermissions 将权限收到 0600（非 Windows）', () async {
+      final dir = Directory.systemTemp.createTempSync('m3_perm_test');
+      addTearDown(() => deleteTempDirWithRetry(dir));
+      final file = File('${dir.path}${Platform.pathSeparator}secret.key.json');
+      await file.writeAsString('sensitive');
+
+      await AppDataRoot.tightenFilePermissions(file);
+
+      if (!Platform.isWindows) {
+        final stat = file.statSync();
+        // POSIX 权限位：mode & 0777(八进制) == 0600(八进制)。
+        // Dart 不支持 0o 前缀八进制字面量，用十进制等价：0777=511, 0600=384。
+        expect(stat.mode & 511, 384, reason: '权限应为 0600（仅属主可读写）');
+      }
+    });
+
+    test('对不存在的文件调用不抛错（静默吞掉）', () async {
+      final file = File(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}'
+        'nonexistent_m3_perm_file',
+      );
+      await AppDataRoot.tightenFilePermissions(file);
+      // 不抛错即通过（Windows 直接返回；非 Windows chmod 失败被吞）。
+    });
+  });
 }

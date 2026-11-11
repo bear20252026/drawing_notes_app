@@ -161,6 +161,9 @@ class AuditLogger {
           mode: FileMode.append,
           flush: false,
         );
+        // M3 修复（2026-11-11）：审计日志含安全事件记录，落盘后收紧到
+        // 0600（仅属主可读写）。chmod 失败静默——加固不阻断业务。
+        await AppDataRoot.tightenFilePermissions(sink);
       } catch (_) {
         // 落盘失败静默——审计绝不阻断业务（内存链不受影响）。
       }

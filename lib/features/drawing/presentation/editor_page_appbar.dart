@@ -108,33 +108,42 @@ extension _EditorPageAppBar on _EditorPageState {
                       child: AppleFocusRing(borderRadius: AppleRadius.xs, child: InkWell(
                         onTap: _renameCanvas,
                         borderRadius: BorderRadius.circular(AppleRadius.xs),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 4,
+                        child: ConstrainedBox(
+                          // M4（UI/UX 规范修复）：重命名入口是可点控件，
+                          // 但内边距仅 4+文字高度 ≈ 25px < 44px 触控下限。
+                          // 用 ConstrainedBox 兜底到 AppleTouch.minTarget，
+                          // 视觉不变（Row 居中），命中区达标。
+                          constraints: const BoxConstraints(
+                            minHeight: AppleTouch.minTarget,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  _controller.document.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    _controller.document.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              // Flexible：极窄时图标随标题一起收缩，避免二级溢出。
-                              Flexible(
-                                child: Icon(
-                                  Icons.edit_rounded,
-                                  size: 14,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                const SizedBox(width: 4),
+                                // Flexible：极窄时图标随标题一起收缩，避免二级溢出。
+                                Flexible(
+                                  child: Icon(
+                                    Icons.edit_rounded,
+                                    size: 14,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       )),

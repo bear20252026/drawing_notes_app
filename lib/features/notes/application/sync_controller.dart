@@ -445,13 +445,22 @@ class SyncController {
     }
   }
 
-  // 已配置口令（含盐）→ 派生主密钥并用 AES 加密器；否则用 Noop（明文透传）。
+  // 已配置口令（含盐）→ 派生主密钥并用 AES 加密器。
+  //
+  // H2 修复（2026-11-11）：旧实现盐/口令为空时回落 [NoopSyncCipher]
+  // （明文透传），是 fail-open——调用方一旦漏配即静默明文上云。现改为
+  // **抛异常**（fail-closed）：UI 层已先行拦截空口令/缺盐（见设置页
+  // `webdavNeedSyncPassword` / `syncMissingSalt` 两条 toast），此处只兜
+  // 任何漏网的装配路径。异常经 [SyncRunOutcome] 的 error 通道返回给用户，
+  // 不会进退避重试（与 [SyncKeyMismatchException] 同属确定性失败）。
   Future<SyncCipher> _buildCipher({
     required String? syncSalt,
     required String syncPassphrase,
   }) async {
     if (syncSalt == null || syncSalt.isEmpty || syncPassphrase.isEmpty) {
-      return const NoopSyncCipher();
+      throw const FormatException(
+        '同步加密配置不完整（缺少盐或口令）：已阻止明文同步，请重新配置同步口令',
+      );
     }
     final salt = base64Decode(syncSalt);
     final key = await deriveMasterKey(syncPassphrase, salt);

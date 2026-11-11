@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/features/doc/presentation/database_block_view.
 import 'package:drawing_notes_app/features/doc/presentation/attachment_block_view.dart';
 import '../../../core/theme/apple_design.dart';
 import '../../../core/theme/apple_focus.dart';
+import '../../../core/theme/apple_motion.dart';
 
 /// 内嵌块视图：按块类型分发到对应的富渲染。
 ///
@@ -264,13 +265,15 @@ class EmbeddedBlockView extends StatelessWidget {
         onTap: () {
           // 实际项目中应使用 url_launcher；此处仅展示链接样式
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(context)?.openLinkSnack(href) ??
-                    '打开链接: $href',
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(context)?.openLinkSnack(href) ??
+                      '打开链接: $href',
+                ),
+                // H2（UI/UX 规范修复）：2s → AppleMotion.toastVisible（2s）。
+                // 数值恰好相同，但收编为令牌——驻留时长从此有单一事实来源。
+                duration: AppleMotion.toastVisible,
               ),
-              duration: const Duration(seconds: 2),
-            ),
           );
         },
         child: Container(
@@ -300,15 +303,15 @@ class EmbeddedBlockView extends StatelessWidget {
                   children: [
                     Text(
                       caption.isNotEmpty ? caption : href,
+                      // M2（UI/UX 规范修复）：15 裸值 → AppleTypeScale.uiBody 具名档。
                       // DESIGN.md 没有「嵌入块链接」这一格（dense-link 的
-                      // 2.41 是页脚密集链接栈专用，不适用），故保留 15px：
-                      // 以 bodyStyle 令牌为基（17/1.47/-0.374），
-                      // 仅字号覆写回 15，行高与字距承接正文梯子。
+                      // 2.41 是页脚密集链接栈专用，不适用），故用 uiBody：
+                      // 以正文梯子为基（17/1.47/-0.374），仅字号收到 UI 尺度。
                       style:
-                          AppleType.bodyStyle(
+                          AppleTypeScale.of(
+                            AppleTypeScale.uiBody,
                             Theme.of(context).colorScheme.primary,
                           ).copyWith(
-                            fontSize: 15,
                             decoration: TextDecoration.underline,
                           ),
                       maxLines: 2,

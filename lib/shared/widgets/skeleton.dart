@@ -98,10 +98,12 @@ class _ShimmerHighlight extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
+          // L3 规范收编：渐变端点改走 AppleColor.surfaceWhite（M3 同源），
+          // 不再直接引用 Colors.white 字面量。
           colors: [
-            Colors.white.withValues(alpha: 0),
-            Colors.white.withValues(alpha: glow),
-            Colors.white.withValues(alpha: 0),
+            AppleColor.surfaceWhite.withValues(alpha: 0),
+            AppleColor.surfaceWhite.withValues(alpha: glow),
+            AppleColor.surfaceWhite.withValues(alpha: 0),
           ],
         ),
       ),

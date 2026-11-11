@@ -33,6 +33,19 @@
       }
     }
   },
+  "homeTrashRemainingDays": "剩余保留期：{days} 天",
+  "@homeTrashRemainingDays": {
+    "description": "回收站项剩余保留天数（M6：保留期必须让用户看得见）",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homeTrashExpiresToday": "剩余保留期：今天到期",
+  "@homeTrashExpiresToday": {
+    "description": "回收站项已过期但尚未被惰性清理带走"
+  },
   "homeRecover": "恢复",
   "@homeRecover": {
     "description": "从回收站恢复操作"

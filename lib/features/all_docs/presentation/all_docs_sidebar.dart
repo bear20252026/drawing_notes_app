@@ -410,7 +410,7 @@ class _WorkspaceHeader extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               name.isNotEmpty ? name.characters.first : 'W',
-              style: AppleType.controlStyle(Colors.white),
+              style: AppleType.controlStyle(AppleColor.surfaceWhite),
             ),
           ),
           const SizedBox(width: 12),

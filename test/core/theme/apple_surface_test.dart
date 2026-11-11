@@ -100,6 +100,16 @@ void main() {
       expect(AppleFocus.colorFor(Brightness.dark), AppleColor.actionBlueOnDark);
     });
 
+    test('深色模式 primary / surfaceTint 走 actionBlueOnDark（H1 规范修复）', () {
+      final dark = AppDesign.darkTheme().colorScheme;
+      // DESIGN.md:299 #0066CC 是唯一品牌级交互色；深色档同族高亮版 =
+      // actionBlueOnDark #2997FF。此前是 #B5CCFF（偏灰的浅蓝，偏离规范）。
+      expect(dark.primary, AppleColor.actionBlueOnDark);
+      expect(dark.surfaceTint, AppleColor.actionBlueOnDark);
+      // onPrimary 保持 #102244：对 #2997FF 约 5.6:1，稳过 AA。
+      expect(dark.onPrimary, const Color(0xFF102244));
+    });
+
     test('输入框聚焦边框 = 2px Focus Blue（此前是 1.5px primary）', () {
       final theme = AppDesign.lightTheme();
       final focused =

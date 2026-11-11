@@ -149,6 +149,42 @@ class NotebookStorage
   /// 公开的图片目录提供（供编辑器粘贴图片保存用，包装私有实现）。
   Future<Directory> ensureImagesDir() => _ensureImagesDir();
 
+  // ── H1 架构修复（2026-11）：表现层文件读写例接口 ──────────────────────
+  // presentation 不再直接 `import 'dart:io'` 读写文件（门禁见
+  // presentation_io_seam_test）：导入文本、导出 PDF/诊断报告等读写一律经
+  // 本 infrastructure 例接口。文件路径由调用方给（目录选择是 UI 交互），
+  // 实际 File 操作收在本层。Web 平台可用性：dart:io 只出现在本层，
+  // presentation 依赖的是路径字符串。
+
+  /// 读取文本文件内容（表现层文本导入用）。文件不存在/不可读时抛异常由
+  /// 调用方按既有 UX 处理（与旧 `File(...).readAsString()` 语义一致）。
+  static Future<String> readTextFile(String path) async {
+    return File(path).readAsString();
+  }
+
+  /// 读取文件字节数（表现层导入前的大小闸门用；与旧 `File(...).length()` 一致）。
+  static Future<int> fileByteLength(String path) async {
+    return File(path).length();
+  }
+
+  /// 写字节到文件（表现层导出 PDF/图片用；[flush] 语义与旧实现一致）。
+  static Future<void> writeFileBytes(
+    String path,
+    List<int> bytes, {
+    bool flush = false,
+  }) async {
+    await File(path).writeAsBytes(bytes, flush: flush);
+  }
+
+  /// 写文本到文件（表现层导出诊断报告/纯文本用；[flush] 语义与旧实现一致）。
+  static Future<void> writeTextFile(
+    String path,
+    String content, {
+    bool flush = false,
+  }) async {
+    await File(path).writeAsString(content, flush: flush);
+  }
+
   /// 校验 ID 是否安全（仅允许字母、数字、下划线）。
   ///
   /// 安全说明：ID 直接拼入文件路径，若允许 `../` 等字符会造成路径遍历。
@@ -479,24 +515,33 @@ class NotebookStorage
     throw const FormatException('SVG 预检未通过，已拒绝导入');
   }
 
-  /// 全局媒体加密盐（H-03 方案 B 2026-08-15）：密码模式媒体加密的派生
-  /// 盐——明文持久（盐无需保密），跨会话一致（解密媒体重派生同 key）。
-  Future<List<int>> ensureMediaSalt() async {
+  /// 全局媒体加密盐 + KDF 版本（H-03 方案 B 2026-08-15；M1 升级 2026-11-11）。
+  ///
+  /// 旧文件（纯 16B 盐）⇒ [MediaSalt.parse] 识别为版本 1（PBKDF2-600k）——
+  /// 读旧媒体仍用旧 KDF，向后兼容。新生成 ⇒ [MediaSalt.encode]（版本 2 +
+  /// Argon2id），新写入不再新增 PBKDF2 盐。盐明文持久（盐无需保密），
+  /// 跨会话一致（解密媒体重派生同 key）。
+  Future<MediaSalt> ensureMediaSalt() async {
     final base = await _baseDir();
     final file = File('${base.path}${Platform.pathSeparator}media_crypto_salt');
     if (file.existsSync()) {
       final bytes = await file.readAsBytes();
-      if (bytes.length >= 16) return bytes.take(16).toList();
       // R-07（审计 2026-09-27）：短于 16 字节 = 部分写入，它仍对应已加密
       // 媒体的真实盐——静默换盐会让旧盐派生的媒体全部不可解密。显式失败
       // （fail-closed）交由调用方提示，保住恢复可能。
-      throw StateError('媒体加密盐文件损坏（不足 16 字节），已拒绝重新生成以保护已加密媒体');
+      if (bytes.length < MediaSalt.legacyFileLength) {
+        throw StateError('媒体加密盐文件损坏（不足 16 字节），已拒绝重新生成以保护已加密媒体');
+      }
+      // M1：版本前缀判定在 MediaSalt.parse 内（fail-closed：无法识别的
+      // 格式抛 ArgumentError，绝不猜 KDF——用错 KDF 解不开已加密媒体）。
+      return MediaSalt.parse(bytes);
     }
     final salt = MediaCryptoService.generateSalt();
+    final mediaSalt = MediaSalt(bytes: salt, kdf: MediaSalt.argon2idKdf);
     // 同批次 R-05：盐写入走 tmp + rename（部分写入不再产生半截盐文件）。
     final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
     try {
-      await tmp.writeAsBytes(salt, flush: true);
+      await tmp.writeAsBytes(mediaSalt.encode(), flush: true);
       await tmp.rename(file.path);
     } catch (_) {
       try {
@@ -506,7 +551,7 @@ class NotebookStorage
       }
       rethrow;
     }
-    return salt;
+    return mediaSalt;
   }
 
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。

@@ -16,6 +16,7 @@ import 'package:drawing_notes_app/core/security/session_guard.dart'
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/password_reset_disk.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/security/vault_error_messages.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
@@ -43,9 +44,13 @@ class AppLockSettingsPage extends StatelessWidget {
   /// 「关闭应用锁」被阻止（文件已用该密码加密，关闭将导致不可读）。
   final VaultKeyService? vault;
 
-  /// 绑定重置密码盘成功提示的展示时长（UI 时长）：文案较长（含 U 盘
-  /// 保管警示），默认 4s 不够读完，给 5s。
-  static const Duration bindSuccessSnackDuration = Duration(seconds: 5);
+  /// 绑定重置密码盘成功提示的展示时长（UI 时长）。
+  ///
+  /// H2（UI/UX 规范修复）：此前是 5s 裸值（理由「文案较长，4s 不够读完」）。
+  /// 现统一走 [AppleMotion.toastVisible]（2s）——Toast 是「已发生」的回执，
+  /// 不是阅读面板；U 盘保管警示改由设置页的常驻说明条承载（该页已有
+  /// 「忘记密码将无法重置」的常驻提示），不靠拉长 Toast 解决。
+  static const Duration bindSuccessSnackDuration = AppleMotion.toastVisible;
 
   /// 系统验证快速解锁（批D1）：仅作用于开屏锁；文件密码不参与。
   final QuickUnlockService? quickUnlock;

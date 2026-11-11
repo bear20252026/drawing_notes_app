@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -122,6 +123,12 @@ KNOWN_SAFE_PREFIXES = ("iVBORw0KGgo",)
 # 二进制/无关扩展名跳过。
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".ico", ".exe", ".dll", ".pdb", ".class", ".jar", ".zip", ".lock", ".xib"}
 
+# ── 豁免清单条数上限（M4 漂移告警）──────────────────────────────────────
+# 三条豁免清单（EXCLUDED_PATHS / ENTROPY_EXCLUDED_PATHS / EXCLUDED_FILES）
+# 靠人工回测校准，条数持续增长意味着扫描面在收缩——超过 10 条即 warning。
+# 不阻断（exit 0），但在 Step Summary 与 stdout 双重可见。
+MAX_EXEMPTION_ENTRIES = 10
+
 
 def shannon_entropy(s: str) -> float:
     """Shannon 熵（Gitleaks 熵检测——高熵字符串疑似随机令牌，阈值 4.0）。"""
@@ -215,6 +222,44 @@ def main() -> int:
     if unreadable:
         # 读不出来的文件以前被静默当成干净；现在至少让它们出现在输出里。
         print(f"⚠ 有 {unreadable} 个文件读不出来（已跳过，不计入「干净」）")
+
+    # ── 豁免清单条数自检（M4 漂移告警）──────────────────────────────────
+    # 三条豁免清单靠人工回测校准，条数持续增长意味着扫描面在收缩。
+    # 超过 MAX_EXEMPTION_ENTRIES 即 warning（不阻断，但双重可见）。
+    exemption_lists = {
+        "EXCLUDED_PATHS": EXCLUDED_PATHS,
+        "ENTROPY_EXCLUDED_PATHS": ENTROPY_EXCLUDED_PATHS,
+        "EXCLUDED_FILES": EXCLUDED_FILES,
+    }
+    exemption_warnings = []
+    for name, entries in exemption_lists.items():
+        if len(entries) > MAX_EXEMPTION_ENTRIES:
+            exemption_warnings.append(
+                f"{name} 有 {len(entries)} 条（上限 {MAX_EXEMPTION_ENTRIES}）"
+            )
+    if exemption_warnings:
+        print(f"⚠ 豁免清单超限：{'; '.join(exemption_warnings)}")
+
+    # ── Step Summary（M4：scanned 与豁免状态落 GITHUB_STEP_SUMMARY）──────
+    summary_lines = [
+        "## 秘密扫描结果",
+        "",
+        f"- 扫描面：**{scanned}** 个文件（下限 {MIN_SCANNED_FILES}）",
+        f"- 读不出来：{unreadable} 个",
+        f"- 发现敏感信息：{len(findings)} 处",
+        f"- 豁免清单上限：{MAX_EXEMPTION_ENTRIES} 条/清单",
+    ]
+    for name, entries in exemption_lists.items():
+        marker = "⚠" if len(entries) > MAX_EXEMPTION_ENTRIES else "✅"
+        summary_lines.append(f"- {marker} {name}：{len(entries)} 条")
+    if exemption_warnings:
+        summary_lines.append("")
+        summary_lines.append("⚠ 豁免清单超限——扫描面在收缩，需人工复核。")
+    summary_text = "\n".join(summary_lines)
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        with open(summary_path, "a", encoding="utf-8") as f:
+            f.write(summary_text + "\n")
 
     if findings:
         print(f"⚠ 发现 {len(findings)} 处潜在敏感信息：")

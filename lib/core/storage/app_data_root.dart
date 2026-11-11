@@ -23,6 +23,12 @@ import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 
+/// 终止应用（H1 架构修复 2026-11）。
+///
+/// 恢复确认后退出应用是**进程控制**职责，不属于表现层——presentation 不再
+/// `import 'dart:io'` 调 `exit()`，统一走本 core 例接口。
+void exitApp(int code) => exit(code);
+
 /// 统一数据根目录。
 class AppDataRoot {
   AppDataRoot({
@@ -72,6 +78,12 @@ class AppDataRoot {
 
   /// 文档目录（备份恢复的暂存定位用；公开只读出口，批次 M）。
   Future<Directory> documentsDirectory() => _documentsDir();
+
+  /// 文档目录路径（H1 架构修复 2026-11）：表现层（设置页暂存横幅）
+  /// 不再持有 `Directory`（dart:io）——只取路径字符串，后续暂存操作
+  /// 走 `readRestoreStagePathFromPath` 等基于路径的例接口。
+  Future<String> documentsDirectoryPath() async =>
+      (await _documentsDir()).path;
 
   /// 支持目录提供者（测试注入；默认系统应用支持目录）。
   final Future<Directory> Function()? supportDirProvider;
@@ -142,8 +154,13 @@ class AppDataRoot {
         if (stamp == null || stamp >= keepStamp) continue;
         try {
           await entity.delete(recursive: true);
-        } catch (_) {
+        } catch (e) {
           // 删不掉只多占一份磁盘，不影响本次恢复结果。
+          // L2（2026-11）：删除失败留痕（best-effort 路径，失败不改变控制流）。
+          await _recordRestoreFailure(
+            supportPath,
+            'prune_snapshots  旧快照删除失败：${errorCode(e)}',
+          );
         }
       }
     } catch (_) {
@@ -245,11 +262,26 @@ class AppDataRoot {
     if (!_stagingAlive(stagingPath)) {
       try {
         await marker.delete();
-      } catch (_) {}
+      } catch (e) {
+        // L2（2026-11）：删除失败留痕——此前完全无记录，与同文件
+        // _recordRestoreFailure 的口径对齐（AuditLogger 会成循环依赖，
+        // 故走同一文件日志例接口）。
+        await _recordRestoreFailure(
+          parentDir.path,
+          'read_stage  过期标记删除失败：${errorCode(e)}',
+        );
+      }
       return null;
     }
     return stagingPath;
   }
+
+  /// 路径版 [readRestoreStagePath]（H1 架构修复 2026-11）：表现层
+  /// 不持 `Directory`，只传父路径字符串。语义与 Directory 版逐字一致。
+  static Future<String?> readRestoreStagePathFromPath({
+    required String parentPath,
+  }) =>
+      readRestoreStagePath(parentDir: Directory(parentPath));
 
   /// 用户点下「确认恢复」之后才产生可触发换根的标记（DN-203 的 CONFIRMED 态）。
   ///
@@ -265,7 +297,13 @@ class AppDataRoot {
     if (gaps.isNotEmpty) {
       try {
         await _markerFile(parentDir, restoreStageMarkerName).delete();
-      } catch (_) {}
+      } catch (e) {
+        // L2（2026-11）：删除失败留痕（与本函数既有的 _recordRestoreFailure 同口径）。
+        await _recordRestoreFailure(
+          parentDir.path,
+          'confirm_rejected  标记删除失败：${errorCode(e)}',
+        );
+      }
       await _recordRestoreFailure(
         parentDir.path,
         'confirm_rejected  暂存结构不合格：${gaps.join('；')}',
@@ -278,9 +316,22 @@ class AppDataRoot {
     );
     try {
       await _markerFile(parentDir, restoreStageMarkerName).delete();
-    } catch (_) {}
+    } catch (e) {
+      // L2（2026-11）：删除失败留痕（确认路径）。
+      await _recordRestoreFailure(
+        parentDir.path,
+        'confirm_confirmed  标记删除失败：${errorCode(e)}',
+      );
+    }
     return RestoreStageDecision.confirmed;
   }
+
+  /// 路径版 [confirmRestoreStage]（H1 架构修复 2026-11）：表现层不持
+  /// `Directory`，只传父路径字符串。语义与 Directory 版逐字一致。
+  static Future<RestoreStageDecision> confirmRestoreStageFromPath({
+    required String parentPath,
+  }) =>
+      confirmRestoreStage(parentDir: Directory(parentPath));
 
   /// 放弃一次未确认的暂存恢复：清 inert 标记 + 尽力清暂存目录。
   static Future<void> discardRestoreStage({
@@ -289,15 +340,33 @@ class AppDataRoot {
     final stagingPath = await readRestoreStagePath(parentDir: parentDir);
     try {
       await _markerFile(parentDir, restoreStageMarkerName).delete();
-    } catch (_) {}
+    } catch (e) {
+      // L2（2026-11）：删除失败留痕（放弃暂存路径）。
+      await _recordRestoreFailure(
+        parentDir.path,
+        'discard  标记删除失败：${errorCode(e)}',
+      );
+    }
     if (stagingPath == null || stagingPath.isEmpty) return;
     try {
       final staging = Directory(stagingPath);
       if (staging.existsSync()) await staging.delete(recursive: true);
-    } catch (_) {
+    } catch (e) {
       // 残留暂存不影响数据安全（没有标记就没有换根），下次暂存会覆盖同名目录。
+      // L2（2026-11）：删除失败留痕（尽力清理路径，失败不改变控制流）。
+      await _recordRestoreFailure(
+        parentDir.path,
+        'discard  暂存目录删除失败：${errorCode(e)}',
+      );
     }
   }
+
+  /// 路径版 [discardRestoreStage]（H1 架构修复 2026-11）：表现层不持
+  /// `Directory`，只传父路径字符串。语义与 Directory 版逐字一致。
+  static Future<void> discardRestoreStageFromPath({
+    required String parentPath,
+  }) =>
+      discardRestoreStage(parentDir: Directory(parentPath));
 
   static File _markerFile(Directory parentDir, String name) =>
       File('${parentDir.path}${Platform.pathSeparator}$name');
@@ -381,7 +450,13 @@ class AppDataRoot {
     } else {
       try {
         await marker.delete();
-      } catch (_) {}
+      } catch (e) {
+        // L2（2026-11）：删除失败留痕（降级路径的标记清除）。
+        await _recordRestoreFailure(
+          marker.parent.path,
+          'demote  旧格式标记删除失败：${errorCode(e)}',
+        );
+      }
     }
     await _recordRestoreFailure(
       marker.parent.path,
@@ -455,7 +530,13 @@ class AppDataRoot {
           !manifest.existsSync()) {
         try {
           await marker.delete();
-        } catch (_) {}
+        } catch (e) {
+          // L2（2026-11）：删除失败留痕。
+          await _recordRestoreFailure(
+            supportPath,
+            'apply  残缺暂存标记删除失败：${errorCode(e)}',
+          );
+        }
         return false;
       }
       // DN-004（P0 数据安全）：换根前的第二道闸——暂存目录必须是「一个
@@ -468,7 +549,13 @@ class AppDataRoot {
         // 只清标记、不动暂存内容（保留取证余地）。
         try {
           await marker.delete();
-        } catch (_) {}
+        } catch (e) {
+          // L2（2026-11）：删除失败留痕。
+          await _recordRestoreFailure(
+            supportPath,
+            'apply  结构不合格标记删除失败：${errorCode(e)}',
+          );
+        }
         return false;
       }
       // 现网根恒在 ApplicationSupport（S-02 B）。
@@ -514,13 +601,25 @@ class AppDataRoot {
       }
       try {
         await marker.delete();
-      } catch (_) {}
+      } catch (e) {
+        // L2（2026-11）：删除失败留痕（换根成功后清标记）。
+        await _recordRestoreFailure(
+          supportPath,
+          'apply  已确认标记删除失败：${errorCode(e)}',
+        );
+      }
       // 清理另一位置的同名残留标记（避免下次启动误触发）。
       for (final m in markerCandidates) {
         if (m.path != marker.path && m.existsSync()) {
           try {
             await m.delete();
-          } catch (_) {}
+          } catch (e) {
+            // L2（2026-11）：删除失败留痕（残留标记清理）。
+            await _recordRestoreFailure(
+              supportPath,
+              'apply  残留标记删除失败：${errorCode(e)}',
+            );
+          }
         }
       }
       if (oldRoot != null) {
@@ -824,6 +923,25 @@ class AppDataRoot {
     return File('${dir.path}${Platform.pathSeparator}$name');
   }
 
+  /// 为敏感文件收紧 POSIX 权限到 0600（仅属主可读写）——M3 修复 2026-11-11。
+  ///
+  /// 背景：`vault.key.json`、`app_lock_guard.key`、`audit.log` 经 `File.writeAsString`
+  /// 写入时受进程 umask 影响（默认 0644/0666）——同机其他用户账户可读密钥
+  /// 材料（保险库主密钥信封、锁屏守卫签名密钥、审计记录）。Windows 上
+  /// ACL 由 OS 按用户目录继承，不靠 POSIX 位；此处仅 macOS/Linux 生效。
+  ///
+  /// 失败处理：chmod 失败（如文件系统不支持、路径异常）**静默吞掉**——
+  /// 不阻断业务写入（权限收紧是加固项，不能因它让保险库写不进去）。
+  /// 调用方在写入后调用即可；返回值供测试观察是否成功。
+  static Future<void> tightenFilePermissions(File file) async {
+    if (Platform.isWindows) return; // Windows 走 ACL，无 POSIX 位
+    try {
+      await Process.run('chmod', ['0600', file.path]);
+    } catch (_) {
+      // 加固失败不阻断业务（权限位是纵深防御，不是正确性依赖）。
+    }
+  }
+
   /// 隔离根模式下**不迁移**（语义 ②）：迁移会把用户真实旧数据搬进临时目录。
   /// ⚠️ 这里是**条件分支**——写成 `??= Future<void>.value()` 会把生产迁移整体关掉，
   /// 老用户数据就再也搬不进新根（2026-10-08 自查时差点这么写）。
@@ -857,7 +975,13 @@ class AppDataRoot {
         await _moveDirContents(oldDocsRoot, newRoot);
         try {
           await oldDocsRoot.delete(recursive: true);
-        } catch (_) {}
+        } catch (e) {
+          // L2（2026-11）：删除失败留痕（旧位置空壳根清理）。
+          await _recordRestoreFailure(
+            oldDocsRoot.parent.path,
+            'migrate  旧根删除失败：${errorCode(e)}',
+          );
+        }
       }
       // 新根非空：保守不覆盖旧 Documents 根。
     }

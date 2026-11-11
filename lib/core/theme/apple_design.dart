@@ -447,6 +447,78 @@ abstract final class AppleTypeScale {
     -0.12,
   );
 
+  // ---------------------------------------------------------------------------
+  // 梯子外具名档（M2，UI/UX 规范修复 2026-10-17）
+  //
+  // 上面 15 格是 DESIGN.md:336-350 的**营销/正文档**，逐格照抄、不得增删。
+  // 但本项目有三类场景天然落在梯子外，此前是裸 `copyWith(fontSize: N)`
+  // 散落调用点——字号无具名来源、审计无法收敛。现收编为**具名档**：
+  //
+  // - UI 尺度（15/16）：DESIGN.md 的 17px 是营销长文档；列表条目、对话框、
+  //   代码块等短交互/等宽场景用 UI 尺度（与 `AppleType.dialogBody` 同口径）。
+  // - 锁屏/大号读数（19/26/33）：锁屏与密码盘是**功能读数**而非正文，
+  //   字号由可读性与命中区决定，不属排版梯子管辖。
+  //
+  // 这些档**不进 DESIGN.md 表**（表是营销梯子的逐格照抄），但**进令牌层**
+  // —— 调用点一律引用具名常量，不再写裸数字。
+  // ---------------------------------------------------------------------------
+
+  /// 15px / 400 / 1.47 / -0.374 —— UI 尺度正文（列表标题、嵌入链接）。
+  ///
+  /// 与 [AppleType.dialogBody] 同值：DESIGN.md 的 17px 是营销长文档，
+  /// 列表条目等短交互文案用 UI 尺度。行高与字距承接正文梯子。
+  static const AppleTypeSpec uiBody = AppleTypeSpec(
+    15,
+    FontWeight.w400,
+    1.47,
+    -0.374,
+  );
+
+  /// 16px / 400 / 1.47 / -0.374 —— 序号标记（列表项前的「1.」「2.」）。
+  ///
+  /// 落在 14（caption）与 17（body）之间：17 会与正文同大抢主体，
+  /// 14 又小于正文导致层级倒挂。16 只作导航提示，不作正文。
+  static const AppleTypeSpec ordinal = AppleTypeSpec(
+    16,
+    FontWeight.w400,
+    1.47,
+    -0.374,
+  );
+
+  /// 19px / 600 / 1.24 / -0.374 —— 锁屏标题（「尝试次数过多」）。
+  ///
+  /// 锁屏是功能读数场景：标题须压过倒计时数字与说明文字，但小于密码盘
+  /// 数字（33px）——19 是两者之间的层级档。
+  static const AppleTypeSpec lockTitle = AppleTypeSpec(
+    19,
+    FontWeight.w600,
+    1.24,
+    -0.374,
+  );
+
+  /// 26px / 700 / 1.19 / -0.35 —— 文档大标题输入框。
+  ///
+  /// AFFiNE 式正文大标题：比正文（17）大一档、比 display-md（34）小一档。
+  /// 字重取 700（[AppleType.bold]）——这是**用户内容**的标题，不是 UI 文案，
+  /// DESIGN.md:369「标题用 600」管的是 UI 组件文案，不管用户文档内容。
+  static const AppleTypeSpec docTitle = AppleTypeSpec(
+    26,
+    FontWeight.w700,
+    1.19,
+    -0.35,
+  );
+
+  /// 33px / 400 / 1.0 / 0 —— 密码盘数字键。
+  ///
+  /// iOS 锁屏同款大号触控读数：字号由命中区（44pt）与可读性决定，
+  /// 不属排版梯子管辖。字距归 0（数字不需要负字距）。
+  static const AppleTypeSpec pinKey = AppleTypeSpec(
+    33,
+    FontWeight.w400,
+    1.0,
+    0,
+  );
+
   /// 按梯子生成 [TextStyle]。
   ///
   /// [fontFamily] / [fontStyle] / [decoration] / [backgroundColor] 是笔记

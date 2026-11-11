@@ -29,6 +29,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 
+/// 系统验证结果（H1 安全修复 2026-11-11）：不只回 bool，还须携带**实际
+/// 验证方式**——`local_auth` 在 Windows 上 `biometricOnly: true` 可能被
+/// 平台忽略（Windows Hello 不支持该开关），此时系统可能回退到设备 PIN；
+/// 而设备 PIN 通常 4 位、强度远低于保险库口令。若只看 bool 就落 MK 副本，
+/// 等于把「高熵口令保护的副本」降级成「4 位 PIN 保护的副本」。
+///
+/// [biometric] 为 true 表示系统**确实**用了生物识别（人脸/指纹/虹膜/
+/// strong/weak）；为 false 表示只用了设备凭据（PIN/密码/图案）。
+class SystemAuthResult {
+  const SystemAuthResult({required this.success, required this.biometric});
+
+  /// 用户是否通过验证（false = 取消/失败/超时）。
+  final bool success;
+
+  /// 是否确实经过生物识别验证。仅 [success] 为 true 时有意义。
+  final bool biometric;
+}
+
 /// 快速解锁异常（开关流程失败时向上传递可读原因）。
 class QuickUnlockException implements Exception, CodedFailure {
   @override
@@ -50,8 +68,9 @@ abstract class SystemAuthBackend {
   /// 设备/系统是否支持本地身份验证（有硬件且系统已配置）。
   Future<bool> isSupported();
 
-  /// 弹出系统验证对话框；通过返回 true（取消/失败/超时返回 false）。
-  Future<bool> authenticate(String reason);
+  /// 弹出系统验证对话框；通过返回 [SystemAuthResult]（取消/失败/超时
+  /// 返回 `success: false`）。
+  Future<SystemAuthResult> authenticate(String reason);
 }
 
 /// local_auth 生产实现。
@@ -81,19 +100,32 @@ class LocalAuthBackend implements SystemAuthBackend {
   }
 
   @override
-  Future<bool> authenticate(String reason) async {
+  Future<SystemAuthResult> authenticate(String reason) async {
     try {
       // P0 安全修复（审计 N-H1）：biometricOnly 强制生物识别，禁止回退
       // 到设备 PIN / 系统凭据（否则保险库口令强度降级为设备 PIN 强度）。
       // local_auth 3.0.2 API：biometricOnly 为 bool 直参（无 options 包裹）。
-      // 注意：Windows Hello 不支持该开关（平台限制），Windows 上验证失败即
-      // fail-closed（快速解锁不可用，PIN 通道永远可用）。
-      return await _auth.authenticate(
+      //
+      // H1 修复（2026-11-11）：Windows Hello 平台忽略 `biometricOnly`，
+      // 因此**验证后回查 getAvailableBiometrics**——若设备有已注册生物识别
+      // 但 authenticate 只认设备凭据（PIN），说明系统回退了，必须如实上报
+      // `biometric: false`，由调用方拒绝落副本。
+      //
+      // 回查失败（插件异常）按最坏情况处理：视为非生物识别（fail-closed）。
+      final ok = await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: true,
       );
+      if (!ok) return const SystemAuthResult(success: false, biometric: false);
+      var biometric = false;
+      try {
+        biometric = (await _auth.getAvailableBiometrics()).isNotEmpty;
+      } catch (_) {
+        biometric = false;
+      }
+      return SystemAuthResult(success: true, biometric: biometric);
     } catch (_) {
-      return false;
+      return const SystemAuthResult(success: false, biometric: false);
     }
   }
 }
@@ -111,6 +143,75 @@ abstract class SystemUnlockKeyStore {
 
   /// 是否存在副本。
   Future<bool> contains();
+}
+
+/// H1 安全修复（2026-11-11）：副本元数据——写入时刻 + TTL 过期时刻。
+///
+/// 攻击场景：DPAPI 副本在「开关打开」期间一直可读；若用户离开电脑但没关
+/// 开关，任何以同一用户身份运行的进程都能读回 MK 并解锁。TTL 让副本
+/// 在写入 [ttl] 后自动失效——`authenticateAndUnlock` 读到过期副本即拒，
+/// 必须重新走 `enable`（再次生物识别验证）才能刷新。
+///
+/// 载荷格式（JSON）：`{"mk": "<base64 32B>", "issuedAtMs": <int>, "ttlMs": <int>}`。
+/// 兼容旧格式：纯 base64 字符串按「无 TTL」处理（仍可读，但新写入恒带 TTL）。
+class QuickUnlockCopyEnvelope {
+  const QuickUnlockCopyEnvelope({
+    required this.masterKeyBase64,
+    required this.issuedAtMs,
+    required this.ttlMs,
+  });
+
+  /// 编码后的 MK（base64 32B）。
+  final String masterKeyBase64;
+
+  /// 写入时刻（epoch ms）。
+  final int issuedAtMs;
+
+  /// 存活时长（ms）；<= 0 视为无 TTL（仅旧格式回退）。
+  final int ttlMs;
+
+  String encode() => jsonEncode({
+    'mk': masterKeyBase64,
+    'issuedAtMs': issuedAtMs,
+    'ttlMs': ttlMs,
+  });
+
+  /// 解析副本载荷；畸形返回 null（调用方按副本损坏处理，fail-closed）。
+  static QuickUnlockCopyEnvelope? tryDecode(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    // 旧格式：纯 base64 MK（无 TTL）——兼容读取。
+    if (!trimmed.startsWith('{')) {
+      return QuickUnlockCopyEnvelope(
+        masterKeyBase64: trimmed,
+        issuedAtMs: 0,
+        ttlMs: 0,
+      );
+    }
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! Map<String, dynamic>) return null;
+      final mk = decoded['mk'];
+      final issuedAt = decoded['issuedAtMs'];
+      final ttl = decoded['ttlMs'];
+      if (mk is! String || mk.isEmpty) return null;
+      if (issuedAt is! int || ttl is! int) return null;
+      return QuickUnlockCopyEnvelope(
+        masterKeyBase64: mk,
+        issuedAtMs: issuedAt,
+        ttlMs: ttl,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 副本是否已过期（fail-closed：时钟异常按未过期处理，但 TTL 已到点仍拒）。
+  bool isExpired(DateTime now) {
+    if (ttlMs <= 0 || issuedAtMs <= 0) return false; // 无 TTL（旧格式）
+    final expiresAtMs = issuedAtMs + ttlMs;
+    return now.millisecondsSinceEpoch >= expiresAtMs;
+  }
 }
 
 /// flutter_secure_storage 实现（Windows = DPAPI 绑定当前用户账户）。
@@ -219,10 +320,11 @@ class QuickUnlockService {
     return _keyStore.contains();
   }
 
-  /// 开启快速解锁：系统验证 → 确保保险库解锁 → 存 MK 副本 → 持久化开关。
+  /// 开启快速解锁：系统验证（须生物识别）→ 确保保险库解锁 → 存 MK 副本（带 TTL）→ 持久化开关。
   ///
   /// [pin] 须已通过 AppLockService.verify（调用方负责，失败计入防爆破）。
-  /// 本方法内仍会做系统验证——设备不支持/验证不过就不落任何副本。
+  /// 本方法内仍会做系统验证——设备不支持/验证不过/系统回退到设备 PIN
+  /// 都不落任何副本（H1 fail-closed）。
   Future<void> enable({
     required String pin,
     required VaultKeyService vault,
@@ -232,8 +334,14 @@ class QuickUnlockService {
       throw const QuickUnlockException('当前设备不支持系统验证');
     }
     // 系统验证一次：确认硬件/系统就绪，同时让用户确认预期行为。
-    if (!await _backend.authenticate('验证身份以开启系统验证快速解锁')) {
+    // H1 修复：回查实际验证方式——系统若回退到设备 PIN 则拒绝落副本
+    // （否则 4 位 PIN 即等价于保险库主密钥的「保护器」，强度降级）。
+    final auth = await _backend.authenticate('验证身份以开启系统验证快速解锁');
+    if (!auth.success) {
       throw const QuickUnlockException('系统验证未通过');
+    }
+    if (!auth.biometric) {
+      throw const QuickUnlockException('系统未使用生物识别验证（可能回退到设备 PIN），已拒绝开启快速解锁');
     }
     // 确保保险库解锁（与 AppLockGate._unlockVault 同链路：已配置解锁、
     // 未配置补建——老用户升级首解场景）。
@@ -246,9 +354,16 @@ class QuickUnlockService {
     } on VaultUnlockException {
       rethrow;
     }
-    // 存副本（base64 的 32B MK）。DPAPI 保证：只有当前 Windows 用户能解。
+    // 存副本（base64 的 32B MK + TTL 信封）。DPAPI 保证：只有当前
+    // Windows 用户能解；TTL 保证：写入后 [copyTtl] 即失效，
+    // 必须重新生物识别验证才能刷新。
     final mk = vault.masterKey;
-    await _keyStore.write(base64Encode(mk));
+    final envelope = QuickUnlockCopyEnvelope(
+      masterKeyBase64: base64Encode(mk),
+      issuedAtMs: DateTime.now().millisecondsSinceEpoch,
+      ttlMs: copyTtl.inMilliseconds,
+    );
+    await _keyStore.write(envelope.encode());
     final prefs = await _preferencesLoader();
     await prefs.setBool(_kEnabledKey, true);
   }
@@ -260,13 +375,18 @@ class QuickUnlockService {
     await prefs.setBool(_kEnabledKey, false);
   }
 
-  /// 锁屏一键解锁：系统验证 → 取副本 → 注入保险库。
+  /// 锁屏一键解锁：系统验证 → 取副本（校验 TTL）→ 注入保险库。
   ///
   /// fail-closed：开关未开 / 设备不支持 / 验证未过 / 副本缺失或损坏 /
-  /// 长度异常，一律返回 false（锁屏保持原状，PIN 通道永远可用）。
+  /// 长度异常 / 副本已过期，一律返回 false（锁屏保持原状，PIN 通道
+  /// 永远可用）。
   Future<bool> authenticateAndUnlock({required VaultKeyService vault}) async {
     if (!await isReady()) return false;
-    if (!await _backend.authenticate('验证身份以解锁绘图笔记')) return false;
+    final auth = await _backend.authenticate('验证身份以解锁绘图笔记');
+    if (!auth.success) return false;
+    // H1 修复：解锁侧同样回查实际验证方式——设备 PIN 回退即拒
+    // （与 enable 同一口径，防「开启时生物识别、解锁时 PIN」绕过）。
+    if (!auth.biometric) return false;
     final String? encoded;
     try {
       encoded = await _keyStore.read();
@@ -274,9 +394,14 @@ class QuickUnlockService {
       return false;
     }
     if (encoded == null) return false;
+    final envelope = QuickUnlockCopyEnvelope.tryDecode(encoded);
+    if (envelope == null) return false;
+    // H1 修复：TTL 过期即拒（副本写入后 copyTtl 即失效，必须重新
+    // 生物识别验证才能刷新——防「开关长期开着」被同用户进程捡漏）。
+    if (envelope.isExpired(DateTime.now())) return false;
     final Uint8List mk;
     try {
-      mk = base64Decode(encoded);
+      mk = base64Decode(envelope.masterKeyBase64);
     } on FormatException {
       return false;
     }
@@ -288,4 +413,12 @@ class QuickUnlockService {
     }
     return true;
   }
+
+  /// 副本 TTL（H1 修复 2026-11-11）：写入后在该时长内可读，过期即拒。
+  ///
+  /// 取值 7 天：覆盖「周末关开关、周一回来」这类常见间隔，又不至于让
+  /// 副本长期驻留。到期后 `authenticateAndUnlock` 返回 false，锁屏提示
+  /// 重新输入 PIN；用户可在设置页重新开启快速解锁（再次生物识别验证）
+  /// 以刷新副本。
+  static const Duration copyTtl = Duration(days: 7);
 }

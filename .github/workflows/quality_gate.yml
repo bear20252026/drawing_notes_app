@@ -110,8 +110,19 @@ jobs:
       - name: 分层架构门禁（architecture_test）
         run: flutter test --no-pub test/architecture_test.dart
 
-      - name: 回归测试（全量：drawing + notes + 各 feature + 架构）
-        run: flutter test --no-pub
+      # v1.17.20 CI flake 根治：与 ci.yml 同构——KDF 套件按标签拆出，
+      # 主套件 --exclude-tags kdf，KDF 套件 --tags kdf --concurrency=1 串行。
+      - name: 回归测试（主套件，排除真 KDF）
+        run: flutter test --no-pub --exclude-tags kdf
+
+      - name: 真 KDF 加密套件（串行，独占）
+        run: flutter test --no-pub --tags kdf --concurrency=1
+
+      # packages/editor_core/ 是独立 Dart 包，测试用 package:test。
+      - name: editor_core 测试
+        run: |
+          cd packages/editor_core
+          dart test
 
       # 本代码库尚未统一 dart format 规范（会改动 53 个 lib 文件），故此处仅作 informational，
       # 不阻塞门禁；待 M5 落地后可单独建立完整 format baseline 再收紧为 blocking。

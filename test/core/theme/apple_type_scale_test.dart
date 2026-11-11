@@ -130,6 +130,49 @@ void main() {
     });
   });
 
+  group('梯子外具名档（M2 规范修复）', () {
+    // 这些档**不进** DESIGN.md:336-350 的 15 格表（表是营销梯子的逐格
+    // 照抄），但进令牌层——调用点不再写裸 `copyWith(fontSize: N)`。
+    test('uiBody = 15/400/1.47/-0.374（UI 尺度正文）', () {
+      expect(AppleTypeScale.uiBody.size, 15);
+      expect(AppleTypeScale.uiBody.weight, FontWeight.w400);
+      expect(AppleTypeScale.uiBody.height, 1.47);
+      expect(AppleTypeScale.uiBody.tracking, -0.374);
+    });
+
+    test('ordinal = 16/400/1.47/-0.374（序号标记）', () {
+      expect(AppleTypeScale.ordinal.size, 16);
+      expect(AppleTypeScale.ordinal.weight, FontWeight.w400);
+      expect(AppleTypeScale.ordinal.height, 1.47);
+      expect(AppleTypeScale.ordinal.tracking, -0.374);
+    });
+
+    test('lockTitle = 19/600/1.24/-0.374（锁屏标题）', () {
+      expect(AppleTypeScale.lockTitle.size, 19);
+      expect(AppleTypeScale.lockTitle.weight, FontWeight.w600);
+      expect(AppleTypeScale.lockTitle.height, 1.24);
+      expect(AppleTypeScale.lockTitle.tracking, -0.374);
+    });
+
+    test('docTitle = 26/700/1.19/-0.35（文档大标题）', () {
+      expect(AppleTypeScale.docTitle.size, 26);
+      expect(AppleTypeScale.docTitle.weight, FontWeight.w700);
+      expect(AppleTypeScale.docTitle.height, 1.19);
+      expect(AppleTypeScale.docTitle.tracking, -0.35);
+    });
+
+    test('pinKey = 33/400/1.0/0（密码盘数字键）', () {
+      expect(AppleTypeScale.pinKey.size, 33);
+      expect(AppleTypeScale.pinKey.weight, FontWeight.w400);
+      expect(AppleTypeScale.pinKey.height, 1.0);
+      expect(AppleTypeScale.pinKey.tracking, 0);
+    });
+
+    test('梯子外档不进 DESIGN.md 15 格表（表的条目数仍为 15）', () {
+      expect(_actual.length, 15, reason: 'DESIGN.md:336-350 表是 15 格，不得增删');
+    });
+  });
+
   group('AppleTypeScale.of', () {
     test('四元组全部落到 TextStyle 上', () {
       final style = AppleTypeScale.of(

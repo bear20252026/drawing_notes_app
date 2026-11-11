@@ -658,11 +658,11 @@ class _PinPadCoreState extends State<PinPadCore>
           children: [
             Text(
               digit,
-              // 密码盘数字键：大号触控读数，梯子无 33 档；以 headline 为基。
-              style: AppleType.headlineStyle(Colors.white).copyWith(
-                fontSize: 33,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0,
+              // M2（UI/UX 规范修复）：33 裸值 → AppleTypeScale.pinKey 具名档。
+              // 密码盘数字键是大号触控读数，字号由命中区与可读性决定。
+              style: AppleTypeScale.of(
+                AppleTypeScale.pinKey,
+                Colors.white,
               ),
             ),
             Positioned(

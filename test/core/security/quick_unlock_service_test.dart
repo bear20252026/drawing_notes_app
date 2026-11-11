@@ -25,20 +25,30 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import '../../helpers/temp_dir_cleanup.dart';
 
 /// 可编程假系统验证后端（代替 local_auth——测试环境无插件注册）。
+/// H1 修复（2026-11-11）：新增 [biometric] 开关——模拟系统是否确实
+/// 使用了生物识别（false = 设备 PIN 回退，应被拒绝）。
 class FakeAuthBackend implements SystemAuthBackend {
-  FakeAuthBackend({this.supported = true, this.authenticateResult = true});
+  FakeAuthBackend({
+    this.supported = true,
+    this.authenticateResult = true,
+    this.biometric = true,
+  });
 
   bool supported;
   bool authenticateResult;
+  bool biometric;
   int authenticateCalls = 0;
 
   @override
   Future<bool> isSupported() async => supported;
 
   @override
-  Future<bool> authenticate(String reason) async {
+  Future<SystemAuthResult> authenticate(String reason) async {
     authenticateCalls++;
-    return authenticateResult;
+    return SystemAuthResult(
+      success: authenticateResult,
+      biometric: biometric,
+    );
   }
 }
 
@@ -95,10 +105,14 @@ void main() {
       expect(await service.isEnabled(), isTrue);
       expect(await service.isReady(), isTrue);
       expect(backend.authenticateCalls, 1);
-      // 副本已存在（内容为 base64 的 32B MK，可还原）。
+      // 副本已存在（内容为 TTL 信封 JSON，可还原 MK）。
       final encoded = await store.read();
       expect(encoded, isNotNull);
-      expect(base64Decode(encoded!), vault.masterKey);
+      final envelope = QuickUnlockCopyEnvelope.tryDecode(encoded!);
+      expect(envelope, isNotNull);
+      expect(base64Decode(envelope!.masterKeyBase64), vault.masterKey);
+      // 新写入恒带 TTL（H1 修复）。
+      expect(envelope.ttlMs, QuickUnlockService.copyTtl.inMilliseconds);
     });
 
     test('系统验证未通过：抛异常且不落任何副本（fail-closed）', () async {

@@ -285,8 +285,7 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     // 豁免窗口内不清（2026-10-04）：原生选择器/系统弹窗抢焦点触发的 hidden
     // 不算切后台——否则笔记本导入选择器会顺手清掉本页正在用的会话口令。
     if (state == AppLifecycleState.hidden && !LockExemption.isActive) {
-      KekSessionCache.instance.clear();
-      SessionSecrets.clearAll();
+      _clearSessionSecrets();
     }
     // 切后台/失焦即置锁：inactive（桌面纯失焦——「焦点切走、窗口仍可见」
     // 的唯一信号，桌面从不投递 paused）/hidden（最小化）/paused（移动端
@@ -329,10 +328,24 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
         // P3-1（审计 2026-10-05）：与 hidden 分支同口径——超宽限落锁时
         // KEK 缓存与文件会话口令一并失效。此前清理只挂 hidden，桌面纯
         // inactive（失焦）超宽限后派生材料整会话驻留内存。
-        KekSessionCache.instance.clear();
-        SessionSecrets.clearAll();
+        _clearSessionSecrets();
       }
     }
+  }
+
+  /// 会话敏感材料的**单一清理收口**（M2 修复 2026-11-11）。
+  ///
+  /// 旧实现两处调用点各自裸写 `KekSessionCache.instance.clear()` +
+  /// `SessionSecrets.clearAll()` 两行——新增清理种类（如以后再加 DEK 缓存）
+  /// 时必须同时改两处，漏一处即留驻留材料（这正是 M-05/M-09 曾经的成因：
+  /// 只清 KEK 不清会话口令）。现收敛为单一入口：两处生命周期时机
+  /// （hidden、超宽限落锁）都调本方法，序列固定为「先 KEK 缓存、后会话
+  /// 机密注册表」，顺序不可颠倒（KEK 缓存的键含 pepper，清后旧键失效；
+  /// 会话口令表与 KEK 缓存无依赖，但统一收口保证任何新增种类只在这一处
+  /// 追加）。
+  void _clearSessionSecrets() {
+    KekSessionCache.instance.clear();
+    SessionSecrets.clearAll();
   }
 
   /// 是否为「离开前台」的生命周期信号（三平台口径统一：桌面失焦给

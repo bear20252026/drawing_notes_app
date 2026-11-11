@@ -115,6 +115,87 @@ void main() {
     });
   });
 
+  // M6（第三轮专家审计）：30 天是「不可恢复」的硬边界，而回收站 UI 此前只
+  // 在标题写「30 天内可恢复」、设置里写一句说明——**条目自己不说还剩几天**。
+  // 用户看到「删除于 11-11」得自己算，算错的方向是「以为还能慢慢恢复」。
+  // 这一组钉两件事：保留天数只剩 UI 一个来源；条目上真的看得见剩余天数。
+  group('④ M6：保留期必须让条目自己说出口', () {
+    Future<void> pumpHome(WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('zh'), Locale('en')],
+          home: HomePage(
+            blockDocAccessor: const FakeBlockDocAccessor(),
+            mediaCrypto: MediaCryptoService.instance,
+            docStorage: storage,
+            notebookStorage: NotebookStorage(directoryProvider: () async => root),
+          ),
+        ),
+      );
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 120));
+      }
+    }
+
+    testWidgets('回收站里每一条都写着自己的剩余保留天数', (tester) async {
+      await seedTrashEntry('m6_fresh', ageDays: 0); // ⇒ 30 天
+      await seedTrashEntry('m6_aged', ageDays: 10); // ⇒ 20 天
+      await pumpHome(tester);
+
+      await tester.runAsync(() async {
+        await tester.tap(find.byTooltip(_trashTooltip).first);
+        for (var i = 0; i < 16; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 40));
+          await tester.pump();
+        }
+      });
+
+      expect(
+        find.textContaining('剩余保留期：30 天'),
+        findsOneWidget,
+        reason: '刚删的条目必须说得出「还能恢复 30 天」',
+      );
+      expect(
+        find.textContaining('剩余保留期：20 天'),
+        findsOneWidget,
+        reason: '10 天前删的条目必须说得出还剩 20 天——这是用户决定「要不要'
+            '现在恢复」的唯一依据',
+      );
+      // 天数不得为负、也不得说「31 天」：与 purge 的过期判据同源。
+      expect(find.textContaining('剩余保留期：-'), findsNothing);
+      expect(find.textContaining('剩余保留期：31 天'), findsNothing);
+    });
+
+    testWidgets('已过期但尚未被惰性清理带走的条目：说「今天到期」，不说负数', (
+      tester,
+    ) async {
+      // 文件名时间戳比保留期更旧 ⇒ purge 判它过期；这里在 listTrash 之前
+      // 不触发 purge，所以它还在盘上，UI 必须给出可见提示而不是负数天数。
+      await seedTrashEntry('m6_over', ageDays: 31);
+      await pumpHome(tester);
+
+      await tester.runAsync(() async {
+        await tester.tap(find.byTooltip(_trashTooltip).first);
+        for (var i = 0; i < 16; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 40));
+          await tester.pump();
+        }
+      });
+
+      expect(
+        find.textContaining('今天到期'),
+        findsOneWidget,
+        reason: '已过保留期的条目必须显式说明，否则用户会以为还能恢复',
+      );
+    });
+  });
+
   group('③ 门禁接线与顺序（源扫 + 分母下限 + canary）', () {
     final source =
         File(

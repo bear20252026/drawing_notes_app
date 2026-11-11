@@ -330,4 +330,9 @@ class AppLockService extends ChangeNotifier {
     }
     return diff == 0;
   }
+
+  /// L7：纯状态 ChangeNotifier，无 Timer/StreamController/监听者，
+  /// 无实际泄漏；补 dispose() 让静态分析确认生命周期终止。
+  @override
+  void dispose() => super.dispose();
 }

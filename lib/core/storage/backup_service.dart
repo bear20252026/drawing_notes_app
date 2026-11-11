@@ -266,6 +266,19 @@ abstract final class BackupService {
     );
   }
 
+  /// 路径版 [stageRestore]（H1 架构修复 2026-11）：表现层不持 `Directory`，
+  /// 只传父路径字符串。语义与 Directory 版逐字一致。
+  static Future<void> stageRestoreFromPath({
+    required String backupPath,
+    required String dataParentPath,
+    BackupRestoreLimits limits = kBackupRestoreLimitsDefault,
+  }) =>
+      stageRestore(
+        backupPath: backupPath,
+        dataParentDir: Directory(dataParentPath),
+        limits: limits,
+      );
+
   /// zip 条目名 → 根内相对路径（本机分隔符）；非法返回 null。
   static String? _safeRelPath(String name) =>
       _safeRelSlash(name)?.replaceAll('/', Platform.pathSeparator);

@@ -15,6 +15,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart' show showInstanceNotice;
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/utils/single_instance.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
@@ -62,8 +63,9 @@ void main() {
       expect(text.toLowerCase(), contains('may'));
       expect(
         snack.duration,
-        const Duration(seconds: 8),
-        reason: '这条要够时间读完，但它是提示不是闸门——不许做成需要用户确认才继续',
+        AppleMotion.toastVisible,
+        reason: 'H2 修复：Toast 驻留统一为 AppleMotion.toastVisible（2s）；'
+            '它是提示不是闸门——不许做成需要用户确认才继续',
       );
     });
 

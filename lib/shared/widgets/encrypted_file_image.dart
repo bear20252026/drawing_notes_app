@@ -31,10 +31,32 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     this.scale = 1.0,
     this.mediaCrypto,
     this.vaultService,
-  });
+  }) : _path = null;
+
+  /// 路径构造（H1 架构修复 2026-11）：表现层不再直接 `import 'dart:io'`
+  /// 构造 `File`——由本 provider 内部从路径派生，presentation 只传字符串。
+  ///
+  /// 与 [EncryptedFileImage] 等价（同一解密链、同一缓存键语义）；文件对象
+  /// 在 provider 内部创建，调用方（features/*/presentation/**）因此无需触碰
+  /// dart:io。Web 平台可用性：路径字符串不依赖 dart:io，渲染路径与
+  /// [file] 构造完全一致。
+  const EncryptedFileImage.fromPath(
+    String path, {
+    this.scale = 1.0,
+    this.mediaCrypto,
+    this.vaultService,
+  }) : file = null,
+       _path = path;
 
   /// 媒体文件（可能为 DAN 密文或明文）。
-  final File file;
+  final File? file;
+
+  /// 路径构造下的本地文件路径（[EncryptedFileImage.fromPath]）。
+  /// 与 [file] 互斥：file 非空时本字段为 null。
+  final String? _path;
+
+  /// 实际参与读取/缓存键的文件路径（[filePath] 的私有来源）。
+  String get filePath => file?.path ?? _path ?? '';
 
   final double scale;
 
@@ -57,7 +79,7 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     return MultiFrameImageStreamCompleter(
       codec: _loadAsync(key, decode),
       scale: key.scale,
-      debugLabel: key.file.path,
+      debugLabel: key.filePath,
     );
   }
 
@@ -92,7 +114,7 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     // 媒体 VFS 双轨（2026-08-16）：'vfs:' 前缀对象（新媒体——VaultService
     // 解密明文）→ 直接渲染；否则文件路径（旧媒体——DAN 检测兼容——
     // s3-encryption-gateway 双读窗口模式）。
-    final path = key.file.path;
+    final path = key.filePath;
     if (path.startsWith('vfs:')) {
       // C-06：仓库实例构造注入；null 时保持既有「未 configure」语义。
       final vault = key.vaultService;
@@ -102,12 +124,13 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
       final clear = await vault.getObject(path.substring(4));
       return clear;
     }
-    final bytes = await key.file.readAsBytes();
+    final file = key.file ?? File(path);
+    final bytes = await file.readAsBytes();
     // 批次①c 三级嗅探：DNV 信封（保险库主密钥）→ 解密（锁定抛
     // [VaultFileLockException]——fail-closed）；DAN 密文 → 解密；
     // 明文（旧数据/未加密）→ 原样返回。
     if (VaultFileCodec.isEncrypted(bytes)) {
-      return VaultFileCodec.readImageBytes(key.file);
+      return VaultFileCodec.readImageBytes(file);
     }
     // C-06：解密服务构造注入；null（测试直构未注入）时与全局单例
     // 「会话密钥未注入」状态逐字同语义——DAN 抛 StateError，明文放行。
@@ -124,12 +147,12 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
   @override
   bool operator ==(Object other) =>
       other is EncryptedFileImage &&
-      other.file.path == file.path &&
+      other.filePath == filePath &&
       other.scale == scale;
 
   @override
-  int get hashCode => Object.hash(file.path, scale);
+  int get hashCode => Object.hash(filePath, scale);
 
   @override
-  String toString() => 'EncryptedFileImage("${file.path}", scale: $scale)';
+  String toString() => 'EncryptedFileImage("$filePath", scale: $scale)';
 }

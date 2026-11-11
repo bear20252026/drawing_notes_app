@@ -4,9 +4,9 @@ import 'dart:isolate';
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
+import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
@@ -58,6 +58,14 @@ import 'package:drawing_notes_app/shared/widgets/apple_sheet_fade_route.dart';
 part 'notebook_view_page_widgets.dart';
 part 'notebook_view_page_imports.dart';
 part 'notebook_view_page_manage.dart';
+
+/// 缩略图文字描边半径的**基准**值（L1 规范收编，2026-10-17）。
+///
+/// 画布域常量，不是 UI 圆角令牌：真实半径 = [_thumbnailStrokeBase] / scale，
+/// 让缩略图在任何缩放下都保持「视觉恒 2px」的物理描边粗细。AppleRadius 是
+/// **屏幕逻辑像素**令牌、不参与文档→屏幕的缩放换算，套上来会在放大时失真，
+/// 所以此处不能换成 AppleRadius.xs（D-16 审计 2026-09-27 已记录该豁免）。
+const double _thumbnailStrokeBase = 2;
 
 /// 笔记本内页面管理页（Phase 5）。
 ///

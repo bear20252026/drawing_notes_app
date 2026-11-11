@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
+import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
@@ -49,6 +50,19 @@ class _TrashPageState extends State<TrashPage> {
     final entries = await widget.loadTrash();
     if (!mounted) return;
     setState(() => _entries = entries);
+  }
+
+  /// M6：这一条还能恢复几天。已过期但尚未被惰性清理带走的条目显示
+  /// 「今天到期」——负数对用户没有意义，而它确实还躺在回收站里。
+  String _retentionLabel(DateTime deletedAt) {
+    final l10n = AppLocalizations.of(context);
+    final daysLeft =
+        StorageService.trashRetentionDays -
+        DateTime.now().difference(deletedAt).inDays;
+    if (daysLeft <= 0) {
+      return l10n?.homeTrashExpiresToday ?? '剩余保留期：今天到期';
+    }
+    return l10n?.homeTrashRemainingDays(daysLeft) ?? '剩余保留期：$daysLeft 天';
   }
 
   Future<void> _confirmPurge(TrashEntry entry) async {
@@ -125,11 +139,25 @@ class _TrashPageState extends State<TrashPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  subtitle: Text(
-                    AppLocalizations.of(context)?.homeDeletedAt(
-                          formatShortDate(deleted),
-                        ) ??
-                        '删除于 ${formatShortDate(deleted)}',
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)?.homeDeletedAt(
+                              formatShortDate(deleted),
+                            ) ??
+                            '删除于 ${formatShortDate(deleted)}',
+                      ),
+                      // M6：保留期必须让条目自己说，而不是只写在空状态提示里
+                      // （空状态只在回收站**没有东西**时可见）。剩余天数与 purge
+                      // 的过期判据同源，不引入第二处口径。
+                      Text(
+                        _retentionLabel(deleted),
+                        style: AppleType.captionStyle(
+                          scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

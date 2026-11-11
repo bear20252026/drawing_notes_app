@@ -3,7 +3,6 @@
 // 单一事实来源：密码类设置（应用锁/单文件密码）与通用设置
 // （外观/WebDAV）此前散落在 HomePage 的 AppBar 图标与「更多」菜单里，
 // 本页收编为唯一入口（HomePage 原入口随批次⑤移除，功能只搬家不删除）。
-import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +19,7 @@ import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:drawing_notes_app/features/notes/presentation/app_lock_settings_page.dart';
 import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settings_page.dart';
 
@@ -297,9 +297,8 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     try {
       final report = DiagnosticsExporter.buildReport(
-        platformInfo:
-            '${Platform.operatingSystem} ${Platform.operatingSystemVersion} · '
-            'Dart ${Platform.version.split(' ').first}',
+        // H1（2026-11）：平台摘要由 application 层组装，presentation 不取 Platform。
+        platformInfo: DiagnosticsExporter.platformSummary(),
         localeName: l10n?.localeName ?? 'zh',
         auditIntegrity: AuditLogger.verifyIntegrity(),
         auditEntries: AuditLogger.snapshot(),
@@ -322,7 +321,12 @@ class SettingsPage extends StatelessWidget {
         ),
       );
       if (location == null) return; // 用户取消
-      await File(location.path).writeAsString(report, flush: true);
+      // H1（2026-11）：落盘收在 infrastructure（NotebookStorage 例接口）。
+      await NotebookStorage.writeFileBytes(
+        location.path,
+        report.codeUnits,
+        flush: true,
+      );
       if (!context.mounted) return;
       AppSnack.show(context, l10n?.settingsDiagnosticsExported ?? '诊断信息已导出');
     } catch (e) {
@@ -388,7 +392,8 @@ class SettingsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     try {
       // S-02 方案 B：暂存/标记写在数据根父目录（通常 ApplicationSupport）。
-      final dataParent = await appDataRoot!.dataParentDirectory();
+      // H1（2026-11）：只取路径字符串，不持 Directory。
+      final dataParentPath = await appDataRoot!.documentsDirectoryPath();
       // 选备份包 = 原生文件对话框抢焦点 → 桌面投 inactive。AppLockGate 现对
       // inactive 全量锁定，须走豁免窗口按住开屏锁，否则选备份时会假锁开屏。
       final selected = await LockExemption.run(
@@ -402,9 +407,9 @@ class SettingsPage extends StatelessWidget {
         ),
       );
       if (selected == null) return; // 用户取消
-      await BackupService.stageRestore(
+      await BackupService.stageRestoreFromPath(
         backupPath: selected.path,
-        dataParentDir: dataParent,
+        dataParentPath: dataParentPath,
       );
       // 页面已卸载：到此为止——只留下一份 inert 暂存，没有任何东西会被应用。
       if (!context.mounted) return;
@@ -419,13 +424,15 @@ class SettingsPage extends StatelessWidget {
       );
       if (proceed != true) {
         // 用户取消：清掉 inert 暂存标记与暂存目录，保持现网原状。
-        await AppDataRoot.discardRestoreStage(parentDir: dataParent);
+        await AppDataRoot.discardRestoreStageFromPath(
+          parentPath: dataParentPath,
+        );
         return;
       }
       // 用户确认：此刻才产生可触发换根的标记。确认时再复核一次暂存结构——
       // 确认框停留期间暂存被外部破坏（磁盘满、人工删档）也不能放行。
-      final decision = await AppDataRoot.confirmRestoreStage(
-        parentDir: dataParent,
+      final decision = await AppDataRoot.confirmRestoreStageFromPath(
+        parentPath: dataParentPath,
       );
       if (decision != RestoreStageDecision.confirmed) {
         AuditLogger.log(
@@ -441,7 +448,7 @@ class SettingsPage extends StatelessWidget {
         return;
       }
       // 确认落地：退出应用；下次启动 applyPendingRestore 完成交换。
-      exit(0);
+      exitApp(0);
     } on BackupIntegrityException catch (e) {
       // DN-004：结构/预算/清单不一致的备份包——拒绝并给出用户可见文案，
       // 拒绝码进审计（哪个缺项可在诊断里回溯）。文案复用既有 arb 键
@@ -675,7 +682,9 @@ class _PendingRestoreBanner extends StatefulWidget {
 }
 
 class _PendingRestoreBannerState extends State<_PendingRestoreBanner> {
-  Directory? _parent;
+  // H1（2026-11）：只持父路径字符串（不持 Directory/dart:io）——
+  // 暂存操作走 AppDataRoot 的路径版例接口。
+  String? _parentPath;
   String? _stagingPath;
   bool _checked = false;
 
@@ -686,25 +695,27 @@ class _PendingRestoreBannerState extends State<_PendingRestoreBanner> {
   }
 
   Future<void> _load() async {
-    Directory? parent;
+    String? parentPath;
     String? staging;
     try {
-      parent = await widget.appDataRoot.dataParentDirectory();
-      staging = await AppDataRoot.readRestoreStagePath(parentDir: parent);
+      parentPath = await widget.appDataRoot.documentsDirectoryPath();
+      staging = await AppDataRoot.readRestoreStagePathFromPath(
+        parentPath: parentPath,
+      );
     } catch (_) {
       // 读不到就不提示：横幅是提醒，不是数据链路的一环。
     }
     if (!mounted) return;
     setState(() {
-      _parent = parent;
+      _parentPath = parentPath;
       _stagingPath = staging;
       _checked = true;
     });
   }
 
   Future<void> _confirm() async {
-    final parent = _parent;
-    if (parent == null) return;
+    final parentPath = _parentPath;
+    if (parentPath == null) return;
     final l10n = AppLocalizations.of(context);
     final proceed = await GlassDialog.confirm(
       context,
@@ -716,7 +727,9 @@ class _PendingRestoreBannerState extends State<_PendingRestoreBanner> {
       dangerous: true,
     );
     if (proceed != true) return;
-    final decision = await AppDataRoot.confirmRestoreStage(parentDir: parent);
+    final decision = await AppDataRoot.confirmRestoreStageFromPath(
+      parentPath: parentPath,
+    );
     if (decision != RestoreStageDecision.confirmed) {
       AuditLogger.log(
         'settings.restore.staged_confirm_rejected',
@@ -733,13 +746,13 @@ class _PendingRestoreBannerState extends State<_PendingRestoreBanner> {
     }
     AuditLogger.log('settings.restore.staged_confirmed', success: true);
     // 与「从备份恢复」同口径：换根只发生在下次启动早期。
-    exit(0);
+    exitApp(0);
   }
 
   Future<void> _discard() async {
-    final parent = _parent;
-    if (parent == null) return;
-    await AppDataRoot.discardRestoreStage(parentDir: parent);
+    final parentPath = _parentPath;
+    if (parentPath == null) return;
+    await AppDataRoot.discardRestoreStageFromPath(parentPath: parentPath);
     AuditLogger.log('settings.restore.staged_discarded', success: true);
     if (!mounted) return;
     AppSnack.show(

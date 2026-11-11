@@ -15,26 +15,34 @@ extension _EditorPageCanvasSurface on _EditorPageState {
         _initViewport(constraints.biggest);
         // 记录画布视口尺寸（小地图导航需要）。
         _viewportSize = constraints.biggest;
-        return Stack(
-          children: [
-            _buildCanvasPainterLayer(),
-            if (_gridVisible) _buildCanvasGridLayer(),
-            if (_shapeDraft != null) _buildCanvasShapeDraftLayer(),
-            // 框选/轨迹/吸附参考线无条件渲染：此前挂在对象 overlay 层里
-            // 被门控——独立画布（无文字块）框选生效但完全没有视觉反馈。
-            _buildCanvasSelectionFeedbackLayer(),
-            if (_isNotebookMode ||
-                _controller.document.textItems.isNotEmpty ||
-                _pendingTextItem != null)
-              _buildCanvasObjectOverlayLayer(),
-            if (!_isNotebookMode) _buildCanvasLinearEndpointLayer(),
-            _buildCanvasLinearReadoutLayer(),
-            if (!_fullscreen) _buildCanvasLeftToolbarLayer(constraints),
-            // 画布小地图（借鉴 Relatum：放大后快速导航定位）。
-            Positioned(right: 8, bottom: 8, child: _buildMiniMap()),
-            // 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。
-            Positioned(right: 8, top: 8, child: _buildPomodoro()),
-          ],
+        // H2 性能优化（2026-10-14）：此前 6 处独立 ListenableBuilder 各自
+        // 监听 frameTick，240Hz 采样下每帧 6 次 Element 重建。合并为单一
+        // ListenableBuilder，在 builder 内一次构造整棵 overlay Stack。
+        // 线性读数层（_buildCanvasLinearReadoutLayer）监听的是 _linearReadout
+        // 而非 frameTick，保持独立。
+        return ListenableBuilder(
+          listenable: Listenable.merge([_controller, _controller.frameTick]),
+          builder: (context, _) => Stack(
+            children: [
+              _buildCanvasPainterLayer(),
+              if (_gridVisible) _buildCanvasGridLayer(),
+              if (_shapeDraft != null) _buildCanvasShapeDraftLayer(),
+              // 框选/轨迹/吸附参考线无条件渲染：此前挂在对象 overlay 层里
+              // 被门控——独立画布（无文字块）框选生效但完全没有视觉反馈。
+              _buildCanvasSelectionFeedbackLayer(),
+              if (_isNotebookMode ||
+                  _controller.document.textItems.isNotEmpty ||
+                  _pendingTextItem != null)
+                _buildCanvasObjectOverlayLayer(),
+              if (!_isNotebookMode) _buildCanvasLinearEndpointLayer(),
+              _buildCanvasLinearReadoutLayer(),
+              if (!_fullscreen) _buildCanvasLeftToolbarLayer(constraints),
+              // 画布小地图（借鉴 Relatum：放大后快速导航定位）。
+              Positioned(right: 8, bottom: 8, child: _buildMiniMap()),
+              // 番茄钟专注计时浮层（D2，借鉴 Relatum 学习工具）。
+              Positioned(right: 8, top: 8, child: _buildPomodoro()),
+            ],
+          ),
         );
       },
     );
@@ -97,68 +105,60 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 网格显示层（借鉴 Excalidraw 画布导航）。
   ///
-  /// 自监听 frameTick：手型平移/双指缩放/滚轮缩放都只 tick 画布——
+  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder，
+  /// 本层只负责构建 painter（手型平移/双指缩放/滚轮缩放都只 tick 画布——
   /// 此前网格层不监听，视口变换期间点阵与画布内容错位漂移，
-  /// 直到下一次 setState 才纠正。
+  /// 直到下一次 setState 才纠正）。
   Widget _buildCanvasGridLayer() {
     return Positioned.fill(
       child: IgnorePointer(
-        child: ListenableBuilder(
-          listenable: _controller.frameTick,
-          builder: (context, _) => _readingInverted
-              ? ColorFiltered(
-                  colorFilter: _EditorPageState._readingInvertFilter,
-                  child: CustomPaint(
-                    painter: GridPainter(controller: _controller),
-                  ),
-                )
-              : CustomPaint(painter: GridPainter(controller: _controller)),
-        ),
+        child: _readingInverted
+            ? ColorFiltered(
+                colorFilter: _EditorPageState._readingInvertFilter,
+                child: CustomPaint(
+                  painter: GridPainter(controller: _controller),
+                ),
+              )
+            : CustomPaint(painter: GridPainter(controller: _controller)),
       ),
     );
   }
 
-  /// 框选反馈层：拖拽轨迹/吸附参考线/框选矩形（自监听 frameTick）。
+  /// 框选反馈层：拖拽轨迹/吸附参考线/框选矩形。
   ///
+  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
   /// 与混排对象 overlay 解耦（独立画布无文字块时也要有框选视觉反馈）；
   /// 三个 painter 空数据时零绘制，常驻成本可忽略。
   Widget _buildCanvasSelectionFeedbackLayer() {
+    if (_trailPoints.isEmpty && _snapGuides.isEmpty && _marqueeRect == null) {
+      return const SizedBox.shrink();
+    }
     return Positioned.fill(
       child: IgnorePointer(
-        child: ListenableBuilder(
-          listenable: _controller.frameTick,
-          builder: (context, _) {
-            if (_trailPoints.isEmpty &&
-                _snapGuides.isEmpty &&
-                _marqueeRect == null) {
-              return const SizedBox.shrink();
-            }
-            return Stack(
-              children: [
-                if (_trailPoints.isNotEmpty)
-                  CustomPaint(
-                    painter: TrailPainter(
-                      points: _trailPoints,
-                      controller: _controller,
-                    ),
-                  ),
-                if (_snapGuides.isNotEmpty)
-                  CustomPaint(
-                    painter: SnapGuidePainter(
-                      guides: _snapGuides,
-                      controller: _controller,
-                    ),
-                  ),
-                if (_marqueeRect != null)
-                  CustomPaint(
-                    painter: MarqueePainter(
-                      rect: _marqueeRect!,
-                      controller: _controller,
-                    ),
-                  ),
-              ],
-            );
-          },
+        child: Stack(
+          children: [
+            if (_trailPoints.isNotEmpty)
+              CustomPaint(
+                painter: TrailPainter(
+                  points: _trailPoints,
+                  controller: _controller,
+                ),
+              ),
+            if (_snapGuides.isNotEmpty)
+              CustomPaint(
+                painter: SnapGuidePainter(
+                  guides: _snapGuides,
+                  controller: _controller,
+                ),
+              ),
+            if (_marqueeRect != null)
+              CustomPaint(
+                painter: MarqueePainter(
+                  rect: _marqueeRect!,
+                  controller: _controller,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -166,49 +166,41 @@ extension _EditorPageCanvasSurface on _EditorPageState {
 
   /// 形状草稿层：所有工作区均可见，且不拦截正在创建形状的指针。
   ///
-  /// 自监听 frameTick（审计 #5）：拖拽创建的高频指针移动只 tick 不
-  /// setState，草稿框由本层逐帧重算 [_shapeDraft]（getter 现算）。
-  /// 出现/消失仍由起笔/收笔的 setState 驱动父级组合。
+  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
+  /// 拖拽创建的高频指针移动只 tick 不 setState，草稿框由本层逐帧重算
+  /// [_shapeDraft]（getter 现算）。出现/消失仍由起笔/收笔的 setState 驱动。
   Widget _buildCanvasShapeDraftLayer() {
+    final draft = _shapeDraft;
+    if (draft == null) return const SizedBox.shrink();
     return Positioned.fill(
       child: IgnorePointer(
-        child: ListenableBuilder(
-          listenable: _controller.frameTick,
-          builder: (context, _) {
-            final draft = _shapeDraft;
-            if (draft == null) return const SizedBox.shrink();
-            return _readingInverted
-                ? ColorFiltered(
-                    colorFilter: _EditorPageState._readingInvertFilter,
-                    child: Stack(children: [_buildShapeOverlay(draft)]),
-                  )
-                : Stack(children: [_buildShapeOverlay(draft)]);
-          },
-        ),
+        child: _readingInverted
+            ? ColorFiltered(
+                colorFilter: _EditorPageState._readingInvertFilter,
+                child: Stack(children: [_buildShapeOverlay(draft)]),
+              )
+            : Stack(children: [_buildShapeOverlay(draft)]),
       ),
     );
   }
 
   /// 连接线 + 混排对象层（轨迹/参考线/框选已拆到独立反馈层）。
+  ///
+  /// H2：frameTick 监听已上提到 _buildCanvasArea 的单一 ListenableBuilder。
   Widget _buildCanvasObjectOverlayLayer() {
+    final overlay = Stack(
+      children: [
+        if (_isNotebookMode) _buildCanvasConnectorLayer(),
+        ..._buildOverlayItems(),
+      ],
+    );
     return Positioned.fill(
-      child: ListenableBuilder(
-        listenable: _controller.frameTick,
-        builder: (context, _) {
-          final overlay = Stack(
-            children: [
-              if (_isNotebookMode) _buildCanvasConnectorLayer(),
-              ..._buildOverlayItems(),
-            ],
-          );
-          return _readingInverted
-              ? ColorFiltered(
-                  colorFilter: _EditorPageState._readingInvertFilter,
-                  child: overlay,
-                )
-              : overlay;
-        },
-      ),
+      child: _readingInverted
+          ? ColorFiltered(
+              colorFilter: _EditorPageState._readingInvertFilter,
+              child: overlay,
+            )
+          : overlay,
     );
   }
 
@@ -232,61 +224,59 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   }
 
   /// 独立画布：线性元素端点编辑手柄（审计二-2）。
+  ///
+  /// H2：controller + frameTick 监听已上提到 _buildCanvasArea 的单一
+  /// ListenableBuilder。
   Widget _buildCanvasLinearEndpointLayer() {
-    return Positioned.fill(
-      child: ListenableBuilder(
-        listenable: Listenable.merge([_controller, _controller.frameTick]),
-        builder: (context, _) {
-          final shape = _controller.selectedDocumentShape;
-          if (shape == null ||
-              !ShapeBindingGeometry.isLinear(shape) ||
-              shape.locked) {
-            return const SizedBox.shrink();
-          }
-          final endpoints = shape.shapeType == ShapeType.arrow
-              ? ShapeBindingGeometry.resolvedArrowEndpoints(
-                  shape,
-                  _controller.document.shapes,
-                )
-              : ShapeBindingGeometry.linearEndpoints(shape);
-          EndpointHandle handle(bool isStart) => EndpointHandle(
-            position: _controller.canvasToView(
-              isStart ? endpoints.start : endpoints.end,
-            ),
-            onPanStart: () {
-              _linearEndpointDragBase = endpoints;
-              _linearEndpointAccum = Offset.zero;
-              _controller.beginLinearEndpointEdit();
-            },
-            onPanUpdate: (screenDelta) {
-              _linearEndpointAccum += screenDeltaToCanvas(
-                screenDelta,
-                _controller.viewRotation,
-                _controller.viewScale,
-              );
-              final base = _linearEndpointDragBase;
-              if (base == null) return;
-              _controller.updateSelectedLinearEndpoint(
-                isStart: isStart,
-                point: (isStart ? base.start : base.end) + _linearEndpointAccum,
-                snapToGrid: _snapToGrid,
-              );
-              final current = _controller.selectedDocumentShape;
-              if (current != null) {
-                _updateLinearReadoutFromShape(current, isStart);
-              }
-            },
-            onPanEnd: () {
-              _controller.endLinearEndpointEdit();
-              _linearEndpointDragBase = null;
-              _linearEndpointAccum = Offset.zero;
-              _linearReadout.value = null;
-              _notifyChanged();
-            },
-          );
-          return Stack(children: [handle(true), handle(false)]);
-        },
+    final shape = _controller.selectedDocumentShape;
+    if (shape == null ||
+        !ShapeBindingGeometry.isLinear(shape) ||
+        shape.locked) {
+      return const SizedBox.shrink();
+    }
+    final endpoints = shape.shapeType == ShapeType.arrow
+        ? ShapeBindingGeometry.resolvedArrowEndpoints(
+            shape,
+            _controller.document.shapes,
+          )
+        : ShapeBindingGeometry.linearEndpoints(shape);
+    EndpointHandle handle(bool isStart) => EndpointHandle(
+      position: _controller.canvasToView(
+        isStart ? endpoints.start : endpoints.end,
       ),
+      onPanStart: () {
+        _linearEndpointDragBase = endpoints;
+        _linearEndpointAccum = Offset.zero;
+        _controller.beginLinearEndpointEdit();
+      },
+      onPanUpdate: (screenDelta) {
+        _linearEndpointAccum += screenDeltaToCanvas(
+          screenDelta,
+          _controller.viewRotation,
+          _controller.viewScale,
+        );
+        final base = _linearEndpointDragBase;
+        if (base == null) return;
+        _controller.updateSelectedLinearEndpoint(
+          isStart: isStart,
+          point: (isStart ? base.start : base.end) + _linearEndpointAccum,
+          snapToGrid: _snapToGrid,
+        );
+        final current = _controller.selectedDocumentShape;
+        if (current != null) {
+          _updateLinearReadoutFromShape(current, isStart);
+        }
+      },
+      onPanEnd: () {
+        _controller.endLinearEndpointEdit();
+        _linearEndpointDragBase = null;
+        _linearEndpointAccum = Offset.zero;
+        _linearReadout.value = null;
+        _notifyChanged();
+      },
+    );
+    return Positioned.fill(
+      child: Stack(children: [handle(true), handle(false)]),
     );
   }
 
@@ -354,46 +344,41 @@ extension _EditorPageCanvasSurface on _EditorPageState {
   /// 画布小地图：整幅缩略图 + 当前视口框 + 点击/拖动导航。
   /// B3：聚焦后方向键平移视口（键盘等价入口），Shift 加速。
   Widget _buildMiniMap() {
+    final doc = _controller.document;
+    final miniScale = _miniMapWidth / doc.width;
     return Material(
       elevation: 4,
       borderRadius: BorderRadius.circular(AppleRadius.xs),
       color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-      // 同时监听 frameTick（高频绘制/视口变化），使小地图可实时跟手。
-      child: ListenableBuilder(
-        listenable: Listenable.merge([_controller, _controller.frameTick]),
-        builder: (context, _) {
-          final doc = _controller.document;
-          final miniScale = _miniMapWidth / doc.width;
-          return Semantics(
-            container: true,
-            label: AppLocalizations.of(context)?.canvasMiniMap ?? '画布小地图',
-            hint:
-                AppLocalizations.of(context)?.canvasMiniMapHint ??
-                '方向键平移视口，Shift 加速',
-            child: Focus(
-              onKeyEvent: _handleMiniMapKey,
-              child: GestureDetector(
-                onTapDown: (d) => _navigateMiniMap(d.localPosition, miniScale),
-                onPanUpdate: (d) =>
-                    _navigateMiniMap(d.localPosition, miniScale),
-                child: SizedBox(
-                  width: _miniMapWidth,
-                  height: _miniMapHeight,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppleRadius.xs),
-                    child: CustomPaint(
-                      painter: MiniMapPainter(
-                        controller: _controller,
-                        miniScale: miniScale,
-                        viewport: _viewportSize ?? const Size(800, 600),
-                      ),
-                    ),
+      // H2：controller + frameTick 监听已上提到 _buildCanvasArea 的单一
+      // ListenableBuilder，小地图随其一起重建（高频绘制/视口变化实时跟手）。
+      child: Semantics(
+        container: true,
+        label: AppLocalizations.of(context)?.canvasMiniMap ?? '画布小地图',
+        hint:
+            AppLocalizations.of(context)?.canvasMiniMapHint ??
+            '方向键平移视口，Shift 加速',
+        child: Focus(
+          onKeyEvent: _handleMiniMapKey,
+          child: GestureDetector(
+            onTapDown: (d) => _navigateMiniMap(d.localPosition, miniScale),
+            onPanUpdate: (d) => _navigateMiniMap(d.localPosition, miniScale),
+            child: SizedBox(
+              width: _miniMapWidth,
+              height: _miniMapHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                child: CustomPaint(
+                  painter: MiniMapPainter(
+                    controller: _controller,
+                    miniScale: miniScale,
+                    viewport: _viewportSize ?? const Size(800, 600),
                   ),
                 ),
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

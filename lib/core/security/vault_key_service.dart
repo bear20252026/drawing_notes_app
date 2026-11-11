@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
+import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
@@ -721,6 +722,9 @@ class VaultKeyService {
       }
       rethrow;
     }
+    // M3 修复（2026-11-11）：保险库文件含主密钥信封，落盘后收紧到 0600
+    // （仅属主可读写）。chmod 失败静默——加固不阻断业务。
+    await AppDataRoot.tightenFilePermissions(file);
     try {
       jsonDecode(await file.readAsString());
     } catch (_) {

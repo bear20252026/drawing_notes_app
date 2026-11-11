@@ -15,8 +15,11 @@ extension _DocEditorUi on DocEditorState {
           hintText: AppLocalizations.of(context)?.docUntitled ?? '未命名',
           border: InputBorder.none,
         ),
-        style: AppleType.titleStyle(Theme.of(context).colorScheme.onSurface)
-            .copyWith(fontSize: 26, fontWeight: AppleType.bold),
+        // M2（UI/UX 规范修复）：26 裸值 → AppleTypeScale.docTitle 具名档。
+        style: AppleTypeScale.of(
+          AppleTypeScale.docTitle,
+          Theme.of(context).colorScheme.onSurface,
+        ),
         maxLines: null,
       ),
     );

@@ -4,6 +4,15 @@
 
 ## [1.17.68] - 2026-11-05
 
+### macOS 平台支持
+
+> 提交链：`0b2ee44c`（macOS 平台 + 算法/依赖升级）→ `a2d98000`（CI 补齐 editor_core 依赖）。
+>
+> 本版本正式引入 macOS 平台支持：新增 `macos/` Xcode 工程（Runner / 部署目标 13 / Entitlements / Info.plist）、
+> `macos-build.yml` CI 构建流水线（macos-latest runner，产物归档为 workflow artifact）、
+> 以及 `check_version_consistency.dart` 的 macOS 版本源校验（Info.plist 必须使用 FLUTTER_BUILD_NAME/NUMBER 宏，
+> AppInfo.xcconfig 必须含 PRODUCT_BUNDLE_IDENTIFIER）。macOS 产物暂不签名/公证，本地可跑。
+
 ### R53 审计三条：同步删除复活 / 加密损坏假死 / `.bak` 恢复失效
 
 > 提交链：`3774842`(fix(blockdoc)) → `d49abff`(CHANGELOG) →
@@ -55,6 +64,60 @@
 **验证**：`flutter analyze` 0 issue；`flutter test` **2824 passed / 0 failed**
 （+5 条新测试）；CI 全绿（SBOM / PR Architecture / 质量门禁 / Code Guard /
 Secret Scan / Push / CI）。
+
+### 批次 2（2026-11-11）：死代码清理 · 混淆回滚 · 文档校验和 · v1 信封迁移
+
+> 本批四项改动不含新功能。**其中第 4 条要求用户手动执行一步**——
+> PBKDF2 时代上传的同步数据需要走一次迁移才能继续解密，见该条末尾。
+
+**1. 删除两处死代码（全仓零引用，已逐个 grep 确认）**
+
+- `lib/features/drawing/presentation/editor_viewmodel.dart` 的 `clearTools()`；
+- `lib/features/drawing/application/gesture_math.dart` 的 `distanceBetween()`
+  （`pinchCenter` / `canvasToViewPoint` 保留）。
+
+两处均无任何调用点、也没有测试引用，删除不改变任何行为。
+
+**2. 回滚 `--obfuscate` 构建参数（HIGH）**
+
+`release-build.yml` / `macos-build.yml` / `weekly-evidence.yml` 的发布命令
+原来带 `--obfuscate --split-debug-info=build/symbols`，但全仓仍有 28 处
+`runtimeType` 未改造——混淆后审计面与错误文案会变成随机字符串，**CI 抓不到**
+（构建成功即绿）。本批回滚参数，并把注释改成回滚理由 + 恢复前置条件
+（先完成 CTL-03 ①② 的 `runtimeType` 改造，再单独恢复混淆）。
+`build/symbols/` 随之不再产出，对应的三个 "Upload symbols" 步骤一并移除
+（注释保留说明）。`--obfuscate` 相关说明同步更正。
+
+**3. 文档整本校验和 `contentHash`（H1）**
+
+`document_codec.dart` 原来对文档正文**没有任何整本完整性校验**：明文模式下
+一个比特翻转不会被发现，损坏会静默进 UI。本批给编码快照加 `contentHash`
+字段（正文规范化 JSON 的 SHA-256：键递归排序、`int`/`double` 等价归一、
+紧凑编码），解码时**在迁移之前**校验——迁移会改写正文（补 `textItems`、
+补 `version`、补笔画 `id`、剔除非法 style 键），放到迁移后会把全部存量
+哈希误判成不符。校验失败抛 `FormatException`，由存储层沿用既有 `.bak`
+回退链（无备份则如实抛出，不静默返回）。
+
+**向后兼容**：老文档没有 `contentHash` 字段时**跳过校验**（空串同样跳过），
+打开行为与本批之前完全一致；只是从下次保存起才带上校验和。
+
+**4. ⚠️ 需要用户执行：v1 → v2 同步信封迁移**
+
+同步 KDF 从 PBKDF2-HMAC-SHA256 600k 切到 Argon2id 之后，同口令同盐产出
+**不同**密钥，PBKDF2 时代上传云端的老信封全部解不开（解密侧还强制只认
+`v == 2`）。修复前唯一的出路是「重新配置同步口令 + 全量重传」——
+**云端历史就此丢失**。
+
+本批在 `sync_cipher.dart` 新增迁移工具（`migrateSyncDocumentEnvelopeV1ToV2`
+/ `migrateSyncManifestEnvelopeV1ToV2`）：用旧口令派生 PBKDF2 v1 密钥解开
+老信封，再用当前 Argon2id 主密钥重封成 v2。迁移**只认 v1**（版本收窄
+不可绕过，v2 信封会被拒），失败是确定性的 `SyncKeyMismatchException`
+（旧口令已改 / 数据损坏），调用方据此提示重新配置同步口令，不退避重试。
+生产解密路径的 fail-closed 口径未被放宽。
+
+> **用户必做**：升级后请用**当年上传时那个同步口令**跑一次迁移
+> （入口随下个版本提供；在此之前，老云端数据仍不可见）。若口令已改，
+> 迁移会确定性失败——此时只能重新配置同步口令并全量重传，云端历史无法恢复。
 
 ## [1.17.67] - 2026-10-15
 

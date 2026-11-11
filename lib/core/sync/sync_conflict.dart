@@ -50,6 +50,7 @@ class SyncConflict {
     this.remoteTimestampUntrusted = false,
     this.localUnchangedSinceBaseline = false,
     this.fingerprintTie = false,
+    this.contentUnverifiable = false,
     this.localDigest,
     this.remoteDigest,
   });
@@ -76,6 +77,21 @@ class SyncConflict {
   /// 默认保留本地并直接上传，等于把云端那一版静默盖掉。
   final bool fingerprintTie;
 
+  /// M7：**内容不可校验**——两端都报不出摘要（旧客户端/旧清单），而结构指纹
+  /// 完全相同（同 ts、同 size），且两端相对基线**都有**改动。
+  ///
+  /// 为什么必须与 [fingerprintTie] 分开记：[fingerprintTie] 的答案是确定的
+  /// 「两份内容不同」（两端都有摘要，摘要不等），而这里的答案是**未知**——
+  /// 同 ts 同 size 的两份内容既可能相同也可能不同，摘要缺省时没有任何判据能
+  /// 区分。旧写法把「不可比」当成「相同」，于是 planner 的「== → 忽略」与
+  /// 这里的冲突检测双双静默，同 ts 同 size 的分叉可以永久存活。
+  ///
+  /// 但反过来把「不可比」一律报成冲突是**假红风暴**（升级后第一轮全库皆红），
+  /// 所以判据被限死在「两端都有改动」——只有一端改过时，未改动那一侧的内容
+  /// 与基线一致，而基线就是两端上次一致的那一版，可判定为相同；两端都没改过
+  /// 时结构指纹相同即内容相同。
+  final bool contentUnverifiable;
+
   /// DN-206：两端的截断内容摘要（缺省 null = 该侧没报摘要）。UI 在平局场景
   /// 只能靠这两个短串区分「时间戳与大小都一样的两份不同内容」。
   final String? localDigest;
@@ -85,7 +101,8 @@ class SyncConflict {
   bool get lwwTimestampSuspect =>
       remoteTimestampUntrusted ||
       localUnchangedSinceBaseline ||
-      fingerprintTie;
+      fingerprintTie ||
+      contentUnverifiable;
 
   /// 本地是否较新（用于 UI 建议的默认裁决）。
   bool get localNewer => localUpdatedAt > remoteUpdatedAt;
@@ -99,7 +116,11 @@ class SyncConflict {
   ConflictResolution get suggestedResolution {
     if (remoteTimestampUntrusted) return ConflictResolution.keepLocal;
     if (localUnchangedSinceBaseline) return ConflictResolution.keepRemote;
-    if (fingerprintTie) return ConflictResolution.keepBoth;
+    if (fingerprintTie || contentUnverifiable) {
+      // 内容「确定不同」与内容「无法证明相同」都落到 keepBoth：唯一不丢数据的
+      // 方向。区别只在 UI 文案——前者是「两份不同」，后者是「无法确认是否同一份」。
+      return ConflictResolution.keepBoth;
+    }
     return remoteNewer
         ? ConflictResolution.keepRemote
         : ConflictResolution.keepLocal;
@@ -118,6 +139,7 @@ class SyncConflict {
           remoteTimestampUntrusted == other.remoteTimestampUntrusted &&
           localUnchangedSinceBaseline == other.localUnchangedSinceBaseline &&
           fingerprintTie == other.fingerprintTie &&
+          contentUnverifiable == other.contentUnverifiable &&
           localDigest == other.localDigest &&
           remoteDigest == other.remoteDigest;
 
@@ -131,6 +153,7 @@ class SyncConflict {
     remoteTimestampUntrusted,
     localUnchangedSinceBaseline,
     fingerprintTie,
+    contentUnverifiable,
     localDigest,
     remoteDigest,
   );
@@ -143,7 +166,8 @@ class SyncConflict {
       '${remoteDigest == null ? '' : '/$remoteDigest'}'
       '${remoteTimestampUntrusted ? ', remoteTsUntrusted' : ''}'
       '${localUnchangedSinceBaseline ? ', localUnchanged' : ''}'
-      '${fingerprintTie ? ', tie' : ''})';
+      '${fingerprintTie ? ', tie' : ''}'
+      '${contentUnverifiable ? ', unverifiable' : ''})';
 }
 
 /// 可疑时钟容差（P2 修复）：远端 updatedAt 晚于本地当前时间超过此值即视为
@@ -175,11 +199,38 @@ List<SyncConflict> detectSyncConflicts(
     // 摘要任一侧缺失时 contentDiffersFrom 返回 false（不可比 ≠ 不同），
     // 所以升级后的第一轮不会把所有旧条目报成冲突。
     final contentDiffers = local.contentDiffersFrom(remote);
-    if (local == remote && !contentDiffers) continue;
     // 「改过」按内容/版本指纹判（时间戳或 size 任一与基线不同）——只看时间戳
     // 会被时钟问题骗过（P2）。
+    //
+    // M7：这两个值必须算在下面的 early-continue **之前**——`contentUnverifiable`
+    // 要用的正是它们，而它唯一可能为真的那格恰好是「结构指纹全同」那一格
+    // （`local == remote`）。把 continue 留在原位，等于让 M7 的判据永远走不到：
+    // 实测同 ts 同 size 两端都无摘要时 conflicts 仍为空，分支是死的。
     final localChanged = local != base;
     final remoteChanged = remote != base;
+    // M7：两端都报不出摘要、结构指纹完全相同（同 ts 同 size）、而**两端相对
+    // 基线都有改动**——内容是否真的相同，现有任何判据都回答不了。旧写法把
+    // 「不可比」当「相同」（`contentDiffersFrom` 返回 false），于是 planner 的
+    // 「== → 忽略」与这里双双静默，同 ts 同 size 的分叉可以永久存活。
+    //
+    // 判据为什么限死在 `localChanged && remoteChanged`：
+    //  ① 两端都没改过 ⇒ 结构指纹相同即内容相同（同一版字节）；
+    //  ② 只有一端改过 ⇒ 未改动那侧 == 基线，而基线是两端上次一致的那一版，
+    //     可判定「内容相同」，走 LWW 是安全的；
+    //  ③ 两端都改过且指纹全同 ⇒ 真·不可知，必须让用户看见。
+    // 少了 ③ 的这条限定，升级后第一轮会把全库旧条目报成冲突（假红风暴），
+    // 这正是 `content_digest_test` 反向锁钉住的那件事。
+    final contentUnverifiable =
+        localChanged &&
+        remoteChanged &&
+        local.updatedAt == remote.updatedAt &&
+        local.size == remote.size &&
+        !contentDiffers &&
+        local.digest == null &&
+        remote.digest == null;
+    // 结构指纹全同 ⇒ 唯一的「不同」来源是摘要，而摘要已确认无差异（或不可比但
+    // 已由 contentUnverifiable 接住）⇒ 这一篇不需要冲突。
+    if (local == remote && !contentDiffers && !contentUnverifiable) continue;
     // 两端相对基线都改过，且彼此不同（真·双边独立编辑）。同 ts 同 size 且摘要
     // 也相同已被上面的 continue 挡掉；同 ts 不同 size / 不同摘要走 sameTsDiverged。
     final bothChanged =
@@ -213,6 +264,7 @@ List<SyncConflict> detectSyncConflicts(
     final hasConflict =
         bothChanged ||
         sameTsDiverged ||
+        contentUnverifiable ||
         remoteUntrusted ||
         localWinsWithoutChanging;
     if (hasConflict) {
@@ -226,6 +278,7 @@ List<SyncConflict> detectSyncConflicts(
           remoteTimestampUntrusted: remoteUntrusted,
           localUnchangedSinceBaseline: localWinsWithoutChanging,
           fingerprintTie: sameTsDiverged,
+          contentUnverifiable: contentUnverifiable,
           localDigest: local.digest,
           remoteDigest: remote.digest,
         ),

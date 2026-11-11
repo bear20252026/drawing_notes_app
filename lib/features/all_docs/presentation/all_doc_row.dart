@@ -120,14 +120,15 @@ class AllDocRow extends StatelessWidget {
                           doc.title,
                           locked: doc.locked,
                         ),
+                        // M2（UI/UX 规范修复）：15 裸值 → AppleTypeScale.uiBody 具名档。
                         // 14 → 15：列表标题是触屏主用设备上的主要点击目标，
                         // 14px 偏小；15px 仍在 UI 尺度内（DESIGN.md 的
                         // 17px 是**营销正文**档，不适用于列表条目）。
-                        // 以 controlStyle 为基（无 body 1.47 行高，避免列表行被撑高）。
-                        style: AppleType.controlStyle(
+                        // 以 uiBody 为基（承接正文行高 1.47，避免列表行被撑高）。
+                        style: AppleTypeScale.of(
+                          AppleTypeScale.uiBody,
                           onSurface,
-                          weight: FontWeight.w600,
-                        ).copyWith(fontSize: 15),
+                        ).copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -79,26 +79,53 @@ class LayerRenderCacheCoordinator {
 
   bool get _isInactive => _disposed || _isOwnerDisposed();
 
+  /// M5 性能优化（2026-10-14）：paintViews 缓存版本号。
+  ///
+  /// `paintViews` getter 每帧被 CanvasPainter._paintLayers 与
+  /// MiniMapPainter._fingerprintOf 调用，此前每次新建 `List` 与其中每个
+  /// view 对象。图层集合或缓存位图变化时递增版本号，getter
+  /// 检测到版本变化才重建列表，否则返回缓存。
+  int _paintViewsVersion = 0;
+  List<LayerPaintView>? _cachedPaintViews;
+  int _cachedPaintViewsVersion = -1;
+
   /// 为绘制提供图层位图视图列表（自底向上）。
-  List<LayerPaintView> get paintViews => <LayerPaintView>[
-    for (final layer in _document.layers)
-      LayerPaintView(
-        image: _caches[layer.id]?.image,
-        strokes: layer.strokes,
-        visible: layer.visible,
-        opacity: layer.opacity,
-      ),
-  ];
+  ///
+  /// M5：版本号命中时返回缓存列表，避免每帧分配新 List 与 view 对象。
+  List<LayerPaintView> get paintViews {
+    if (_cachedPaintViews == null ||
+        _cachedPaintViewsVersion != _paintViewsVersion) {
+      _cachedPaintViews = <LayerPaintView>[
+        for (final layer in _document.layers)
+          LayerPaintView(
+            image: _caches[layer.id]?.image,
+            strokes: layer.strokes,
+            visible: layer.visible,
+            opacity: layer.opacity,
+          ),
+      ];
+      _cachedPaintViewsVersion = _paintViewsVersion;
+    }
+    return _cachedPaintViews!;
+  }
+
+  /// 使 paintViews 缓存失效（图层集合或缓存位图变化时调用）。
+  void _invalidatePaintViews() {
+    _paintViewsVersion++;
+    _cachedPaintViews = null;
+  }
 
   /// 新建图层后预先注册空缓存，避免首次失效时遗漏索引。
   void addLayer(Layer layer) {
     if (_isInactive) return;
     _caches.putIfAbsent(layer.id, LayerRenderCache.new);
+    _invalidatePaintViews();
   }
 
   /// 删除图层时释放其位图，防止运行时图像资源泄漏。
   void removeLayer(String layerId) {
     _caches.remove(layerId)?.dispose();
+    _invalidatePaintViews();
   }
 
   /// 根据当前文档图层同步缓存索引，并释放已删除图层的位图。
@@ -117,6 +144,7 @@ class LayerRenderCacheCoordinator {
     for (final layer in _document.layers) {
       _caches.putIfAbsent(layer.id, LayerRenderCache.new);
     }
+    _invalidatePaintViews();
   }
 
   /// 标记图层内容或属性变化，并在非无限画布上异步重建离屏缓存。
@@ -187,6 +215,7 @@ class LayerRenderCacheCoordinator {
       cache.dispose();
       cache.dirty = true;
     }
+    _invalidatePaintViews();
   }
 
   /// 串行化重建任务链（2026-09-07 重构）：此前用 `_rebuilding` 布尔守卫，
@@ -217,6 +246,7 @@ class LayerRenderCacheCoordinator {
       cache.dirtyRegion = null;
       if (cache.image != null) {
         cache.dispose();
+        _invalidatePaintViews();
         _notifyIfActive();
       }
       return;
@@ -235,6 +265,7 @@ class LayerRenderCacheCoordinator {
         // （compositor drawImageRect 铺底）；base==null 表示无底图。
         cache.image?.dispose();
         cache.image = null;
+        _invalidatePaintViews();
       }
       try {
         final nextImage = await _compositor.rasterize(
@@ -251,10 +282,12 @@ class LayerRenderCacheCoordinator {
         final previousImage = cache.image;
         cache.image = nextImage;
         previousImage?.dispose();
+        _invalidatePaintViews();
       } catch (_) {
         // 光栅化失败（如系统内存不足）：标记脏，下次失效/重试自愈，
         // 期间 painter 矢量回退保证内容仍可见。
         cache.dirty = true;
+        _invalidatePaintViews();
         rethrow;
       }
       _notifyIfActive();
@@ -275,5 +308,6 @@ class LayerRenderCacheCoordinator {
       cache.dispose();
     }
     _caches.clear();
+    _cachedPaintViews = null;
   }
 }

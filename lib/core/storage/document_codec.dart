@@ -3,6 +3,8 @@ import 'dart:isolate';
 import 'dart:typed_data';
 import 'dart:ui' show Color;
 
+import 'package:crypto/crypto.dart';
+
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
@@ -33,10 +35,92 @@ export 'package:drawing_notes_app/core/storage/document_budgets.dart';
 ///   "version": 1,
 ///   "document": { "id","title","width","height","createdAt","updatedAt",
 ///                 "layers": [ {id,name,visible,opacity,strokes:[...]} ],
-///                 "shapes": [...], "imageItems": [...], "textItems": [...] }
+///                 "shapes": [...], "imageItems": [...], "textItems": [...] },
+///   "contentHash": `"<sha256 hex>"`   // H1：document 子树的规范化 SHA-256
 /// }
+///
+/// **整体校验和（H1 修复，2026-11）**：[contentHashField] 是 `document` 子树
+/// 规范化 JSON 的 SHA-256。加它的原因是**明文模式下文档本体零检测**——位翻转、
+/// 静默截断、部分写入都读起来「正常」，等用户发现笔画少了已经来不及。加密
+/// 文档由保险库 AEAD 的 MAC 兼着，明文文档没有任何东西兼着。
+///
+/// 三条设计约束（改动前必读）：
+/// 1. **向后兼容**：旧文档没有 [contentHashField] ⇒ 跳过校验，照常打开。
+/// 2. **在迁移之前校验**：迁移层会规范化文档（补 textItems / version /
+///    笔画 id），放到迁移后比会让存量校验和全部误报。校验和要挡的是损坏，
+///    与迁移无关。
+/// 3. **不符即抛 [FormatException]**：[StorageService.load] 把 FormatException
+///    当作「这一级候选不可读」，自动回退下一级 `.bak`；全部候选都失败才拒绝
+///    打开。不静默、不返回半成品。
 class DocumentCodec {
   const DocumentCodec();
+
+  /// 文档根部的整体校验和字段名（H1）。
+  static const String contentHashField = 'contentHash';
+
+  /// int 型 double 的归一上界（2^53）：超过它的 double 转 int 会丢精度，
+  /// 不归一。取 2^53 是因为那是 IEEE-754 双精度能精确表示的最大整数边界。
+  static const double _intLikeDoubleMax = 9007199254740992;
+
+  /// 计算 [document] 子树的规范化 SHA-256（小写 hex）。
+  ///
+  /// 规范化 = 键递归排序 + 数值归一 + 紧凑 JSON：
+  /// - 键排序让「同一份内容、不同键序」得到同一哈希（JSON 对象本无序）；
+  /// - 数值归一把 `2048.0` 与 `2048` 视为同一内容（`jsonEncode` 对二者的
+  ///   字符串表示不同，不归一会在写入/读回的类型漂移下误报）；
+  /// - 紧凑编码让哈希与落盘时的缩进/换行无关（落盘用
+  ///   `JsonEncoder.withIndent('  ')`，哈希不跟着格式走）。
+  ///
+  /// 入参是 `document` 子树（不含 `version` / [contentHashField]），因此版本
+  /// 推进与校验和字段本身都不影响结果。
+  static String computeContentHash(Object? document) {
+    final canonical = _canonicalizeForHash(document);
+    return sha256.convert(utf8.encode(jsonEncode(canonical))).toString();
+  }
+
+  /// 递归规范化：Map 按键排序重建，List 逐项规范化，int 型 double 转 int。
+  static Object? _canonicalizeForHash(Object? value) {
+    if (value is Map) {
+      final entries = value.entries
+          .where((e) => e.key is String)
+          .toList()
+        ..sort((a, b) => (a.key as String).compareTo(b.key as String));
+      return {
+        for (final e in entries) e.key as String: _canonicalizeForHash(e.value),
+      };
+    }
+    if (value is List) {
+      return value.map(_canonicalizeForHash).toList();
+    }
+    if (value is double) {
+      if (value.isFinite &&
+          value == value.truncateToDouble() &&
+          value.abs() <= _intLikeDoubleMax) {
+        return value.toInt();
+      }
+    }
+    return value;
+  }
+
+  /// 给快照补上 [contentHashField]（重算，不接受调用方传入的值）。
+  static Map<String, dynamic> _sealSnapshot(Map<String, dynamic> snapshot) {
+    final document = snapshot['document'];
+    if (document is! Map) return snapshot;
+    return {...snapshot, contentHashField: computeContentHash(document)};
+  }
+
+  /// 校验文件原样的 [document] 与盘上 [contentHashField] 是否一致。
+  ///
+  /// 旧文档（无校验和）跳过；结构不合法时交给后续既有的「缺少 document /
+  /// 文档 ID 无效」校验去报，这里不抢话。
+  static void _verifyContentHash(Object? stored, Object? document) {
+    if (stored is! String || stored.isEmpty) return;
+    if (document is! Map) return;
+    if (computeContentHash(document) == stored) return;
+    throw FormatException(
+      '文档校验和不符（内容可能已损坏）：已回退备份或拒绝打开',
+    );
+  }
 
   /// 当前支持的工程文件格式版本。
   ///
@@ -101,8 +185,12 @@ class DocumentCodec {
   /// 任何直接调用本方法的旁路都必须经过同一道门。
   static Uint8List encodeSnapshot(Map<String, dynamic> snapshot) {
     validateSnapshotForEncoding(snapshot);
+    // H1：落盘前补整体校验和。重算而非沿用传入值——调用方不可能注入一个
+    // 「自证正确」的哈希（否则校验和就成了装饰）。
     return Uint8List.fromList(
-      utf8.encode(const JsonEncoder.withIndent('  ').convert(snapshot)),
+      utf8.encode(
+        const JsonEncoder.withIndent('  ').convert(_sealSnapshot(snapshot)),
+      ),
     );
   }
 
@@ -284,6 +372,14 @@ class DocumentCodec {
     if (fileVersionRaw is num && fileVersionRaw.toInt() > _version) {
       throw FormatException('文档版本过新（v$fileVersionRaw，当前支持 v$_version），请升级应用后再打开');
     }
+    // H1：整体校验和闸门——必须在迁移**之前**做。迁移层会规范化文档
+    // （补 textItems / version / 笔画 id），放到迁移后比会让存量校验和全部
+    // 误报；而校验和要挡的是位翻转/静默损坏，与迁移无关。
+    // 不符抛 FormatException ⇒ StorageService.load 自动回退下一级 `.bak`。
+    _verifyContentHash(
+      decoded[contentHashField],
+      decoded['document'],
+    );
     // 迁移管线（内核 P1-DOC-001，2026-10-10）：低于当前版本的文件按注册表
     // 逐级规范化（补缺键/回写版本号）；缺环节的文件保持原样交给下方宽容
     // 解码兜底——迁移层不新增拒绝路径。

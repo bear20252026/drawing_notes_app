@@ -7,8 +7,18 @@
 // （调用方保证传入的 entries 来自 AuditLogger.snapshot()）。
 library;
 
+import 'dart:io' show Platform;
+
 /// 诊断报告纯文本构建器（设置页「导出诊断信息」的数据面）。
 abstract final class DiagnosticsExporter {
+  /// 平台摘要行（OS/Dart 版本）。
+  ///
+  /// H1 架构修复（2026-11）：平台信息组装收在本 application 层——
+  /// presentation 不再 `import 'dart:io'` 取 `Platform.*`，只消费字符串。
+  static String platformSummary() =>
+      '${Platform.operatingSystem} ${Platform.operatingSystemVersion} · '
+      'Dart ${Platform.version.split(' ').first}';
+
   /// 构建诊断报告。
   ///
   /// [platformInfo] 为平台摘要行（OS/Dart 版本，由调用方用

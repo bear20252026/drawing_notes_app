@@ -10,6 +10,7 @@ import 'package:drawing_notes_app/features/drawing/rendering/render_context.dart
 import 'package:drawing_notes_app/features/drawing/rendering/render_pipeline.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/render_stage.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
+import 'package:drawing_notes_app/core/canvas_model/document_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
@@ -49,6 +50,15 @@ class CanvasPainter extends CustomPainter {
 
   /// 缩放提示角标描边（画布域半透明灰）。
   static const Color zoomBadgeOutline = AppleColor.zoomBadgeOutline;
+
+  /// M4：图片解码字节预算（每帧可见性预筛用）。与
+  /// [DocumentImageCache.maxCacheBytesDefault] 同口径（48 MiB），避免
+  /// 可见性预筛与 LRU 淘汰预算脱节。
+  static const int _imageDecodeBudgetBytes = 48 << 20;
+
+  /// M4：估算单张图片解码后的 RGBA 字节数（按包围盒尺寸，保守上界）。
+  static int _estimatedImageBytes(DocumentImageItem item) =>
+      (item.width * item.height * 4).toInt();
 
   CanvasPainter({required this.controller})
     : super(
@@ -196,15 +206,26 @@ class CanvasPainter extends CustomPainter {
         break;
       }
     }
+    // M4 性能优化（2026-10-14）：绘制前做「本帧可见性预算」预筛——仅对
+    // 包围盒与视口相交且累计字节在预算内的 item 调 imageFor（触发解码）；
+    // 离屏 item 直接跳过，不触发解码。缓存被 LRU 淘汰后，下一帧不再重新
+    // 解码同一张离屏图，消除解码-重绘抖动。
+    final visibleRect = canvas.getLocalClipBounds();
+    var accumulatedBytes = 0;
     for (final item in images) {
-      final image = controller.documentImage(item);
-      if (image == null) continue;
-      canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-        Rect.fromLTWH(item.x, item.y, item.width, item.height),
-        Paint()..filterQuality = FilterQuality.high,
-      );
+      if (!visibleRect.intersect(item.bounds).isEmpty &&
+          accumulatedBytes + _estimatedImageBytes(item) <=
+              _imageDecodeBudgetBytes) {
+        accumulatedBytes += _estimatedImageBytes(item);
+        final image = controller.documentImage(item);
+        if (image == null) continue;
+        canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          Rect.fromLTWH(item.x, item.y, item.width, item.height),
+          Paint()..filterQuality = FilterQuality.high,
+        );
+      }
     }
 
     // 选中图片的可编辑边界：边框与手柄仅为运行时反馈，不会进入导出或文档数据。

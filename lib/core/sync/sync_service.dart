@@ -13,6 +13,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
@@ -285,12 +287,21 @@ class SyncService {
     // S-04（审计 2026-09-27）：加密方案必选——默认 NoopSyncCipher（明文
     // 透传）是 fail-open 陷阱，未来新增调用点漏配即静默明文上云。现网
     // 调用点（设置页）与测试助手均显式传 cipher，收紧为 required。
+    //
+    // H2 修复（2026-11-11）：生产可达性已在两处切断——
+    // ① [NoopSyncCipher] 标注 `@visibleForTesting`（analyzer 拒绝生产引用）；
+    // ② 唯一生产装配点 [SyncController._buildCipher] 对空盐/空口令抛异常
+    //    （fail-closed），不再回落 Noop。
+    // 刻意**不加运行时断言**：测试合法使用 Noop（明文是测试便利），
+    // 断言会让整套 SyncService 测试在构造期崩溃，属过度收紧。
     required this.cipher,
     this.conflictHandler = const LwwConflictHandler(),
     this.onProgress,
     required this.baselineGate,
     this.reconcile,
     this.pushWaivers,
+    // H2：故障注入钩子（见 [baselineCommitBarrierForTest]），生产恒 null。
+    this.baselineCommitBarrierForTest,
   });
 
   /// WebDAV 传输客户端。
@@ -304,7 +315,8 @@ class SyncService {
 
   final SyncPlanner planner;
 
-  /// 端到端加密（默认 [NoopSyncCipher]：明文透传，保现有行为与既有测试）。
+  /// 端到端加密。**必选且不得为 [NoopSyncCipher]**（构造断言拒绝）。
+  /// 旧注释所称「默认 NoopSyncCipher 明文透传」已在 H2 修复中废止。
   final SyncCipher cipher;
 
   /// 冲突裁决处理器（默认 [LwwConflictHandler]：不覆盖，保 LWW 语义）。
@@ -328,6 +340,17 @@ class SyncService {
 
   static const String manifestPath = 'manifest.json';
 
+  /// H2：两阶段提交窗口的**故障注入**钩子。
+  ///
+  /// 在「远端 manifest 已回写、本地基线未回写」之间被调一次，可抛可返回。
+  /// 生产恒为 null（行为逐字节不变）；仅测试用来把那个毫秒级窗口放大成一条
+  /// 确定性用例——否则「崩溃后下一轮能收敛」这个结论没有东西钉住。
+  ///
+  /// 形状与 `StorageWritePipeline.renameBarrierForTest` 同族（同库无先例，
+  /// 但同仓已确立的故障注入纪律：钩子本体生产为 null，调用点只有一处判空）。
+  @visibleForTesting
+  final Future<void> Function()? baselineCommitBarrierForTest;
+
   /// DN-104：清单条件写入的最大尝试次数（1 次原始 + 2 次 412 后重试）。
   static const int _maxManifestCasAttempts = 3;
 
@@ -341,6 +364,12 @@ class SyncService {
   /// 修复 1②：解不开远端 manifest 时 [cipher.openManifestJson] 抛
   /// [SyncKeyMismatchException] 直接终止整轮（fail-closed：宁可不同步，也不按
   /// 残缺清单行动；类型可判别 ⇒ SyncController 不对它做退避重试）。
+  ///
+  /// M5 修复（2026-11-11）：manifest 明文解析路径已随 H2 切断——
+  /// [NoopSyncCipher] 标注 `@visibleForTesting` 后生产不可达，
+  /// [_buildCipher]（SyncController）对空盐/空口令 fail-closed 抛异常，
+  /// 故 manifest 必经理 [AesSyncCipher] 的 AES-256-GCM AEAD（AAD 绑定
+  /// manifest 上下文）认证后方可解析——明文 manifest 不再可被未认证解析。
   ///
   /// `etag` 为 null 表示服务器未返回 ETag ⇒ 不支持条件写入，调用方退回无条件
   /// PUT（不能假设所有 WebDAV 服务端行为相同）。
@@ -663,12 +692,15 @@ class SyncService {
     );
     // 已知两阶段提交窗口（M3·文档化取舍）：远端 manifest 已回写、本地基线
     // 未回写之间崩溃 → 两端 manifest 领先于本地基线。后果全部幂等无害：
+    // （H2：钩子插在窗口正中，见 [baselineCommitBarrierForTest]。）
     // - 本轮已上传成功的文档：下轮按旧基线重传一次（服务端覆盖同内容）；
     // - 本轮已下载成功的文档：本地已被 writeDocument 写入（自带文档时间戳），
     //   下轮重新判为「仅远端」再下一次；
     // - keepBoth 副本：下轮作为本地新增补传。
     // 选择不引入 WAL/journal：窗口仅毫秒级且收敛代价为一次幂等重传，
     // 复杂度收益不成比例。若未来改动基线结构，需重新评估此窗口。
+    final barrier = baselineCommitBarrierForTest;
+    if (barrier != null) await barrier();
     await baselineStore.save(SyncManifest(entries: baselineEntries));
 
     final result = SyncResult(

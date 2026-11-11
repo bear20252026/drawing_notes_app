@@ -113,7 +113,9 @@ class _DesktopPinFieldState extends State<_DesktopPinField> {
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)?.commonPassword ?? '密码',
               errorText: _errorText,
-              errorStyle: AppleType.captionStyle(const Color(0xFFFF6B6B)),
+              errorStyle: AppleType.captionStyle(
+                AppleColor.errorTextOf(Theme.of(context).colorScheme),
+              ),
               counterText: AppLocalizations.of(context)?.pinDigitsCount(
                 _controller.text.length,
                 widget.pinLength,
@@ -210,11 +212,13 @@ class _CooldownViewState extends State<_CooldownView> {
                   size: 44,
                 ),
                 const SizedBox(height: AppleSpacing.md),
-                // 19 无档位：titleStyle 基底 + copyWith 保留原字号。
+                // M2（UI/UX 规范修复）：19 裸值 → AppleTypeScale.lockTitle 具名档。
                 Text(
                   AppLocalizations.of(context)?.lockTooManyAttempts ?? '尝试次数过多',
-                  style: AppleType.titleStyle(Colors.white)
-                      .copyWith(fontSize: 19),
+                  style: AppleTypeScale.of(
+                    AppleTypeScale.lockTitle,
+                    Colors.white,
+                  ),
                 ),
                 const SizedBox(height: AppleSpacing.xs),
                 _RemainingText(service: widget.service, tick: _tick),

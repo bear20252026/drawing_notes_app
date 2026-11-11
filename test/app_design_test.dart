@@ -49,11 +49,39 @@ void main() {
       // 12 → 11（AppleRadius.md）：DESIGN.md:511 明令「Don't mix radii
       // grammars」，刻度只有 xs5/sm8/md11/lg18/pill，12 是凭空造的中间值。
       expect(AppDesign.controlRadius, AppleRadius.md);
+      // H2（UI/UX 规范修复）：Toast 驻留统一档，全库 SnackBar 裸值收敛到此。
+      expect(AppleMotion.toastVisible, const Duration(milliseconds: 2000));
     });
 
     test('圆角令牌严格对齐 DESIGN.md:420-427 刻度', () {
       expect(AppDesign.cardRadius, AppleRadius.lg); // 18
       expect(AppDesign.controlRadius, AppleRadius.md); // 11
+    });
+
+    test('间距令牌走 Fluent 4px 网格（M1 裁决：md=16，非 DESIGN.md:377 的 17）', () {
+      // DESIGN.md:377 的 `{spacing.md}`=17px 是**营销排版节奏常数**
+      //（17px 正文 × 1.47 ≈ 25px 行高），属「字格」；
+      // AppleSpacing 是**布局间距**令牌，走 Fluent 4px 网格（4/8/12/16/20/24/32/40/48/64）。
+      // 裁决见 docs/DESIGN_SYSTEM.md 冲突裁决表 #11。
+      expect(AppleSpacing.md, 16);
+      expect(AppleSpacing.xxs, 4);
+      expect(AppleSpacing.xs, 8);
+      expect(AppleSpacing.sm, 12);
+      expect(AppleSpacing.lg, 24);
+      expect(AppleSpacing.xl, 32);
+      expect(AppleSpacing.xxl, 48);
+      // 每一档都是 4 的倍数（Fluent 4px 网格）。
+      for (final v in [
+        AppleSpacing.xxs,
+        AppleSpacing.xs,
+        AppleSpacing.sm,
+        AppleSpacing.md,
+        AppleSpacing.lg,
+        AppleSpacing.xl,
+        AppleSpacing.xxl,
+      ]) {
+        expect(v % 4, 0, reason: 'AppleSpacing 各档须落在 4px 网格上');
+      }
     });
   });
 }
