@@ -164,7 +164,13 @@ void main() {
 
     test('B-4 cullStrokes 线性剔除规模标定（R-tree 决策依据）', () {
       const clip = Rect.fromLTWH(0, 0, 400, 400);
-      for (final count in const [10000, 50000]) {
+      // 三档标定：1 万（日常上限）/ 5 万（codec 防御上限）/ 10 万（审计设想规模）。
+      // 10 万这一档是 2026-11 补的——此前只标到 5 万，而「5 万笔 ≈ 60fps 预算
+      // 80%」这条结论恰恰把拐点指向了 10 万，缺的就是这一档的实测。
+      // 规模按**纯内存**口径：不经过 codec（codec 把单文档锁在 ≤1 万笔/层、
+      // ≤100 万点，见 DocumentBudgets），10 万笔×10 点 = 100 万点正卡在内存
+      // 可承载的范围，也正是「多页形态下同一视图可能同时可见的笔画量级」。
+      for (final count in const [10000, 50000, 100000]) {
         final strokes = List.generate(count, (i) => _stroke(i, 10));
         InkLayerPainter.cullStrokes(strokes, clip); // 预热 bounds 缓存
         final sw = Stopwatch()..start();
