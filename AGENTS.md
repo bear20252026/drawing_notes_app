@@ -105,13 +105,18 @@ flutter test             # 必须全绿
 > 先 `pwd` 确认在 `/d/Workbuddy/` 下，禁止在 C 盘旧路径 clone/修改；发现 C 盘再现同名仓库，
 > 先抢救未提交工作到分支、再报告用户清理，不得两边并行开发。
 
-提交后 push，并确认**这次 push 实际触发的编排全部**绿。直推 master 是 7 条：`CI` /
-`PR Architecture` / `软件质量工程门禁` / `Code Guard (行数门禁)` / `SBOM` / `Secret Scan`
-（这六个是本仓 `.github/workflows/*.yml` 里 `push: branches: [master]` 的自定义编排）
-+ GitHub 托管的 `CodeQL`（不在本仓 workflow 文件里，因此不可评审、不可回滚）。三处要知道的边界：
+提交后 push，并确认**这次 push 实际触发的编排全部**绿。直推 master 是 **8 条**：`CI` /
+`PR Architecture` / `软件质量工程门禁` / `Code Guard (行数门禁)` / `SBOM` / `Secret Scan` /
+`macOS Build (Release)`
+（这七个是本仓 `.github/workflows/*.yml` 里 `push: branches: [master]` 的自定义编排；
+`macOS Build` 是后加的一条，2026-11-11 核对 `e39f9356` 的 runs 时补记，别再把「8 条」
+读成「多跑了一条」）
++ GitHub 托管的 `CodeQL`（在 runs 列表里显示为 `Push on master`，路径
+`dynamic/github-code-scanning/codeql`；不在本仓 workflow 文件里，因此不可评审、不可回滚）。
+三处要知道的边界：
 
-1. `软件质量工程门禁`（`quality_gate.yml`）带 `paths:` 过滤 ⇒ **纯文档提交不触发它**，那一轮只有 6 条。
-   别把「6 条」读成「少跑了一条 = 有东西没过」，先按 event/paths 核对预期集合。
+1. `软件质量工程门禁`（`quality_gate.yml`）带 `paths:` 过滤 ⇒ **纯文档提交不触发它**，那一轮只有 7 条。
+   别把「7 条」读成「少跑了一条 = 有东西没过」，先按 event/paths 核对预期集合。
 2. `PR Platform` / `PR Quality` / `PR Security` **只在 `pull_request` 触发**，直推流程从不执行
    （含 `tools/check_deps.sh` 与 `--obfuscate` 防逆向构建）⇒ 不能说它们已经验证过。
 3. `ci.yml` 是 `concurrency.cancel-in-progress: true` ⇒ 连推会让前一个 SHA 的 `CI` 判成
