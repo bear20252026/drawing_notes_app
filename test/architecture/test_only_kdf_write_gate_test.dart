@@ -73,11 +73,19 @@ void main() {
     final offenders = <String>[];
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
-      if (entity.path == _testOnlyKdfHome) continue; // 定义文件内的调用合法
+      // 归一化成 posix 再比：Windows 上 entity.path 是 `lib\\core\\...`，
+      // 与正斜杠常量 _testOnlyKdfHome 直接 == 会失配，把定义文件**自己**的
+      // 调用误判成「定义文件之外的调用」（2026-11-11 CI `e6509815` 实测踩中，
+      // macOS/Linux 不复现）。口径同 `architecture_boundary_ratchet_test.dart`。
+      if (entity.path.replaceAll('\\', '/') == _testOnlyKdfHome) {
+        continue; // 定义文件内的调用合法
+      }
       final lines = entity.readAsLinesSync();
       for (var i = 0; i < lines.length; i++) {
         if (_testOnlyKdfCallRe.hasMatch(lines[i])) {
-          offenders.add('${entity.path}:${i + 1}: ${lines[i]}');
+          offenders.add(
+            '${entity.path.replaceAll('\\', '/')}:${i + 1}: ${lines[i]}',
+          );
         }
       }
     }

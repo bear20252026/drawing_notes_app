@@ -182,12 +182,23 @@ void main() {
   });
 }
 
-/// 递归收集目录下全部 .dart 文件。
+/// 递归收集目录下全部 .dart 文件，返回 **posix 归一化**的相对路径。
+///
+/// Windows 上 `Directory.listSync()` 给出的 `entity.path` 用反斜杠，且根目录
+/// 保留调用时写的写法、子级用 `\` 拼接（形如
+/// `lib/features/drawing/presentation\editor_page.dart`），而本门禁的
+/// `_mediaCryptoAllowlist` / `_presentationRoots` 都是正斜杠常量——不归一化
+/// 会让 `_mediaCryptoAllowlist.contains(f)` 在 Windows 上全部失配，6 个已登记
+/// 文件被误报成「新增引用」（2026-11-11 CI `e6509815` 实测踩中，macOS/Linux
+/// 不复现）。口径与 `architecture_boundary_ratchet_test.dart`、
+/// `architecture_layering_test.dart` 一致。
 List<String> _dartFiles(String dir) {
   if (!Directory(dir).existsSync()) return const [];
   final result = <String>[];
   for (final e in Directory(dir).listSync(recursive: true)) {
-    if (e is File && e.path.endsWith('.dart')) result.add(e.path);
+    if (e is File && e.path.endsWith('.dart')) {
+      result.add(e.path.replaceAll('\\', '/'));
+    }
   }
   return result;
 }
