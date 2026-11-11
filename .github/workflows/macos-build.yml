@@ -95,6 +95,16 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # packages/editor_core/ 是独立 Dart 包（纯 Dart，无 Flutter 依赖），
+      # 其 test/ 用 package:test/test.dart。根 `flutter analyze` 会分析它的
+      # 全部文件，但 analyzer 需要该包的 package_config.json 才能解析
+      # package:test —— 否则报 undefined_function（expect/test/closeTo）。
+      # 在 analyze 前为该包单独 pub get（2026-11-10 CI 修复）。
+      - name: editor_core dependencies
+        run: |
+          cd packages/editor_core
+          dart pub get
+
       # 注意：Flutter 3.47.9 的 macOS 平台使用 Swift Package Manager (SPM)
       # 管理插件依赖，不再需要 CocoaPods。插件的 macOS 原生依赖由
       # `flutter pub get` 自动生成 SPM 包（macos/Flutter/ephemeral/Packages/
