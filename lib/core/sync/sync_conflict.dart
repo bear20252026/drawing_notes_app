@@ -25,10 +25,16 @@
 // 获胜 ⇒ 该端戳不可信；②时钟性（辅）：远端戳晚于本地当前时间超容差。
 // 命中任一即报冲突，且默认裁决偏向「保住真有改动的那一侧」。
 
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
+
 import 'sync_planner.dart';
 
 /// 用户对一次冲突的裁决。
-enum ConflictResolution {
+///
+/// [wireName] 不是可选项：台账（`sync_conflict_ledger.json`）把本枚举的
+/// `resolutionOverride` / `resolvedResolution` 两个字段按名落盘（CTL-03 ②）。
+/// wire 名与今天的 `.name` 逐字相同 ⇒ 磁盘零迁移。
+enum ConflictResolution implements WireEnum {
   /// 保留本地版本（以本地为准，覆盖远端）。
   keepLocal,
 
@@ -36,7 +42,15 @@ enum ConflictResolution {
   keepRemote,
 
   /// 两者皆保留：本地作为主版本，远端另存为本地副本（不丢失任一侧）。
-  keepBoth,
+  keepBoth;
+
+  /// 落盘 wire 名（台账两个裁决字段，CTL-03 ②）。
+  @override
+  String get wireName => switch (this) {
+    ConflictResolution.keepLocal => 'keepLocal',
+    ConflictResolution.keepRemote => 'keepRemote',
+    ConflictResolution.keepBoth => 'keepBoth',
+  };
 }
 
 /// 一次冲突的完整描述（供 UI 展示与裁决）。

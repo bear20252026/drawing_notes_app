@@ -52,6 +52,8 @@ import 'package:drawing_notes_app/core/documents/note_block.dart'
     show NoteBlockType;
 import 'package:drawing_notes_app/core/theme/app_design.dart'
     show themeModeFromWire, themeModeWire;
+import 'package:drawing_notes_app/core/sync/sync_conflict.dart'
+    show ConflictResolution;
 import 'package:drawing_notes_app/core/utils/single_instance.dart'
     show SingleInstanceStatus;
 import 'package:drawing_notes_app/core/utils/wire_enum.dart';
@@ -87,6 +89,8 @@ List<(String, List<WireEnum>)> persistedEnums() => [
   ('EraserMode', EraserMode.values),
   ('AllDocKind', AllDocKind.values),
   ('SingleInstanceStatus', SingleInstanceStatus.values),
+  // SYNC-003：台账按名落盘 resolutionOverride / resolvedResolution 两个字段。
+  ('ConflictResolution', ConflictResolution.values),
 ];
 
 /// 所有 [WireEnum] 实现者都是 `enum`（接口不能是别的形态），所以这里取 `.name`
@@ -223,6 +227,7 @@ String _pathOfEnum(String name) => switch (name) {
   'ChartType' => 'core/canvas_model/page_chart_item.dart',
   'AllDocKind' => 'core/all_doc.dart',
   'SingleInstanceStatus' => 'core/utils/single_instance.dart',
+  'ConflictResolution' => 'core/sync/sync_conflict.dart',
   'AttachmentKind' => 'core/documents/note_attachment.dart',
   'NoteBlockType' => 'core/documents/note_block.dart',
   'EraserMode' => 'features/drawing/application/eraser_mode.dart',

@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/core/storage/sidecar_read_guard.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict_ledger.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
+import 'package:drawing_notes_app/core/utils/wire_enum.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart'
     show defaultSyncBaselineDirectory;
 
@@ -191,7 +192,7 @@ class FileSyncConflictLedgerStore implements SyncConflictLedgerStore {
       'lastDetectedAtMs': e.lastDetectedAtMs,
       'count': e.count,
       if (e.resolutionOverride != null)
-        'resolutionOverride': e.resolutionOverride!.name,
+        'resolutionOverride': e.resolutionOverride!.wireName,
       if (e.overriddenAtMs != null) 'overriddenAtMs': e.overriddenAtMs,
       'localUpdatedAt': c.localUpdatedAt,
       'localSize': c.localSize,
@@ -202,7 +203,7 @@ class FileSyncConflictLedgerStore implements SyncConflictLedgerStore {
       'fingerprintTie': c.fingerprintTie,
       'contentUnverifiable': c.contentUnverifiable,
       if (c.resolvedResolution != null)
-        'resolvedResolution': c.resolvedResolution!.name,
+        'resolvedResolution': c.resolvedResolution!.wireName,
       if (c.localDigest != null) 'localDigest': c.localDigest,
       if (c.remoteDigest != null) 'remoteDigest': c.remoteDigest,
     };
@@ -280,13 +281,11 @@ class FileSyncConflictLedgerStore implements SyncConflictLedgerStore {
     );
   }
 
+  /// 未知 wire 名 ⇒ 当作没写（不猜）。走 [wireEnumOf] 而不是 `values.byName()`：
+  /// 后者在 `--obfuscate` 下必炸（CTL-03 ②）。
   static ConflictResolution? _decodeResolution(Object? raw) {
-    if (raw == null) return null;
     if (raw is! String) return null;
-    for (final r in ConflictResolution.values) {
-      if (r.name == raw) return r;
-    }
-    return null; // 未知枚举名 ⇒ 当作没写（不猜）
+    return wireEnumOf(ConflictResolution.values, raw);
   }
 
   static int? _asInt(Object? raw) {

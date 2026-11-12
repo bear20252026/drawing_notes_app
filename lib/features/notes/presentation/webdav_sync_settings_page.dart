@@ -21,6 +21,9 @@ import 'package:drawing_notes_app/features/notes/presentation/remote_delete_disp
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';
 
+// SYNC-003 冲突中心的台账读写与改判接线（本文件曾因此破 1000 行硬上限）。
+part 'webdav_sync_conflict.dart';
+
 /// P2 脱敏（审计 2026-10）：审计日志的 detail 也可能带远端可控文本
 /// （reasonPhrase / 远端路径），落盘前先剥掉凭据形态（Basic token、URL
 /// userinfo）、折行（防伪造审计行）并截断——审计链虽只在内存，仍按
@@ -224,8 +227,12 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
   /// SYNC-003：冲突台账（按最近冲突时刻倒序）。空列表时整块不渲染。
   ///
-  /// 与 [_lastRemoteDeletes] 分开的理由：那个是**本轮刚算出来**的未决事项，
+  /// 与 `_lastRemoteDeletes` 分开的理由：那个是**本轮刚算出来**的未决事项，
   /// 这个是**历史**——同步成功、页面重进、应用重启之后它都还在。
+  ///
+  /// 字段留在本体、读写逻辑拆进 part（`webdav_sync_conflict.dart`）：
+  /// extension 不能声明实例字段，这是本仓既有 part 先例（`doc_page_save_export.dart`
+  /// 等）的共同约束。
   List<ConflictLedgerEntry> _ledger = const [];
 
   /// SYNC-003：本轮有多少条冲突是**按台账里设的改判**自动处理的（没有再问用户）。
@@ -235,6 +242,11 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
   /// 空操作回调（用于禁用态按钮）。
   static void _noop() {}
+
+  /// part 里的 extension 不能直接调 [setState]（`@protected`，会报
+  /// `invalid_use_of_protected_member`）。沿用 `doc_page.dart` 的
+  /// `pageSetState` 先例，给本 State 一个非保护出口。
+  void _pageSetState(VoidCallback fn) => setState(fn);
 
   @override
   void initState() {
@@ -259,49 +271,6 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _hasSavedPassword = secrets.webdavPassword?.isNotEmpty ?? false;
       _hasSavedPassphrase = secrets.syncPassphrase?.isNotEmpty ?? false;
     });
-  }
-
-  /// SYNC-003：读一次冲突台账。读不出来（文件损坏/目录解析失败）按空处理，
-  /// 不弹错——台账是事后可查性，不该在设置页一打开就弹一个红条。
-  Future<void> _refreshLedger() async {
-    try {
-      final entries = await _sync.loadConflictLedger();
-      if (!mounted) return;
-      setState(() => _ledger = entries);
-    } catch (_) {
-      // 与文件实现的容错同口径：读不出就是读不出，页面继续可用。
-    }
-  }
-
-  /// SYNC-003：设定一篇的改判（写台账 + 刷新 + 提示）。
-  ///
-  /// 不改本轮任何行为：方向从**下一次**同步开始生效（见台账合同）。
-  Future<void> _applyOverride(
-    ConflictLedgerEntry entry,
-    ConflictResolution resolution,
-  ) async {
-    await _sync.setConflictResolutionOverride(entry.docId, resolution);
-    await _refreshLedger();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    _toast(
-      l10n?.conflictCenterOverrideSet(
-            conflictResolutionLabel(resolution, l10n),
-          ) ??
-          '已记录：下次这篇冲突时按「${conflictResolutionLabel(resolution, l10n)}」处理',
-    );
-  }
-
-  /// SYNC-003：清除改判（回到「下次重新问」）。可逆——再改一次就回来了，
-  /// 所以不做二次确认。
-  Future<void> _clearOverride(ConflictLedgerEntry entry) async {
-    await _sync.setConflictResolutionOverride(entry.docId, null);
-    await _refreshLedger();
-    if (!mounted) return;
-    _toast(
-      AppLocalizations.of(context)?.conflictCenterOverrideCleared ??
-          '已清除改判：下次这篇冲突时会重新问你',
-    );
   }
 
   /// DN-204：刷新提示条的可见性（判据见 [_queryBaselineHold]）。
@@ -965,51 +934,5 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         ],
       ),
     );
-  }
-}
-
-/// 冲突处理器：遇到冲突时弹窗询问用户逐条裁决；用户取消则返回空（走默认 LWW）。
-class _DialogConflictHandler implements ConflictHandler {
-  _DialogConflictHandler(this._state, {this.onAutoApplied});
-
-  // 具体 State 类型而不是 `State<WebDavSyncSettingsPage>`：`_sync` 是 State 类上
-  // 的私有 getter，声明成基类就看不见了。
-  final _WebDavSyncSettingsPageState _state;
-
-  /// SYNC-003：本轮有 N 条冲突是**按台账改判**自动处理的（没有弹窗问）。
-  /// 不为空则报给页面写进摘要——「已按你的选择处理」在改判场景下是假的。
-  final void Function(int count)? onAutoApplied;
-
-  @override
-  Future<Map<String, ConflictResolution>> resolve(
-    List<SyncConflict> conflicts,
-  ) async {
-    if (conflicts.isEmpty || !_state.mounted) return const {};
-    // SYNC-003：台账里设了改判的那些文档**不再重复问**——用户已经为它们指定过
-    // 方向，每轮重新问一次只是噪声（而且它会让「改判」显得根本没生效）。
-    final ledger = await _state._sync.loadConflictLedger();
-    if (!_state.mounted) return const {};
-    final standing = {
-      for (final e in ledger)
-        if (e.hasOverride) e.docId: e.resolutionOverride!,
-    };
-    final auto = <String, ConflictResolution>{};
-    final pending = <SyncConflict>[];
-    for (final c in conflicts) {
-      final r = standing[c.docId];
-      if (r == null) {
-        pending.add(c);
-      } else {
-        auto[c.docId] = r;
-      }
-    }
-    if (auto.isNotEmpty) onAutoApplied?.call(auto.length);
-    if (pending.isEmpty) return auto;
-    final result = await GlassDialog.show<Map<String, ConflictResolution>>(
-      context: _state.context,
-      barrierDismissible: false,
-      builder: (_) => ConflictResolutionDialog(conflicts: pending),
-    );
-    return {...auto, ...?result};
   }
 }

@@ -378,10 +378,26 @@ Future<void> showAllDocContextMenu(
 
 /// 收藏星标 + 点亮弹跳动效（正向反馈微交互）。
 ///
-/// 收藏是高频正向操作：点亮瞬间 0.6→1.05 的 scale 弹跳（easeOut，
-/// 240ms < 300ms 硬规则）；取消收藏无弹跳直切。reduceMotion 直切。
-/// AnimationController 驱动（不用 Future.delayed 重置——fake_async
-/// 测试里裸 Timer 会泄漏到用例结束后报 pending timer）。
+/// 收藏是高频正向操作：点亮瞬间 0.6→1.05 的 scale 弹跳（[AppleMotion.easeOut]，
+/// [AppleMotion.modal] 250ms < 300ms 硬规则）；取消收藏无弹跳直切。
+/// reduceMotion 直切。AnimationController 驱动（不用 Future.delayed 重置——
+/// fake_async 测试里裸 Timer 会泄漏到用例结束后报 pending timer）。
+///
+/// ⚠ 控制器保持 **[0, 1] 归一化**，scale 区间由 [Tween] 映射：
+/// `CurvedAnimation.value` 会对 parent 的值调 `curve.transform`，而
+/// `ParametricCurve.transform` 断言入参 ∈ [0,1]（curves.dart:41）。原实现把
+/// `lowerBound/upperBound` 直接设成 0.6/1.05，值域不是 [0,1]——那种控制器
+/// **不能**直接包 CurvedAnimation（一包就抛「parametric value 1.05 is
+/// outside of [0, 1] range」）。
+///
+/// 曲线经 [CurvedAnimation] 包一层的原因：`AnimationController.forward` 没有
+/// curve 参数，默认走 `Curves.linear`（SDK animation_controller.dart:470）。
+/// 早年这里就是直接 `forward(from: 0.6)`，于是注释写的 easeOut 与实际跑的
+/// linear 长期不符——令牌化时顺手修正。
+///
+/// 时长取 [AppleMotion.modal] 而非原 240ms：240 不在令牌表任何一档
+/// （dropdown 150–250 取 200、modal 200–500 取 250），而 DESIGN_SYSTEM
+/// 禁止凭空发明时长，故映射到最近档（240→250，差 4% 无感知）。
 class _FavoriteStarIcon extends StatefulWidget {
   const _FavoriteStarIcon({required this.favorite, required this.color});
 
@@ -396,10 +412,16 @@ class _FavoriteStarIconState extends State<_FavoriteStarIcon>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bounce = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 240),
-    lowerBound: 0.6,
-    upperBound: 1.05,
-  )..value = 1.05;
+    duration: AppleMotion.modal,
+  )..value = 1.0;
+
+  /// 归一化控制器 → 令牌曲线 → scale 区间 [0.6, 1.05]（见类注释的告警）。
+  late final Animation<double> _bounceScale = Tween<double>(
+    begin: 0.6,
+    end: 1.05,
+  ).animate(
+    CurvedAnimation(parent: _bounce, curve: AppleMotion.easeOut),
+  );
 
   @override
   void didUpdateWidget(_FavoriteStarIcon oldWidget) {
@@ -407,7 +429,7 @@ class _FavoriteStarIconState extends State<_FavoriteStarIcon>
     if (widget.favorite &&
         !oldWidget.favorite &&
         !AppleMotion.reduceMotionOf(context)) {
-      _bounce.forward(from: 0.6);
+      _bounce.forward(from: 0);
     }
   }
 
@@ -427,6 +449,6 @@ class _FavoriteStarIconState extends State<_FavoriteStarIcon>
     // 未收藏态直接返回裸 Icon：与既有语义树结构完全一致（R6 读屏
     // 断言依赖），弹跳只在收藏点亮时出现。
     if (!widget.favorite) return icon;
-    return ScaleTransition(scale: _bounce, child: icon);
+    return ScaleTransition(scale: _bounceScale, child: icon);
   }
 }
