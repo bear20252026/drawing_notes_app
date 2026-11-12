@@ -52,6 +52,29 @@ class FakeAuthBackend implements SystemAuthBackend {
   }
 }
 
+/// 内存密钥库替身（代替 flutter_secure_storage——测试环境无插件注册）。
+/// 2026-11-12 随死代码清理从 lib/ 移入本文件：原 `MemorySystemUnlockKeyStore`
+/// 只有测试引用，不该占着生产库。
+class _MemoryKeyStore implements SystemUnlockKeyStore {
+  String? _value;
+
+  @override
+  Future<String?> read() async => _value;
+
+  @override
+  Future<void> write(String value) async {
+    _value = value;
+  }
+
+  @override
+  Future<void> clear() async {
+    _value = null;
+  }
+
+  @override
+  Future<bool> contains() async => _value != null;
+}
+
 VaultKeyService _tempVault() {
   final dir = Directory.systemTemp.createTempSync('quick_unlock_test');
   addTearDown(() => deleteTempDirWithRetry(dir));
@@ -63,7 +86,7 @@ VaultKeyService _tempVault() {
 
 QuickUnlockService _service(
   FakeAuthBackend backend,
-  MemorySystemUnlockKeyStore store,
+  _MemoryKeyStore store,
 ) {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   return QuickUnlockService(
@@ -93,7 +116,7 @@ void main() {
   group('QuickUnlockService 开关与副本生命周期', () {
     test('开启：系统验证通过 → 存 MK 副本 + 持久化开关 + isReady', () async {
       final backend = FakeAuthBackend();
-      final store = MemorySystemUnlockKeyStore();
+      final store = _MemoryKeyStore();
       final service = _service(backend, store);
       final vault = _tempVault();
 
@@ -117,7 +140,7 @@ void main() {
 
     test('系统验证未通过：抛异常且不落任何副本（fail-closed）', () async {
       final backend = FakeAuthBackend(authenticateResult: false);
-      final store = MemorySystemUnlockKeyStore();
+      final store = _MemoryKeyStore();
       final service = _service(backend, store);
       final vault = _tempVault()..debugInjectMasterKey(List.filled(32, 7));
 
@@ -132,7 +155,7 @@ void main() {
 
     test('关闭：副本立即删除（关=删，无残留）', () async {
       final backend = FakeAuthBackend();
-      final store = MemorySystemUnlockKeyStore();
+      final store = _MemoryKeyStore();
       final service = _service(backend, store);
       final vault = _tempVault();
 
@@ -148,7 +171,7 @@ void main() {
 
     test('后端不支持（无硬件/系统未配置）：开启被拒绝', () async {
       final backend = FakeAuthBackend(supported: false);
-      final service = _service(backend, MemorySystemUnlockKeyStore());
+      final service = _service(backend, _MemoryKeyStore());
       final vault = _tempVault()..debugInjectMasterKey(List.filled(32, 7));
 
       await expectLater(
@@ -161,7 +184,7 @@ void main() {
   group('authenticateAndUnlock（锁屏一键解锁）', () {
     test('成功路径：副本注入保险库（isUnlocked + 密钥一致）', () async {
       final backend = FakeAuthBackend();
-      final service = _service(backend, MemorySystemUnlockKeyStore());
+      final service = _service(backend, _MemoryKeyStore());
       final vault = _tempVault();
 
       await vault.initialize('1234');
@@ -180,7 +203,7 @@ void main() {
 
     test('系统验证未通过：返回 false 且保险库保持锁定', () async {
       final backend = FakeAuthBackend();
-      final service = _service(backend, MemorySystemUnlockKeyStore());
+      final service = _service(backend, _MemoryKeyStore());
       final vault = _tempVault();
 
       await vault.initialize('1234');
@@ -197,7 +220,7 @@ void main() {
 
     test('副本缺失（被外部清掉）：返回 false，不崩溃', () async {
       final backend = FakeAuthBackend();
-      final store = MemorySystemUnlockKeyStore();
+      final store = _MemoryKeyStore();
       final service = _service(backend, store);
       final vault = _tempVault();
 
@@ -211,7 +234,7 @@ void main() {
     });
 
     test('开关未开（未 enable 过）：直接返回 false', () async {
-      final service = _service(FakeAuthBackend(), MemorySystemUnlockKeyStore());
+      final service = _service(FakeAuthBackend(), _MemoryKeyStore());
       final vault = _tempVault();
 
       expect(await service.authenticateAndUnlock(vault: vault), isFalse);
@@ -255,7 +278,7 @@ void main() {
       final vault = _tempVault();
       final mk = List<int>.generate(32, (i) => i + 1);
       vault.debugInjectMasterKey(mk);
-      final store = MemorySystemUnlockKeyStore();
+      final store = _MemoryKeyStore();
       await store.write(base64Encode(mk));
 
       final quickUnlock = QuickUnlockService(
@@ -295,7 +318,7 @@ void main() {
       );
       final quickUnlock = QuickUnlockService(
         backend: FakeAuthBackend(),
-        keyStore: MemorySystemUnlockKeyStore(),
+        keyStore: _MemoryKeyStore(),
         preferencesLoader: SharedPreferences.getInstance,
         platformSupported: () => true,
       );

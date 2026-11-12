@@ -9,7 +9,6 @@
 // - 重命名安全：解析时按"当前标题"匹配，旧文中的 [[旧标题]] 在文档
 //   改名后自然失配（v1 语义；id 化引用留待后续版本升级）。
 
-import 'package:meta/meta.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 
@@ -38,19 +37,6 @@ List<String> extractOutLinks(NoteBlockDoc doc) {
   return out.toSet().toList();
 }
 
-/// 构建反向链接索引：目标标题 → 引用它的文档 id 列表（按 updatedAt 倒序）。
-/// （架构审计 M5：生产暂无调用方，出链面板落地时转正——保留以锁定语义。）
-@visibleForTesting
-Map<String, Set<String>> buildBacklinkIndex(List<NoteBlockDoc> docs) {
-  final index = <String, Set<String>>{};
-  for (final doc in docs) {
-    for (final link in extractOutLinks(doc)) {
-      index.putIfAbsent(link, () => <String>{}).add(doc.id);
-    }
-  }
-  return index;
-}
-
 /// 返回引用了 [target] 的文档列表（标题或 id 匹配），按更新时间倒序。
 List<NoteBlockDoc> backlinksOf(
   NoteBlockDoc target,
@@ -65,27 +51,6 @@ List<NoteBlockDoc> backlinksOf(
   }
   linked.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   return linked;
-}
-
-/// 返回 [source] 文档的出链目标文档（按标题/id 解析，解析失败的跳过），
-/// 按 updatedAt 倒序。
-/// （架构审计 M5：生产暂无调用方，出链面板落地时转正——保留以锁定语义。）
-@visibleForTesting
-List<NoteBlockDoc> outgoingLinksOf(
-  NoteBlockDoc source,
-  List<NoteBlockDoc> allDocs,
-) {
-  final byTitle = {for (final d in allDocs) d.title: d};
-  final byId = {for (final d in allDocs) d.id: d};
-  final result = <NoteBlockDoc>[];
-  final seen = <String>{};
-  for (final raw in extractOutLinks(source)) {
-    final target = byId[raw] ?? byTitle[raw];
-    if (target == null || target.id == source.id) continue;
-    if (seen.add(target.id)) result.add(target);
-  }
-  result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-  return result;
 }
 
 /// 规范化引用文本：插入时统一写成 `[[标题]]`。

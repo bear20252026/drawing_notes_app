@@ -50,14 +50,6 @@ void main() {
       expect(result.map((d) => d.id), ['o', 'n']); // 倒序 + 无自身 + 无无关
     });
 
-    test('outgoingLinksOf：按标题解析出链目标', () {
-      final target = _doc('t', '设计稿', ['正文']);
-      final source = _doc('s', '汇总', ['链接 [[设计稿]] 与 [[不存在]]']);
-      final out = outgoingLinksOf(source, [source, target]);
-      expect(out, hasLength(1));
-      expect(out.single.id, 't');
-    });
-
     test('formatDocLink 语法', () {
       expect(formatDocLink(_doc('x', '我的笔记', [])), '[[我的笔记]]');
     });

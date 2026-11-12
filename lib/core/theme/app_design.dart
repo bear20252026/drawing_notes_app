@@ -20,14 +20,15 @@ part 'theme_mode_wire.dart';
 ///
 /// 颜色策略（用户@要求保留深蓝色系）：
 ///   - 明亮模式 = Apple（苹果）配色：Action Blue `#0066CC`、米白底 `#F5F5F7`、墨色 `#1D1D1F`。
-///   - 黑暗模式 = 既有深蓝（navy）配色：`#172033` / `#4568A9` / `#101521` / `#181F2E` / `#222B3D`。
+///   - 黑暗模式 = 既有深蓝（navy）配色：`#4568A9` / `#101521` / `#181F2E` / `#222B3D`。
 ///   - 结构风格（圆角 / 间距 / 字重 / 动效 / 胶囊 / 过渡）= 统一为 Apple 风格，两种模式一致。
 abstract final class AppDesign {
   // ---- 深蓝（黑暗模式）核心色板：保留 ----
   // 双令牌源收编（审计四-1）：与 AppleColor 同值的常量一律改别名引用，
   // 单一事实来源——改令牌对全部消费文件同步生效，杜绝配色静默分叉。
-  static const Color navyInk = Color(0xFF172033);
-  static const Color navyAccent = Color(0xFF4568A9);
+  // （2026-11-12 清理：navyInk `#172033` / navyAccent `#4568A9` 两个常量
+  // 零消费者已删——深蓝配色本身由 `_navyScheme()` 的 ColorScheme 承担，
+  // 未随之改动；`#4568A9` 仍是该 scheme 的 inversePrimary。）
   static const Color darkCanvas = AppleColor.canvansDark;
   static const Color darkSurface = AppleColor.surfaceDark;
   static const Color darkSubtleSurface = AppleColor.subtleSurfaceDark;

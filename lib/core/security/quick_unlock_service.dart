@@ -237,27 +237,6 @@ class SecureSystemUnlockKeyStore implements SystemUnlockKeyStore {
   Future<bool> contains() => _storage.containsKey(key: _keyMkCopy);
 }
 
-/// 内存实现（测试替身）。
-class MemorySystemUnlockKeyStore implements SystemUnlockKeyStore {
-  String? _value;
-
-  @override
-  Future<String?> read() async => _value;
-
-  @override
-  Future<void> write(String value) async {
-    _value = value;
-  }
-
-  @override
-  Future<void> clear() async {
-    _value = null;
-  }
-
-  @override
-  Future<bool> contains() async => _value != null;
-}
-
 /// 系统验证快速解锁服务——本功能的单一事实来源。
 ///
 /// 职责：开关持久化（shared_preferences）+ 主密钥副本生命周期（OS 凭据库）

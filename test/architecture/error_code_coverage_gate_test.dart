@@ -13,7 +13,7 @@
 /// `规则2：零循环依赖` 当场判红——异常类散在六个模块，而这些模块全都 import
 /// `core/utils`，一份「认识所有异常」的枢纽文件必然与它们互引（本文件末条判据把
 /// 「枢纽文件不 import `lib/` 任何东西」钉住，就是为了让那个塌法不再回来）。
-/// 改成派发之后覆盖不再有「core 之外算不算」的尾巴（18 个类同一套判据），子类的码
+/// 改成派发之后覆盖不再有「core 之外算不算」的尾巴（16 个类同一套判据），子类的码
 /// 也归子类自己写。唯一的两处例外走枢纽的单向 `is` 链：`document_budgets.dart` 立了
 /// 「本文件零项目内 import」的纪律，那两个类**结构上不可能**实现接口 ⇒ 由枢纽认识它们。
 /// 例外只有两条、且每条都必须是「零项目内 import 的文件」里的类——这两件事都由下面的判据管。
@@ -62,7 +62,7 @@ final RegExp _equalityShape = RegExp(r'runtimeType\s*==\s*(?:\w+\.)?runtimeType\
 
 final RegExp _comment = RegExp(r'^\s*(//|///|\*)');
 
-/// 顶层 `class X ... {` 声明行（本仓 18 个异常类都是单行声明，实测）。
+/// 顶层 `class X ... {` 声明行（本仓 16 个异常类都是单行声明，实测）。
 final RegExp _classDecl = RegExp(r'^class (\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([^{]+))?');
 
 final RegExp _getter = RegExp(r"^\s*String get errorCode => '([a-z_0-9]+)';");
@@ -114,7 +114,7 @@ List<String> classBlock(String path, String className) {
   return next < 0 ? rest : rest.sublist(0, next);
 }
 
-/// 找到某个类所在的文件（18 个类名在 `lib/` 内唯一，实测）。
+/// 找到某个类所在的文件（16 个类名在 `lib/` 内唯一，实测）。
 String? fileOfClass(String className) {
   for (final entity in Directory('lib').listSync(recursive: true)) {
     if (entity is! File || !entity.path.endsWith('.dart')) continue;
@@ -186,11 +186,16 @@ void main() {
       expect(equalityShapeLines(), greaterThanOrEqualTo(15));
     });
 
-    test('自定义异常类要有量（18 个，抽取塌了后面几条会一起假绿）', () {
+    test('自定义异常类要有量（16 个，抽取塌了后面几条会一起假绿）', () {
       expect(
         customExceptions('lib').length,
-        greaterThanOrEqualTo(18),
-        reason: '实测 18：core 15 + features/notes/application 1 + infrastructure/v2 2',
+        greaterThanOrEqualTo(16),
+        // 2026-11-12：18 → 16。死代码清理删掉了 infrastructure/storage/v2 的
+        // MigrationRequiredException / BackupFailedException（生产零调用），
+        // 分母随之缩小。下限跟真实总量走、不是放宽：抽取塌掉时计数是 0
+        // 或个位数，16 这个量级仍然当场红。
+        reason: '实测 16：core 15 + features/notes/application 1'
+            '（infrastructure/v2 那 2 个已随死代码清理删除）',
       );
     });
 
@@ -298,7 +303,7 @@ void main() {
         claim(hubIsChain()[name]!, name);
       }
     }
-    expect(seen.length, greaterThanOrEqualTo(18), reason: '收集到的码太少：抽取失效');
+    expect(seen.length, greaterThanOrEqualTo(16), reason: '收集到的码太少：抽取失效');
     // 标准库那 7 条与兜底也不能与自定义码撞（撞了同样合并两类失败）。
     const stdlibCodes = <String>[
       'io_file_system',
@@ -420,7 +425,7 @@ void main() {
       expect(
         covered.length,
         found.length,
-        reason: '今天 18 个类全覆盖（16 自带 + 2 走枢纽）；对不上就是抽取或登记塌了',
+        reason: '今天 16 个类全覆盖（14 自带 + 2 走枢纽）；对不上就是抽取或登记塌了',
       );
       // 两条渠道不能同时给同一个类型登记（判据二也查这条，这里保证它**抓得到**）。
       expect(
