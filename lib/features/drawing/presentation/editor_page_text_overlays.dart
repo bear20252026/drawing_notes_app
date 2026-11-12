@@ -457,6 +457,16 @@ extension _EditorPageTextOverlays on _EditorPageState {
                               .clamp(8.0, 120.0)
                               .toDouble();
                       item.width = newWidth;
+                      // 推进会话基准：`onPanUpdate` 回的是**增量**——指针路径
+                      // 每次只给「自上一事件以来的位移」，键盘路径给的是固定
+                      // 步进。两者都要求「下一次从上一次的结果继续」，所以每
+                      // 应用一次就把锚点推到新位置。不推进的话连按两次方向键
+                      // 只会重复同一个宽度，指针拖拽也会一移动就弹回锚点。
+                      _textResizeAnchor = (
+                        width: newWidth,
+                        fontSize: item.fontSize,
+                        x: anchor.x,
+                      );
                     });
                     _notifyChanged();
                   },

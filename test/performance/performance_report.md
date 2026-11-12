@@ -153,12 +153,51 @@
 | 缺口 | 为什么没测 | 需要什么 |
 |---|---|---|
 | **FPS / 帧率** | `flutter test` 是 debug/JIT，且没有真实渲染后端；帧率只能在 profile/AOT 下测 | `flutter run --profile` + DevTools timeline，或 `integration_test/` 里接性能指标（该目录现有 7 个文件，**无一性能用例**） |
-| **内存** | 没有峰值内存的测量口径 | 在 B-2 的规模上接 `ProcessInfo.currentRSS` 或 DevTools 内存快照，测 encode/decode 峰值 |
-| **真机 timeline** | 本机无真机链路 | Windows/Android 真机各跑一次 |
+| **内存** | `ProcessInfo.currentRss` 在 `flutter test` 里**不是**内存口径（负结论见 §5.1）；DevTools 内存快照需要 profile 运行 | 在 B-2 的规模上跑 `flutter run --profile`，用 DevTools 内存快照测 encode/decode 峰值 |
+| **真机 timeline** | 本机无真机链路（见 §5.2） | Windows/Android 真机各跑一次 |
 
-另有一项**已知但未量化的热点**：`all_docs_page_widgets.dart:458` 的注释自认
-「大组无虚拟化的性能热点」——文档库分组很大时的列表滚动，与画布无关，
-同样没有基线。
+### 5.1 内存口径：`ProcessInfo.currentRss` 在 `flutter test` 里无效（2026-11-12 负结论）
+
+曾尝试在 `performance_baseline_test.dart` 里加一条 B-5：在 B-2 的规模
+（9000×20 文档对象构建 → encode → decode）上读 `ProcessInfo.currentRss`。
+**结论是负的，该用例已删除**，记录在此以免有人重踩同一个坑：
+
+| 观测点 | RSS |
+|---|---|
+| 起点 | 318.9 MiB |
+| 9000×20 文档对象构建后 | 331.4 MiB（+12.6） |
+| encode 后 | 279.8 MiB（**−39.1**） |
+| decode 后 | 257.9 MiB（**−61.0**） |
+
+**读数出现负增量**，说明它测的不是「存活对象集」：RSS 跟着 GC 的页面回收走，
+前一个用例留下的垃圾被回收时读数反而下降（同一存活集另测得 +0.3 MiB 与
++23.3 MiB 两种结果，70 倍方差）。`flutter test` 里没有「强制 GC 后读存活集」
+的可靠口径，所以这条**不能**当内存基线用。
+
+⚠️ 顺带纠正一个 API 名：正确写法是 `ProcessInfo.currentRss`（小写 `ss`），
+`currentRSS` 不存在（编译期就会报 member not found）。
+
+### 5.2 本机环境限制（2026-11-12 实测）
+
+| 项 | 状态 | 证据 |
+|---|---|---|
+| Xcode | **未安装** | `xcode-select -p` → `/Library/Developer/CommandLineTools` |
+| iOS 模拟器 | 不可用 | 依赖 Xcode |
+| Android 模拟器 | 不可用 | `flutter emulators` → `Unable to find any emulator sources` |
+| macOS 桌面 | 设备在册但不可用 | `flutter test integration_test -d macos` → `Xcode not installed` |
+| `flutter test --profile` | 不存在 | `flutter test` 无 `--profile`；`flutter drive` 才有 |
+
+⇒ **FPS / 真机 timeline / App 进程内存这三项目前在本机无法执行**——
+不是「跑出来达标」，是「没有可跑的链路」。要补上，需要一台装了 Xcode
+的机器（或真机）+ `flutter drive --profile`。
+
+### 5.3 曾经列在这里的「未量化热点」已失效
+
+原写着「`all_docs_page_widgets.dart:458` 自认大组无虚拟化的性能热点」。
+**该条目已过时**：`b45c1f1e`（v1.17.0，2026-09-07）已把分组列表改为
+`ListView.builder` 惰性构建（同文件 :479），458 行是这段注释本身，
+不是当前热点。（同文件 :377/:441 的 `ListView.separated` 是收藏列表
+与另一处小列表，不在该条目所指范围内。）
 
 ---
 
@@ -180,3 +219,4 @@ NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost \
 |---|---|
 | 2026-10-10 | 内核 P0 第一批：`performance_baseline_test.dart` 落地 B-1~B-4（B-4 标到 5 万笔）。结论：18 万点文档 encode 521ms / decode 192ms（Windows）；5 万笔线性剔除 13.3ms/帧 |
 | 2026-11-11 | B-4 补测 **10 万笔**档（纯内存口径，10 万 × 10 点 = 100 万点）；本报告首次产出。结论：10 万笔剔除 ~4.8–6.3ms/帧（本机 M6），**5 万→10 万未线性失控**，空间索引维持「暂无动工依据」 |
+| 2026-11-12 | §5 修订：内存口径负结论（`ProcessInfo.currentRss` 在 `flutter test` 里无效，试加的 B-5 已删）、本机环境限制（无 Xcode/模拟器 ⇒ FPS/真机/App 进程内存本机不可测）、`all_docs_page_widgets.dart:458` 热点条目已过时（`b45c1f1e` 已虚拟化） |
