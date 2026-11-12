@@ -6193,6 +6193,12 @@ abstract class AppLocalizations {
   /// **'Shape corner handle'**
   String get canvasShapeHandleSemantics;
 
+  /// No description provided for @canvasHandleKeyboardHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow keys nudge, Shift to speed up'**
+  String get canvasHandleKeyboardHint;
+
   /// No description provided for @presNextSlide.
   ///
   /// In en, this message translates to:

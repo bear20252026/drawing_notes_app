@@ -425,58 +425,46 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 // 与旧定位（right/bottom -4 + 10/2）保持一致。
                 right: -21,
                 bottom: -21,
-                child: Semantics(
+                child: CanvasDragHandle(
+                  // 会话边界与指针拖拽同形：聚焦时取锚点，失焦时清空。
+                  // 键盘的离散步进与鼠标的一像素拖拽在宿主看来是同一件事
+                  // ——CanvasDragHandle 把两条路径都归到 onPanUpdate，因此
+                  // 宽度算法全库只有一份，不会分叉。
+                  onPanStart: () {
+                    _textResizeAnchor = (
+                      width: item.width!,
+                      fontSize: item.fontSize,
+                      x: _controller.canvasToView(item.position).dx,
+                    );
+                  },
+                  onPanEnd: () => _textResizeAnchor = null,
+                  onPanUpdate: (d) {
+                    final anchor = _textResizeAnchor;
+                    if (anchor == null) return;
+                    final delta = screenDeltaToCanvas(
+                      d,
+                      _controller.viewRotation,
+                      _controller.viewScale,
+                    );
+                    _applyState(() {
+                      final newWidth = (anchor.width + delta.dx)
+                          .clamp(40, 2000)
+                          .toDouble();
+                      // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
+                      // 思路），最小 8pt 保证可读性。
+                      item.fontSize =
+                          (anchor.fontSize * newWidth / anchor.width)
+                              .clamp(8.0, 120.0)
+                              .toDouble();
+                      item.width = newWidth;
+                    });
+                    _notifyChanged();
+                  },
                   label:
                       AppLocalizations.of(context)?.textWidthHandle ?? '调整文字宽度',
-                  button: true,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanStart: (_) {
-                      _textResizeAnchor = (
-                        width: item.width!,
-                        fontSize: item.fontSize,
-                        x: _controller.canvasToView(item.position).dx,
-                      );
-                    },
-                    onPanUpdate: (d) {
-                      final anchor = _textResizeAnchor;
-                      if (anchor == null) return;
-                      final delta = screenDeltaToCanvas(
-                        d.delta,
-                        _controller.viewRotation,
-                        _controller.viewScale,
-                      );
-                      _applyState(() {
-                        final newWidth = (anchor.width + delta.dx)
-                            .clamp(40, 2000)
-                            .toDouble();
-                        // 字号随宽度等比缩放（Excalidraw measureFontSizeFromWidth
-                        // 思路），最小 8pt 保证可读性。
-                        item.fontSize =
-                            (anchor.fontSize * newWidth / anchor.width)
-                                .clamp(8.0, 120.0)
-                                .toDouble();
-                        item.width = newWidth;
-                      });
-                      _notifyChanged();
-                    },
-                    onPanEnd: (_) => _textResizeAnchor = null,
-                    child: SizedBox(
-                      width: AppleTouch.minTarget,
-                      height: AppleTouch.minTarget,
-                      child: Center(
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: AppleColor.actionBlue,
-                            borderRadius: BorderRadius.circular(AppleRadius.xs),
-                            border: Border.all(color: Colors.white, width: 1),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  hint:
+                      AppLocalizations.of(context)?.canvasHandleKeyboardHint ??
+                      '方向键微调，Shift 加速',
                 ),
               ),
           ],

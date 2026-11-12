@@ -3264,6 +3264,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get canvasShapeHandleSemantics => '形状角柄';
 
   @override
+  String get canvasHandleKeyboardHint => '方向键微调，Shift 加速';
+
+  @override
   String get presNextSlide => '下一页（长按退出）';
 
   @override

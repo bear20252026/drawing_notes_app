@@ -66,6 +66,8 @@ import 'package:drawing_notes_app/core/security/session_guard.dart'
 import 'package:drawing_notes_app/features/drawing/presentation/canvas_painter.dart';
 import 'package:drawing_notes_app/shared/utils/time_format.dart';
 import 'package:drawing_notes_app/shared/widgets/app_snack.dart';
+// 画布拖拽手柄（8 向缩放 / 线性端点 / 文字宽度）的统一控件 + 键盘等价入口。
+import 'package:drawing_notes_app/shared/widgets/canvas_drag_handle.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/dialogs/color_picker_dialog.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';

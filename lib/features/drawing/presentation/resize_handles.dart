@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/drawing/presentation/editor_selection_geometry.dart';
-import '../../../core/theme/apple_design.dart';
+import '../../../shared/widgets/canvas_drag_handle.dart';
 
 /// 线性元素（直线/箭头）端点拖柄（审计二-2，2026-09-06）。
 ///
 /// 与 [ResizeHandles] 同约定：纯渲染 + 手势经回调注入；视觉 12px 圆形、
 /// 44×44 触控热区（触屏主用）。拖拽增量以屏幕坐标回传，由宿主换算画布坐标。
+///
+/// 视觉/命中区/读屏/键盘微调本体在 [CanvasDragHandle]，本组件只负责定位与
+/// 把回调接上（线性端点是唯一需要「会话基准」的手柄：拖拽起点要记端点，
+/// 键盘路径复用同一对 onPanStart/onPanEnd）。
 class EndpointHandle extends StatelessWidget {
   const EndpointHandle({
     super.key,
@@ -37,41 +41,23 @@ class EndpointHandle extends StatelessWidget {
   /// 视觉手柄直径。
   static const double _handleSize = 12.0;
 
-  /// 触控热区（同 [ResizeHandles] 的 44px 标准）。
-  static const double _hitSize = 44.0;
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Positioned(
-      left: position.dx - _hitSize / 2,
-      top: position.dy - _hitSize / 2,
-      child: Semantics(
+      left: position.dx - CanvasDragHandle.hitSize / 2,
+      top: position.dy - CanvasDragHandle.hitSize / 2,
+      child: CanvasDragHandle(
         label:
             semanticLabel ??
-            AppLocalizations.of(context)?.segmentEndpointSemantic ??
+            l10n?.segmentEndpointSemantic ??
             '调整线段端点',
-        button: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanStart: (_) => onPanStart(),
-          onPanUpdate: (details) => onPanUpdate(details.delta),
-          onPanEnd: (_) => onPanEnd(),
-          child: SizedBox(
-            width: _hitSize,
-            height: _hitSize,
-            child: Center(
-              child: Container(
-                width: _handleSize,
-                height: _handleSize,
-                decoration: BoxDecoration(
-                  color: AppleColor.actionBlue,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-              ),
-            ),
-          ),
-        ),
+        hint: l10n?.canvasHandleKeyboardHint ?? '方向键微调，Shift 加速',
+        circular: true,
+        visualSize: _handleSize,
+        onPanStart: onPanStart,
+        onPanEnd: onPanEnd,
+        onPanUpdate: onPanUpdate,
       ),
     );
   }
@@ -111,13 +97,6 @@ class ResizeHandles extends StatelessWidget {
 
   /// 视觉手柄尺寸：保持 10px 的小巧观感，不遮挡画布内容。
   static const double _handleSize = 10.0;
-
-  /// 触控热区尺寸：视觉手柄外的隐形命中区。
-  ///
-  /// 依据 Apple HIG / WCAG 2.5.5 / Material 最小触控尺寸取 44px——
-  /// 原实现命中区等于视觉 10px，触屏主用设备上几乎点不中
-  /// （2026-09-04 第三轮审计「高」级项，本轮修复）。
-  static const double _hitSize = 44.0;
 
   @override
   Widget build(BuildContext context) {
@@ -164,38 +143,22 @@ class ResizeHandles extends StatelessWidget {
     // 命中区 44×44、视觉手柄 10×10 居中：热区中心与视觉中心保持同一点，
     // 桌面鼠标观感零变化；外层 Stack 为 Clip.none，热区不会被裁掉。
     // 注意：极小元素上相邻手柄热区会重叠，后声明的手柄优先命中
-    // （列表顺序 TL→BR）。如需更精细，可按元素尺寸缩放 _hitSize。
+    // （列表顺序 TL→BR）。如需更精细，可按元素尺寸缩放命中区。
+    //
+    // 缩放没有「拖拽基准」一说（几何是相对当前 bounds 的纯增量），故不接
+    // onPanStart/onPanEnd——与 EndpointHandle 不同。
+    final l10n = AppLocalizations.of(context);
     return Positioned(
-      left: position.dx - _hitSize / 2,
-      top: position.dy - _hitSize / 2,
-      child: Semantics(
-        label:
-            AppLocalizations.of(context)?.canvasShapeHandleSemantics ?? '形状角柄',
-        button: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (details) {
-            onResize(handle, screenToCanvasDelta(details.delta));
-            onChanged();
-          },
-          child: SizedBox(
-            width: _hitSize,
-            height: _hitSize,
-            child: Center(
-              child: Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  // 四-2 统一（审计第 4 轮遗留）：手柄蓝从 Material #42A5F5
-                  // 归位品牌 Action Blue，与 canvas_painter 选框族一致。
-                  color: AppleColor.actionBlue,
-                  borderRadius: BorderRadius.circular(AppleRadius.xs),
-                  border: Border.all(color: Colors.white, width: 1),
-                ),
-              ),
-            ),
-          ),
-        ),
+      left: position.dx - CanvasDragHandle.hitSize / 2,
+      top: position.dy - CanvasDragHandle.hitSize / 2,
+      child: CanvasDragHandle(
+        label: l10n?.canvasShapeHandleSemantics ?? '形状角柄',
+        hint: l10n?.canvasHandleKeyboardHint ?? '方向键微调，Shift 加速',
+        visualSize: size,
+        onPanUpdate: (screenDelta) {
+          onResize(handle, screenToCanvasDelta(screenDelta));
+          onChanged();
+        },
       ),
     );
   }

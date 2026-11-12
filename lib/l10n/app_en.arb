@@ -3045,6 +3045,8 @@
   "@vaultErrUsbKey": {},
   "canvasShapeHandleSemantics": "Shape corner handle",
   "@canvasShapeHandleSemantics": {},
+  "canvasHandleKeyboardHint": "Arrow keys nudge, Shift to speed up",
+  "@canvasHandleKeyboardHint": {},
   "presNextSlide": "Next slide (long-press to exit)",
   "@presNextSlide": {},
   "nbOpenPageForEdit": "Open page to edit",

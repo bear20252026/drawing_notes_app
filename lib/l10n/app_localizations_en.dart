@@ -3394,6 +3394,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get canvasShapeHandleSemantics => 'Shape corner handle';
 
   @override
+  String get canvasHandleKeyboardHint => 'Arrow keys nudge, Shift to speed up';
+
+  @override
   String get presNextSlide => 'Next slide (long-press to exit)';
 
   @override
