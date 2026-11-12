@@ -3144,6 +3144,98 @@
       }
     }
   },
+  "syncAutoOverrideCount": "; {count} document(s) were handled per the direction you set in the conflict history (not asked this round)",
+  "@syncAutoOverrideCount": {
+    "description": "Sync summary (SYNC-003): kept separate from \"handled by your choice\" - the override-applied ones were never chosen this round",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictCenterTitle": "Conflict history",
+  "@conflictCenterTitle": {
+    "description": "Conflict center (SYNC-003): title of the ledger section on the sync settings page"
+  },
+  "conflictCenterBody": "Every document that was modified both locally and in the cloud during a sync, and how it was resolved. Records are never cleared just because a sync succeeded.",
+  "@conflictCenterBody": {
+    "description": "Conflict center body: must state that this is history and that it is not cleared automatically"
+  },
+  "conflictCenterOverridden": "Overridden",
+  "@conflictCenterOverridden": {
+    "description": "Ledger row badge: a standing resolution has been set for this document"
+  },
+  "conflictCenterCount": "Conflicted {count} time(s)",
+  "@conflictCenterCount": {
+    "description": "Ledger row: how many times this document has conflicted (>1 means it keeps diverging)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictCenterReasonBothEdited": "Both sides were edited and the content differs",
+  "@conflictCenterReasonBothEdited": {
+    "description": "Ledger row: matched the \"edited independently on both sides\" rule"
+  },
+  "conflictCenterReasonRemoteUntrusted": "The cloud timestamp is not trustworthy (possibly from a fast clock)",
+  "@conflictCenterReasonRemoteUntrusted": {
+    "description": "Ledger row: matched the structural/clock rule for an untrustworthy remote timestamp"
+  },
+  "conflictCenterReasonLocalUnchanged": "Local was never edited; only the cloud was",
+  "@conflictCenterReasonLocalUnchanged": {
+    "description": "Ledger row: matched the rule where local is unchanged since baseline yet wins the comparison"
+  },
+  "conflictCenterReasonFingerprintTie": "Same timestamp and same size, but different content",
+  "@conflictCenterReasonFingerprintTie": {
+    "description": "Ledger row: same millisecond and same size, but the content digests differ"
+  },
+  "conflictCenterReasonUnverifiable": "It cannot be determined whether both sides hold the same content",
+  "@conflictCenterReasonUnverifiable": {
+    "description": "Ledger row: neither side reports a digest, so sameness is unknowable"
+  },
+  "conflictCenterAutoResolved": "No choice was made; the default rule was applied",
+  "@conflictCenterAutoResolved": {
+    "description": "Ledger row: nobody decided that round (resolvedResolution was null)"
+  },
+  "conflictCenterThen": "Resolved by \"{choice}\"",
+  "@conflictCenterThen": {
+    "description": "Ledger row: the resolution that actually took effect that round",
+    "placeholders": {
+      "choice": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictCenterOverrideAction": "Change",
+  "@conflictCenterOverrideAction": {
+    "description": "Ledger row action: set how this document is handled next time (also the override dialog's confirm label)"
+  },
+  "conflictCenterClearOverrideAction": "Clear override",
+  "@conflictCenterClearOverrideAction": {
+    "description": "Ledger row action: go back to \"ask again next time\"; reversible, so no confirmation needed"
+  },
+  "conflictCenterOverrideDialogTitle": "How should this document be handled next time?",
+  "@conflictCenterOverrideDialogTitle": {
+    "description": "Override dialog title: must make the scope \"next time\" explicit"
+  },
+  "conflictCenterOverrideDialogBody": "An override only affects how this document is handled the next time it conflicts. It does not undo the overwrite that already happened - the losing side's content was gone at that point.",
+  "@conflictCenterOverrideDialogBody": {
+    "description": "Override dialog body: the boundary must be stated plainly; never imply the previous round can be restored"
+  },
+  "conflictCenterOverrideSet": "Recorded: the next conflict on this document will use \"{choice}\"",
+  "@conflictCenterOverrideSet": {
+    "description": "Override confirmation toast: must also say \"next time\"",
+    "placeholders": {
+      "choice": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictCenterOverrideCleared": "Override cleared: you will be asked again the next time this document conflicts",
+  "@conflictCenterOverrideCleared": {
+    "description": "Clear-override confirmation: state that it returns to \"ask again\", not that anything was restored"
+  },
   "docMenuExportPdf": "Export PDF",
   "@docMenuExportPdf": {},
   "docMenuExportHtml": "Export HTML",

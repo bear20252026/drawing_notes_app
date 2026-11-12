@@ -584,6 +584,128 @@ void main() {
     });
   });
 
+  group('SyncResult.conflicts（SYNC-003 台账数据源）', () {
+    // 这一组只回答一个问题：交给冲突台账的是**事实**还是**复述**。
+    // conflictedDocIds 只有 id，回答不了「当时按什么处理了这篇」——那是冲突
+    // 中心的全部意义，所以这里逐字段钉住 conflicts 的内容。
+
+    test('无冲突轮次：conflicts 为空', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 仅本地改
+      final server = _MemoryServer();
+      server.seedDoc('a', 10);
+      server.seedManifest({'a': 10});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'a': _snap('a', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      expect((await s.syncNow()).conflicts, isEmpty);
+    });
+
+    test('LWW 轮次：conflicts 带两端事实，resolvedResolution 为 null（没人选）',
+        () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 本地 10→20
+      final server = _MemoryServer();
+      server.seedDoc('a', 12); // 远端 10→12
+      server.seedManifest({'a': 12});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'a': _snap('a', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      expect(r.conflicts, hasLength(1));
+      final c = r.conflicts.single;
+      expect(c.docId, 'a');
+      expect(c.localUpdatedAt, 20);
+      expect(c.remoteUpdatedAt, 12);
+      expect(c.localSize, _localDocBytes(20).length);
+      expect(c.remoteSize, _localDocBytes(12).length);
+      expect(
+        c.resolvedResolution,
+        isNull,
+        reason: '没人选过就是 null——那是真实信息，不是「未知」',
+      );
+    });
+
+    test('handler 裁决后：resolvedResolution 是实际生效的那一个', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20); // 远端较新
+      store.docs['b'] = _Doc('b', _localDocBytes(30), 30); // 本地较新
+      final server = _MemoryServer();
+      server.seedDoc('a', 30);
+      server.seedDoc('b', 12);
+      server.seedManifest({'a': 30, 'b': 12});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'a': _snap('a', 10), 'b': _snap('b', 10)});
+      final s = _service(
+        store,
+        server,
+        baseline: baseline,
+        conflictHandler: _ScriptedHandler({
+          'a': ConflictResolution.keepLocal, // 反转 LWW
+          'b': ConflictResolution.keepRemote, // 反转 LWW
+        }),
+      );
+
+      final r = await s.syncNow();
+      expect(r.conflicts, hasLength(2));
+      final byId = {for (final c in r.conflicts) c.docId: c.resolvedResolution};
+      expect(byId['a'], ConflictResolution.keepLocal);
+      expect(byId['b'], ConflictResolution.keepRemote);
+    });
+
+    test('平局兜底（fingerprintTie）也算「实际生效」：resolvedResolution 被回填',
+        () async {
+      // 两端同 ts、size 不同 ⇒ M6/DN-206 的 sameTsDiverged（fingerprintTie）。
+      // 用户没选，但 effectiveConflictResolutions 会给出 keepBoth 兜底——
+      // 台账必须记这个，而不是记成「没人选」。
+      final store = _MemoryDocStore();
+      store.docs['t'] = _Doc('t', _localDocBytes(20), 20);
+      final server = _MemoryServer();
+      server.seedDoc('t', 20); // 与本地同 ts
+      server.files['manifest.json'] = utf8.encode(
+        jsonEncode({
+          'entries': {
+            't': {'id': 't', 'updatedAt': 20, 'size': 999},
+          },
+          'deletedIds': <String>[],
+        }),
+      );
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'t': _snap('t', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      expect(r.conflicts, hasLength(1));
+      expect(r.conflicts.single.fingerprintTie, isTrue);
+      expect(
+        r.conflicts.single.resolvedResolution,
+        ConflictResolution.keepBoth,
+        reason: '兜底方向也是「实际发生了的事」，不能记成没人选',
+      );
+    });
+
+    test('conflicts 与 conflictedDocIds 覆盖同一批文档（分工不漂移）', () async {
+      final store = _MemoryDocStore();
+      store.docs['a'] = _Doc('a', _localDocBytes(20), 20);
+      store.docs['b'] = _Doc('b', _localDocBytes(25), 25);
+      final server = _MemoryServer();
+      server.seedDoc('a', 15);
+      server.seedDoc('b', 30);
+      server.seedManifest({'a': 15, 'b': 30});
+      final baseline = _MemoryBaseline()
+        ..value = SyncManifest(entries: {'a': _snap('a', 10), 'b': _snap('b', 10)});
+      final s = _service(store, server, baseline: baseline);
+
+      final r = await s.syncNow();
+      expect(
+        r.conflicts.map((c) => c.docId).toSet(),
+        r.conflictedDocIds.toSet(),
+      );
+    });
+  });
+
   group('SyncService M2 单操作失败隔离', () {
     test('单个上传失败 → 不中断整轮，其余文档照常同步，失败项进 failedDocIds', () async {
       final store = _MemoryDocStore();

@@ -3123,6 +3123,98 @@
       }
     }
   },
+  "syncAutoOverrideCount": "；{count} 篇按你在冲突记录里设定的方向处理（本轮没有再问你）",
+  "@syncAutoOverrideCount": {
+    "description": "同步摘要（SYNC-003）：与「已按你的选择处理」分开说——改判自动处理的那部分，这轮用户根本没选",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictCenterTitle": "冲突记录",
+  "@conflictCenterTitle": {
+    "description": "冲突中心（SYNC-003）：同步设置页里台账区的标题"
+  },
+  "conflictCenterBody": "这里记着每次同步时本地与云端都被改过的文档，以及当时按什么处理了。记录不会因为同步成功就消失。",
+  "@conflictCenterBody": {
+    "description": "冲突中心正文：必须说清这是历史、且不会被自动清掉"
+  },
+  "conflictCenterOverridden": "已改判",
+  "@conflictCenterOverridden": {
+    "description": "台账行上的标记：这条已经设了长期处理方向"
+  },
+  "conflictCenterCount": "冲突过 {count} 次",
+  "@conflictCenterCount": {
+    "description": "台账行：同一篇累计冲突次数（>1 说明在反复分叉）",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictCenterReasonBothEdited": "原因是本地与云端都改过，且内容不同",
+  "@conflictCenterReasonBothEdited": {
+    "description": "台账行：命中「双边独立编辑」判据"
+  },
+  "conflictCenterReasonRemoteUntrusted": "原因是云端时间戳不可信（可能来自偏快的时钟）",
+  "@conflictCenterReasonRemoteUntrusted": {
+    "description": "台账行：命中「远端戳不可信」的结构性/时钟判据"
+  },
+  "conflictCenterReasonLocalUnchanged": "原因是本地没改过，只有云端改过",
+  "@conflictCenterReasonLocalUnchanged": {
+    "description": "台账行：命中「本地相对基线一字未动却在比大小中赢」判据"
+  },
+  "conflictCenterReasonFingerprintTie": "原因是时间戳与字节数完全相同、但内容不同",
+  "@conflictCenterReasonFingerprintTie": {
+    "description": "台账行：命中同毫秒同 size 而摘要不同"
+  },
+  "conflictCenterReasonUnverifiable": "原因是无法确认两端内容是否相同",
+  "@conflictCenterReasonUnverifiable": {
+    "description": "台账行：两端都报不出摘要 ⇒ 真·不可知"
+  },
+  "conflictCenterAutoResolved": "当时未选择，按默认规则处理",
+  "@conflictCenterAutoResolved": {
+    "description": "台账行：那次没有人裁决（resolvedResolution 为 null）"
+  },
+  "conflictCenterThen": "当时按「{choice}」处理",
+  "@conflictCenterThen": {
+    "description": "台账行：那次实际生效的裁决",
+    "placeholders": {
+      "choice": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictCenterOverrideAction": "改判",
+  "@conflictCenterOverrideAction": {
+    "description": "台账行动作：设定这篇下次冲突时的处理方向（同时用作改判窗的确认键）"
+  },
+  "conflictCenterClearOverrideAction": "清除改判",
+  "@conflictCenterClearOverrideAction": {
+    "description": "台账行动作：回到「下次重新问」；可逆，所以不需要二次确认"
+  },
+  "conflictCenterOverrideDialogTitle": "这篇下次冲突时怎么处理？",
+  "@conflictCenterOverrideDialogTitle": {
+    "description": "改判窗标题：必须点明作用范围是「下次」"
+  },
+  "conflictCenterOverrideDialogBody": "改判只影响下一次这篇再冲突时的处理方向，不会撤销已经发生的那次覆盖——输掉的那一侧内容在当时就已经不存在了。",
+  "@conflictCenterOverrideDialogBody": {
+    "description": "改判窗正文：边界必须说死，不能暗示可以恢复上一次"
+  },
+  "conflictCenterOverrideSet": "已记录：下次这篇冲突时按「{choice}」处理",
+  "@conflictCenterOverrideSet": {
+    "description": "改判成功提示：同样要带「下次」",
+    "placeholders": {
+      "choice": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictCenterOverrideCleared": "已清除改判：下次这篇冲突时会重新问你",
+  "@conflictCenterOverrideCleared": {
+    "description": "清除改判的成功提示：说清回到了「重新问」而不是「已恢复」"
+  },
   "docMenuExportPdf": "导出 PDF",
   "@docMenuExportPdf": {},
   "docMenuExportHtml": "导出 HTML",

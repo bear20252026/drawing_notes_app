@@ -14,6 +14,7 @@ import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
+import 'package:drawing_notes_app/features/notes/presentation/conflict_center_section.dart';
 import 'package:drawing_notes_app/features/notes/presentation/conflict_resolution_dialog.dart';
 import 'package:drawing_notes_app/features/notes/presentation/post_restore_sync_banner.dart';
 import 'package:drawing_notes_app/features/notes/presentation/remote_delete_disposition_banner.dart';
@@ -221,6 +222,17 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
   /// 而重跑一轮同步只为刷新一行提示是不成比例的代价。
   List<RemoteDeleteIssue> _lastRemoteDeletes = const [];
 
+  /// SYNC-003：冲突台账（按最近冲突时刻倒序）。空列表时整块不渲染。
+  ///
+  /// 与 [_lastRemoteDeletes] 分开的理由：那个是**本轮刚算出来**的未决事项，
+  /// 这个是**历史**——同步成功、页面重进、应用重启之后它都还在。
+  List<ConflictLedgerEntry> _ledger = const [];
+
+  /// SYNC-003：本轮有多少条冲突是**按台账里设的改判**自动处理的（没有再问用户）。
+  /// 必须体现在摘要里——「已按你的选择处理」在改判场景下是假的，用户这轮
+  /// 根本没选。
+  int _autoAppliedConflicts = 0;
+
   /// 空操作回调（用于禁用态按钮）。
   static void _noop() {}
 
@@ -231,6 +243,8 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // DN-204：隔离判据是**读盘**的独立探测，刻意不与配置加载串在一起——
     // 表单不该因为一个提示条的探活而晚填一秒。
     _refreshBaselineHold();
+    // SYNC-003：台账同样是读盘，且与表单无关。
+    _refreshLedger();
   }
 
   Future<void> _loadConfig() async {
@@ -245,6 +259,49 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       _hasSavedPassword = secrets.webdavPassword?.isNotEmpty ?? false;
       _hasSavedPassphrase = secrets.syncPassphrase?.isNotEmpty ?? false;
     });
+  }
+
+  /// SYNC-003：读一次冲突台账。读不出来（文件损坏/目录解析失败）按空处理，
+  /// 不弹错——台账是事后可查性，不该在设置页一打开就弹一个红条。
+  Future<void> _refreshLedger() async {
+    try {
+      final entries = await _sync.loadConflictLedger();
+      if (!mounted) return;
+      setState(() => _ledger = entries);
+    } catch (_) {
+      // 与文件实现的容错同口径：读不出就是读不出，页面继续可用。
+    }
+  }
+
+  /// SYNC-003：设定一篇的改判（写台账 + 刷新 + 提示）。
+  ///
+  /// 不改本轮任何行为：方向从**下一次**同步开始生效（见台账合同）。
+  Future<void> _applyOverride(
+    ConflictLedgerEntry entry,
+    ConflictResolution resolution,
+  ) async {
+    await _sync.setConflictResolutionOverride(entry.docId, resolution);
+    await _refreshLedger();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    _toast(
+      l10n?.conflictCenterOverrideSet(
+            conflictResolutionLabel(resolution, l10n),
+          ) ??
+          '已记录：下次这篇冲突时按「${conflictResolutionLabel(resolution, l10n)}」处理',
+    );
+  }
+
+  /// SYNC-003：清除改判（回到「下次重新问」）。可逆——再改一次就回来了，
+  /// 所以不做二次确认。
+  Future<void> _clearOverride(ConflictLedgerEntry entry) async {
+    await _sync.setConflictResolutionOverride(entry.docId, null);
+    await _refreshLedger();
+    if (!mounted) return;
+    _toast(
+      AppLocalizations.of(context)?.conflictCenterOverrideCleared ??
+          '已清除改判：下次这篇冲突时会重新问你',
+    );
   }
 
   /// DN-204：刷新提示条的可见性（判据见 [_queryBaselineHold]）。
@@ -414,6 +471,7 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
       );
       return;
     }
+    _autoAppliedConflicts = 0;
     setState(() {
       _syncing = true;
       _progress = SyncProgress.starting();
@@ -430,7 +488,10 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
         password: password,
         passphrase: passphrase,
         syncSalt: cfg.syncSalt,
-        conflictHandler: _DialogConflictHandler(this),
+        conflictHandler: _DialogConflictHandler(
+          this,
+          onAutoApplied: (n) => _autoAppliedConflicts = n,
+        ),
         reconcile: reconcile,
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
@@ -450,6 +511,9 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
           // 但「有 N 篇悬着没处理」这件事必须留在屏上。
           _lastRemoteDeletes = outcome.result!.remoteDeletes;
         });
+        // SYNC-003：台账刚被 SyncController 写过一轮，重读一次让新条目立刻可见。
+        // 不 await：摘要已经能看了，台账晚半秒刷新不值得挡在 toast 前面。
+        unawaited(_refreshLedger());
         _toast(summary);
       } else {
         final summary = humanizeWebDavSyncError(
@@ -577,10 +641,22 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
     // 隔离态下跑完的调和轮：把「拦住了多少条本该删云端的操作」跟着摘要一起说
     // 出来——用户选的是方向，不是「从此不再看见这些差异」。
     summary = '$summary${_postRestoreDiffLine(l10n, diff)}';
-    if (r.conflictedDocIds.isNotEmpty) {
+    // SYNC-003：改判自动处理的那部分必须与「用户这轮选的」分开说，而且**不能
+    // 算进上一句的计数里**。两件事都做错的后果是同一个：上一句「已按你的选择
+    // 处理」在改判场景下是假的——这轮用户根本没选，是按他上次设的方向自动走
+    // 的。所以先减掉自动的那部分，再决定要不要说「另有 N 个…」。
+    final askedThisRound =
+        r.conflictedDocIds.length - _autoAppliedConflicts.clamp(
+          0,
+          r.conflictedDocIds.length,
+        );
+    if (askedThisRound > 0) {
+      summary = l10n?.syncWithConflicts(summary, askedThisRound) ??
+          '$summary；另有 $askedThisRound 个文档本地与云端均有改动，已按你的选择处理';
+    }
+    if (_autoAppliedConflicts > 0) {
       summary =
-          l10n?.syncWithConflicts(summary, r.conflictedDocIds.length) ??
-          '$summary；另有 ${r.conflictedDocIds.length} 个文档本地与云端均有改动，已按你的选择处理';
+          '$summary${l10n?.syncAutoOverrideCount(_autoAppliedConflicts) ?? '；$_autoAppliedConflicts 篇按你在冲突记录里设定的方向处理（本轮没有再问你）'}';
     }
     // 修复 1②：解不开的旧密文必须对用户可见（同「冲突不得静默」纪律）——
     // 只说「同步完成」会把 N 个文档永远下不下来这件事藏起来。
@@ -763,6 +839,14 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
             enabled: !_syncing,
             onDispose: _disposeRemoteDelete,
           ),
+          // SYNC-003：冲突台账（空的时候整块不渲染）。位置在处置条之后：
+          // 处置条是「现在就得处理」，台账是「回看历史」，紧迫性低一档。
+          ConflictCenterSection(
+            entries: _ledger,
+            enabled: !_syncing,
+            onOverride: _applyOverride,
+            onClearOverride: _clearOverride,
+          ),
           TextField(
             controller: _url,
             keyboardType: TextInputType.url,
@@ -886,20 +970,46 @@ class _WebDavSyncSettingsPageState extends State<WebDavSyncSettingsPage> {
 
 /// 冲突处理器：遇到冲突时弹窗询问用户逐条裁决；用户取消则返回空（走默认 LWW）。
 class _DialogConflictHandler implements ConflictHandler {
-  _DialogConflictHandler(this._state);
+  _DialogConflictHandler(this._state, {this.onAutoApplied});
 
-  final State<WebDavSyncSettingsPage> _state;
+  // 具体 State 类型而不是 `State<WebDavSyncSettingsPage>`：`_sync` 是 State 类上
+  // 的私有 getter，声明成基类就看不见了。
+  final _WebDavSyncSettingsPageState _state;
+
+  /// SYNC-003：本轮有 N 条冲突是**按台账改判**自动处理的（没有弹窗问）。
+  /// 不为空则报给页面写进摘要——「已按你的选择处理」在改判场景下是假的。
+  final void Function(int count)? onAutoApplied;
 
   @override
   Future<Map<String, ConflictResolution>> resolve(
     List<SyncConflict> conflicts,
   ) async {
     if (conflicts.isEmpty || !_state.mounted) return const {};
+    // SYNC-003：台账里设了改判的那些文档**不再重复问**——用户已经为它们指定过
+    // 方向，每轮重新问一次只是噪声（而且它会让「改判」显得根本没生效）。
+    final ledger = await _state._sync.loadConflictLedger();
+    if (!_state.mounted) return const {};
+    final standing = {
+      for (final e in ledger)
+        if (e.hasOverride) e.docId: e.resolutionOverride!,
+    };
+    final auto = <String, ConflictResolution>{};
+    final pending = <SyncConflict>[];
+    for (final c in conflicts) {
+      final r = standing[c.docId];
+      if (r == null) {
+        pending.add(c);
+      } else {
+        auto[c.docId] = r;
+      }
+    }
+    if (auto.isNotEmpty) onAutoApplied?.call(auto.length);
+    if (pending.isEmpty) return auto;
     final result = await GlassDialog.show<Map<String, ConflictResolution>>(
       context: _state.context,
       barrierDismissible: false,
-      builder: (_) => ConflictResolutionDialog(conflicts: conflicts),
+      builder: (_) => ConflictResolutionDialog(conflicts: pending),
     );
-    return result ?? const {};
+    return {...auto, ...?result};
   }
 }

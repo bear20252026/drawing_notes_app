@@ -53,6 +53,7 @@ class SyncConflict {
     this.contentUnverifiable = false,
     this.localDigest,
     this.remoteDigest,
+    this.resolvedResolution,
   });
 
   final String docId;
@@ -97,6 +98,16 @@ class SyncConflict {
   final String? localDigest;
   final String? remoteDigest;
 
+  /// 本条冲突**实际生效**的裁决（`null` = 用户没选，按
+  /// [suggestedResolution] 或 LWW 兜底处理）。
+  ///
+  /// 与 [suggestedResolution] 的区别：那个是**程序的建议**，这个是**实际发生
+  /// 的事**。冲突中心要展示的是后者——「当时按什么处理了这篇」才是用户需要
+  /// 回看的信息。由 `SyncService` 从 `effectiveConflictResolutions`
+  /// （用户显式选择 ∪ 兜底）回填；`detectSyncConflicts` 产出的原始对象里
+  /// 它一律是 `null`。
+  final ConflictResolution? resolvedResolution;
+
   /// LWW 的时间戳依据不可用：无用户显式裁决时不得沿用 planner 的默认方向。
   bool get lwwTimestampSuspect =>
       remoteTimestampUntrusted ||
@@ -126,6 +137,34 @@ class SyncConflict {
         : ConflictResolution.keepLocal;
   }
 
+  /// 复制并替换字段（不可变值对象的唯一合法变更路径）。
+  ///
+  /// 存在的理由很具体：`SyncService` 要把 [resolvedResolution] 回填进检测阶段
+  /// 产出的对象再交给 UI/台账。逐字段重列 13 个参数的构造调用既啰嗦又危险
+  /// （漏一个参数不会报错，只会在台账里静默少一个事实）。
+  ///
+  /// 只暴露当前唯一需要变更的那个字段。**不做成全字段通用 copyWith**：那等于
+  /// 承认「任何字段都可事后改」，而 [docId] / 两端时间戳 / 各判据标志都是
+  /// 检测时刻的事实，事后改写它们只会制造出不存在的冲突。
+  ///
+  /// 省略参数 = 保留原值（`null` 亦是「保留」，不是「清空」）。
+  SyncConflict copyWith({ConflictResolution? resolvedResolution}) {
+    return SyncConflict(
+      docId: docId,
+      localUpdatedAt: localUpdatedAt,
+      localSize: localSize,
+      remoteUpdatedAt: remoteUpdatedAt,
+      remoteSize: remoteSize,
+      remoteTimestampUntrusted: remoteTimestampUntrusted,
+      localUnchangedSinceBaseline: localUnchangedSinceBaseline,
+      fingerprintTie: fingerprintTie,
+      contentUnverifiable: contentUnverifiable,
+      localDigest: localDigest,
+      remoteDigest: remoteDigest,
+      resolvedResolution: resolvedResolution ?? this.resolvedResolution,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -141,7 +180,8 @@ class SyncConflict {
           fingerprintTie == other.fingerprintTie &&
           contentUnverifiable == other.contentUnverifiable &&
           localDigest == other.localDigest &&
-          remoteDigest == other.remoteDigest;
+          remoteDigest == other.remoteDigest &&
+          resolvedResolution == other.resolvedResolution;
 
   @override
   int get hashCode => Object.hash(
@@ -156,6 +196,7 @@ class SyncConflict {
     contentUnverifiable,
     localDigest,
     remoteDigest,
+    resolvedResolution,
   );
 
   @override
@@ -167,7 +208,8 @@ class SyncConflict {
       '${remoteTimestampUntrusted ? ', remoteTsUntrusted' : ''}'
       '${localUnchangedSinceBaseline ? ', localUnchanged' : ''}'
       '${fingerprintTie ? ', tie' : ''}'
-      '${contentUnverifiable ? ', unverifiable' : ''})';
+      '${contentUnverifiable ? ', unverifiable' : ''}'
+      '${resolvedResolution == null ? '' : ', resolved: ${resolvedResolution!.name}'})';
 }
 
 /// 可疑时钟容差（P2 修复）：远端 updatedAt 晚于本地当前时间超过此值即视为
@@ -259,8 +301,7 @@ List<SyncConflict> detectSyncConflicts(
         localChanged &&
         remote.updatedAt > local.updatedAt &&
         remote.updatedAt - now > kFutureClockToleranceMs;
-    final remoteUntrusted =
-        remoteWinsWithoutChanging || futureRemoteStampWins;
+    final remoteUntrusted = remoteWinsWithoutChanging || futureRemoteStampWins;
     final hasConflict =
         bothChanged ||
         sameTsDiverged ||

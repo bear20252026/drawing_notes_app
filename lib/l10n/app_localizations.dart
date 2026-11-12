@@ -6337,6 +6337,114 @@ abstract class AppLocalizations {
   /// **'Content digest: local {local} / cloud {remote}'**
   String conflictDigestPair(String local, String remote);
 
+  /// Sync summary (SYNC-003): kept separate from "handled by your choice" - the override-applied ones were never chosen this round
+  ///
+  /// In en, this message translates to:
+  /// **'; {count} document(s) were handled per the direction you set in the conflict history (not asked this round)'**
+  String syncAutoOverrideCount(int count);
+
+  /// Conflict center (SYNC-003): title of the ledger section on the sync settings page
+  ///
+  /// In en, this message translates to:
+  /// **'Conflict history'**
+  String get conflictCenterTitle;
+
+  /// Conflict center body: must state that this is history and that it is not cleared automatically
+  ///
+  /// In en, this message translates to:
+  /// **'Every document that was modified both locally and in the cloud during a sync, and how it was resolved. Records are never cleared just because a sync succeeded.'**
+  String get conflictCenterBody;
+
+  /// Ledger row badge: a standing resolution has been set for this document
+  ///
+  /// In en, this message translates to:
+  /// **'Overridden'**
+  String get conflictCenterOverridden;
+
+  /// Ledger row: how many times this document has conflicted (>1 means it keeps diverging)
+  ///
+  /// In en, this message translates to:
+  /// **'Conflicted {count} time(s)'**
+  String conflictCenterCount(int count);
+
+  /// Ledger row: matched the "edited independently on both sides" rule
+  ///
+  /// In en, this message translates to:
+  /// **'Both sides were edited and the content differs'**
+  String get conflictCenterReasonBothEdited;
+
+  /// Ledger row: matched the structural/clock rule for an untrustworthy remote timestamp
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud timestamp is not trustworthy (possibly from a fast clock)'**
+  String get conflictCenterReasonRemoteUntrusted;
+
+  /// Ledger row: matched the rule where local is unchanged since baseline yet wins the comparison
+  ///
+  /// In en, this message translates to:
+  /// **'Local was never edited; only the cloud was'**
+  String get conflictCenterReasonLocalUnchanged;
+
+  /// Ledger row: same millisecond and same size, but the content digests differ
+  ///
+  /// In en, this message translates to:
+  /// **'Same timestamp and same size, but different content'**
+  String get conflictCenterReasonFingerprintTie;
+
+  /// Ledger row: neither side reports a digest, so sameness is unknowable
+  ///
+  /// In en, this message translates to:
+  /// **'It cannot be determined whether both sides hold the same content'**
+  String get conflictCenterReasonUnverifiable;
+
+  /// Ledger row: nobody decided that round (resolvedResolution was null)
+  ///
+  /// In en, this message translates to:
+  /// **'No choice was made; the default rule was applied'**
+  String get conflictCenterAutoResolved;
+
+  /// Ledger row: the resolution that actually took effect that round
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved by \"{choice}\"'**
+  String conflictCenterThen(String choice);
+
+  /// Ledger row action: set how this document is handled next time (also the override dialog's confirm label)
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get conflictCenterOverrideAction;
+
+  /// Ledger row action: go back to "ask again next time"; reversible, so no confirmation needed
+  ///
+  /// In en, this message translates to:
+  /// **'Clear override'**
+  String get conflictCenterClearOverrideAction;
+
+  /// Override dialog title: must make the scope "next time" explicit
+  ///
+  /// In en, this message translates to:
+  /// **'How should this document be handled next time?'**
+  String get conflictCenterOverrideDialogTitle;
+
+  /// Override dialog body: the boundary must be stated plainly; never imply the previous round can be restored
+  ///
+  /// In en, this message translates to:
+  /// **'An override only affects how this document is handled the next time it conflicts. It does not undo the overwrite that already happened - the losing side\'s content was gone at that point.'**
+  String get conflictCenterOverrideDialogBody;
+
+  /// Override confirmation toast: must also say "next time"
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded: the next conflict on this document will use \"{choice}\"'**
+  String conflictCenterOverrideSet(String choice);
+
+  /// Clear-override confirmation: state that it returns to "ask again", not that anything was restored
+  ///
+  /// In en, this message translates to:
+  /// **'Override cleared: you will be asked again the next time this document conflicts'**
+  String get conflictCenterOverrideCleared;
+
   /// No description provided for @docMenuExportPdf.
   ///
   /// In en, this message translates to:

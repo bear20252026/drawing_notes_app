@@ -21,6 +21,7 @@ import 'package:drawing_notes_app/core/storage/webdav_sync_client.dart';
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
+import 'package:drawing_notes_app/core/sync/sync_conflict_ledger.dart';
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
 import 'package:drawing_notes_app/core/sync/sync_retry_policy.dart';
 import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
@@ -29,6 +30,7 @@ import 'package:drawing_notes_app/core/sync/sync_service.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_post_restore_baseline_gate.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_baseline_store.dart';
+import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_conflict_ledger_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/file_sync_push_waiver_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/sync_secret_store.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_store.dart';
@@ -37,6 +39,8 @@ import 'package:drawing_notes_app/features/notes/infrastructure/webdav_config_st
 /// 实现文件（C-05：presentation 不再触碰 SyncService / 传输客户端模块，
 /// 只保留纯 DTO / 异常类型的可见性）。
 export 'package:drawing_notes_app/core/sync/sync_service.dart' show SyncResult;
+export 'package:drawing_notes_app/core/sync/sync_conflict_ledger.dart'
+    show ConflictLedgerEntry, SyncConflictLedgerStore;
 export 'package:drawing_notes_app/core/sync/post_restore_baseline.dart'
     show PostRestoreReconcile;
 export 'package:drawing_notes_app/core/storage/webdav_sync_client.dart'
@@ -90,6 +94,7 @@ class SyncController {
     SyncBaselineStore? baselineStore,
     PostRestoreBaselineGate? baselineGate,
     SyncPushWaiverStore? pushWaiverStore,
+    SyncConflictLedgerStore? conflictLedgerStore,
   }) : _configStore = configStore ?? WebDavConfigStore(SecureSyncSecretStore()),
        _secretStore = secretStore ?? SecureSyncSecretStore(),
        _documentStore =
@@ -106,8 +111,10 @@ class SyncController {
            ),
        _baselineStore = baselineStore ?? FileSyncBaselineStore(),
        _baselineGate = baselineGate ?? FilePostRestoreBaselineGate(),
-       _pushWaivers =
-           pushWaiverStore ?? FileSyncPushWaiverStore();
+      _pushWaivers =
+          pushWaiverStore ?? FileSyncPushWaiverStore(),
+      _conflictLedger =
+          conflictLedgerStore ?? FileSyncConflictLedgerStore();
 
   final WebDavConfigStore _configStore;
   final SyncSecretStore _secretStore;
@@ -120,6 +127,39 @@ class SyncController {
   /// A3-2 甲：用户对「云端已删、本机仍留着」选「仍要上传」之后的豁免记录。
   /// 与基线同目录（数据根之外）——恢复旧根之后不该继承上次的豁免。
   final SyncPushWaiverStore _pushWaivers;
+
+  /// SYNC-003：冲突台账。同样与基线同目录（数据根之外），理由同豁免——
+  /// 恢复旧根之后不该沿用上一个数据根的冲突历史与改判方向。
+  final SyncConflictLedgerStore _conflictLedger;
+
+  /// SYNC-003：读出冲突台账（按最近冲突时刻倒序）。
+  ///
+  /// 读不出来时返回空列表（文件实现已按 `sidecar_read_guard` 三态分类，
+  /// 损坏那份会先被抢救成 `.corrupt-*`）。
+  Future<List<ConflictLedgerEntry>> loadConflictLedger() =>
+      _conflictLedger.load();
+
+  /// SYNC-003：把一轮同步的冲突记进台账。**失败/读不出时静默跳过**——
+  /// 台账是事后可查性，不能反过来让一次同步失败（与豁免/基线同一条口径：
+  /// 记录失败不阻断主流程，但也不假装记上了）。
+  Future<void> _recordConflicts(List<SyncConflict> conflicts) async {
+    if (conflicts.isEmpty) return;
+    try {
+      await _conflictLedger.record(conflicts);
+    } catch (_) {
+      // 台账写失败：下一轮仍会重新检测到同一冲突（基线没变），历史不会永久丢失。
+    }
+  }
+
+  /// SYNC-003：设定/清除一篇文档的改判（下一次冲突时生效）。
+  ///
+  /// **不是撤销**：已经发生的那次覆盖不会因为这条记录而回滚（见
+  /// `sync_conflict_ledger.dart` 文件头）。
+  Future<void> setConflictResolutionOverride(
+    String docId,
+    ConflictResolution? resolution,
+  ) =>
+      _conflictLedger.setOverride(docId, resolution);
 
   /// DN-204：当前是否处于「恢复后同步隔离」态。设置页据此挂出方向选择条。
   ///
@@ -415,6 +455,9 @@ class SyncController {
       while (attempt < retry.maxAttempts) {
         try {
           final r = await service.syncNow();
+          // SYNC-003：冲突台账在这一刻记账（只记成功轮次——失败轮次的
+          // `SyncResult.conflicts` 与基线一样没有推进，记了会是假历史）。
+          await _recordConflicts(r.conflicts);
           return (result: r, error: null);
         } catch (e) {
           // 修复 1②：确定性失败不退避重试——旧写法会白跑满 4 轮网络，最后

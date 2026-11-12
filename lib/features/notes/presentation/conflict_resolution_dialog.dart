@@ -116,15 +116,21 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
               spacing: 4,
               children: [
                 for (final r in ConflictResolution.values)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Radio<ConflictResolution>(value: r),
-                      Text(
-                        _label(r, AppLocalizations.of(context)),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+                  // 整行可点（与冲突中心的改判窗同一条）：点文字标签是最自然的
+                  // 姿势，而 Radio 自己的触控区只有它周围那一圈。
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _choices[c.docId] = r),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Radio<ConflictResolution>(value: r),
+                        Text(
+                          conflictResolutionLabel(r, AppLocalizations.of(context)),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -134,17 +140,6 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     );
   }
 
-  static String _label(ConflictResolution r, AppLocalizations? l10n) {
-    switch (r) {
-      case ConflictResolution.keepLocal:
-        return l10n?.conflictKeepLocal ?? '保留本地';
-      case ConflictResolution.keepRemote:
-        return l10n?.conflictKeepCloud ?? '保留云端';
-      case ConflictResolution.keepBoth:
-        return l10n?.conflictKeepBoth ?? '两者皆留';
-    }
-  }
-
   // 冲突列表的紧凑读数：MM-dd + 钟点（同日冲突居多的场景下时间最关键）。
   // L-20：月-日复用 time_format.formatMonthDay，手拼收敛到唯一实现。
   static String _fmt(int epochMs) {
@@ -152,3 +147,23 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     return '${formatMonthDay(dt)} ${formatClock(dt)}';
   }
 }
+
+/// 三个裁决选项的显示名。
+///
+/// 公开是因为冲突中心（`conflict_center_section.dart`）的台账行与改判弹窗要
+/// 显示同一批名字——同一份 switch 抄两遍，改词时必然漏一处。
+///
+/// 刻意是**顶层函数而不是 widget 的静态成员**：原来它是 `_ConflictResolution-
+/// DialogState` 的静态成员，外部文件根本引用不到（能拿到的只有 widget 类），
+/// 一旦共享就会被迫在两个文件里各写一份 switch。
+String conflictResolutionLabel(ConflictResolution r, AppLocalizations? l10n) {
+  switch (r) {
+    case ConflictResolution.keepLocal:
+      return l10n?.conflictKeepLocal ?? '保留本地';
+    case ConflictResolution.keepRemote:
+      return l10n?.conflictKeepCloud ?? '保留云端';
+    case ConflictResolution.keepBoth:
+      return l10n?.conflictKeepBoth ?? '两者皆留';
+  }
+}
+

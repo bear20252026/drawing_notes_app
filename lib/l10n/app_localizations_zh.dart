@@ -3348,6 +3348,70 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String syncAutoOverrideCount(int count) {
+    return '；$count 篇按你在冲突记录里设定的方向处理（本轮没有再问你）';
+  }
+
+  @override
+  String get conflictCenterTitle => '冲突记录';
+
+  @override
+  String get conflictCenterBody =>
+      '这里记着每次同步时本地与云端都被改过的文档，以及当时按什么处理了。记录不会因为同步成功就消失。';
+
+  @override
+  String get conflictCenterOverridden => '已改判';
+
+  @override
+  String conflictCenterCount(int count) {
+    return '冲突过 $count 次';
+  }
+
+  @override
+  String get conflictCenterReasonBothEdited => '原因是本地与云端都改过，且内容不同';
+
+  @override
+  String get conflictCenterReasonRemoteUntrusted => '原因是云端时间戳不可信（可能来自偏快的时钟）';
+
+  @override
+  String get conflictCenterReasonLocalUnchanged => '原因是本地没改过，只有云端改过';
+
+  @override
+  String get conflictCenterReasonFingerprintTie => '原因是时间戳与字节数完全相同、但内容不同';
+
+  @override
+  String get conflictCenterReasonUnverifiable => '原因是无法确认两端内容是否相同';
+
+  @override
+  String get conflictCenterAutoResolved => '当时未选择，按默认规则处理';
+
+  @override
+  String conflictCenterThen(String choice) {
+    return '当时按「$choice」处理';
+  }
+
+  @override
+  String get conflictCenterOverrideAction => '改判';
+
+  @override
+  String get conflictCenterClearOverrideAction => '清除改判';
+
+  @override
+  String get conflictCenterOverrideDialogTitle => '这篇下次冲突时怎么处理？';
+
+  @override
+  String get conflictCenterOverrideDialogBody =>
+      '改判只影响下一次这篇再冲突时的处理方向，不会撤销已经发生的那次覆盖——输掉的那一侧内容在当时就已经不存在了。';
+
+  @override
+  String conflictCenterOverrideSet(String choice) {
+    return '已记录：下次这篇冲突时按「$choice」处理';
+  }
+
+  @override
+  String get conflictCenterOverrideCleared => '已清除改判：下次这篇冲突时会重新问你';
+
+  @override
   String get docMenuExportPdf => '导出 PDF';
 
   @override

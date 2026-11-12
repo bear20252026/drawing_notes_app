@@ -123,6 +123,7 @@ class SyncResult {
     this.postRestoreDiff,
     this.remoteDeletes = const [],
     this.resurrectionSuppressedDocIds = const [],
+    this.conflicts = const [],
   });
 
   final int uploaded;
@@ -131,6 +132,18 @@ class SyncResult {
 
   /// 本次同步中「本地与云端都有改动」的真冲突文档 id（LWW 由较新者胜，此列表仅为可见性）。
   final List<String> conflictedDocIds;
+
+  /// SYNC-003（冲突中心）：本轮检测到的冲突**完整对象**（已回填实际生效的裁决），
+  /// 供冲突台账持久化与展示。
+  ///
+  /// 与 [conflictedDocIds] 的分工：那个只有 id（给「本轮有 N 篇冲突」的计数用），
+  /// 这个带全部事实——两端时间戳/尺寸、命中了哪条判据、内容摘要、以及
+  /// [SyncConflict.resolvedResolution]（当时实际按什么处理了这篇）。冲突中心要
+  /// 回答的是后者，一个只有 id 的列表回答不了。
+  ///
+  /// 本轮无冲突时为空；隔离轮次（[postRestorePolicy] 非空）也恒为空——那轮的
+  /// 基线不描述当前数据根，报出来的「冲突」与事实无关（同 remoteDeletes 的口径）。
+  final List<SyncConflict> conflicts;
 
   /// 本轮执行失败的操作 id（M2：单操作隔离后失败项不中断整轮，
   /// 基线/远端清单均不回写它们，下轮自动重试；调用方可用此列表提示用户）。
@@ -379,7 +392,7 @@ class SyncService {
   /// 不存在时要 `If-None-Match: *`（首次创建不得盖掉别人刚创建的清单），存在而不给
   /// ETag 时才退回无条件写。少了这个标志就只能把两种情况当成一种。
   Future<({SyncManifest manifest, String? etag, bool exists})>
-      _readRemoteManifest() async {
+  _readRemoteManifest() async {
     final fetched = await transport.fetchBytes(manifestPath);
     if (fetched == null) {
       return (manifest: const SyncManifest(), etag: null, exists: false);
@@ -474,6 +487,12 @@ class SyncService {
     // **留副本必须与计划用同一份**，否则「默认 keepBoth」这类兜底只改了方向、
     // 却没触发副本保留，平局下照样把云端那一版盖掉。
     final effective = effectiveConflictResolutions(conflicts, resolutions);
+    // SYNC-003（冲突中心）：把「实际生效的裁决」回填进冲突对象。回填的是
+    // [effective]（用户显式选择 ∪ 平局/可疑时钟的兜底）而不是 [resolutions]：
+    // 前者才是真正落到计划上的方向，而台账要记的正是「实际发生了什么」。
+    final resolvedConflicts = List<SyncConflict>.unmodifiable(
+      conflicts.map((c) => c.copyWith(resolvedResolution: effective[c.docId])),
+    );
     final resolvedPlan = applyConflictResolutions(
       basePlan,
       conflicts,
@@ -499,11 +518,7 @@ class SyncService {
     // 豁免集合读不出来（IO 抖动）时按「无豁免」处理：后果是最多多按住一篇，
     // 而不是把一个云端已删的内容悄悄推回去——保守方向只有一个。
     final waivedIds = await _loadPushWaivers();
-    final held = _holdStaleResurrections(
-      guardedPlan,
-      remoteDeletes,
-      waivedIds,
-    );
+    final held = _holdStaleResurrections(guardedPlan, remoteDeletes, waivedIds);
     // DN-204：隔离态下按用户裁决的方向过滤。**删除墓碑任何方向都不放行**——
     // 它来自一份不描述当前数据根的基线，不是用户的删除意图。
     final plan = policy == null
@@ -708,6 +723,7 @@ class SyncService {
       downloaded: downloaded,
       deletedRemote: deletedRemote,
       conflictedDocIds: List.unmodifiable(conflicts.map((c) => c.docId)),
+      conflicts: resolvedConflicts,
       failedDocIds: List.unmodifiable(executed.failedIds),
       unreadableDocIds: List.unmodifiable(executed.unreadableIds),
       unprotectedRemoteDocIds: List.unmodifiable(preserved.unprotectedDocIds),

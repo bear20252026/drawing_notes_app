@@ -3482,6 +3482,78 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String syncAutoOverrideCount(int count) {
+    return '; $count document(s) were handled per the direction you set in the conflict history (not asked this round)';
+  }
+
+  @override
+  String get conflictCenterTitle => 'Conflict history';
+
+  @override
+  String get conflictCenterBody =>
+      'Every document that was modified both locally and in the cloud during a sync, and how it was resolved. Records are never cleared just because a sync succeeded.';
+
+  @override
+  String get conflictCenterOverridden => 'Overridden';
+
+  @override
+  String conflictCenterCount(int count) {
+    return 'Conflicted $count time(s)';
+  }
+
+  @override
+  String get conflictCenterReasonBothEdited =>
+      'Both sides were edited and the content differs';
+
+  @override
+  String get conflictCenterReasonRemoteUntrusted =>
+      'The cloud timestamp is not trustworthy (possibly from a fast clock)';
+
+  @override
+  String get conflictCenterReasonLocalUnchanged =>
+      'Local was never edited; only the cloud was';
+
+  @override
+  String get conflictCenterReasonFingerprintTie =>
+      'Same timestamp and same size, but different content';
+
+  @override
+  String get conflictCenterReasonUnverifiable =>
+      'It cannot be determined whether both sides hold the same content';
+
+  @override
+  String get conflictCenterAutoResolved =>
+      'No choice was made; the default rule was applied';
+
+  @override
+  String conflictCenterThen(String choice) {
+    return 'Resolved by \"$choice\"';
+  }
+
+  @override
+  String get conflictCenterOverrideAction => 'Change';
+
+  @override
+  String get conflictCenterClearOverrideAction => 'Clear override';
+
+  @override
+  String get conflictCenterOverrideDialogTitle =>
+      'How should this document be handled next time?';
+
+  @override
+  String get conflictCenterOverrideDialogBody =>
+      'An override only affects how this document is handled the next time it conflicts. It does not undo the overwrite that already happened - the losing side\'s content was gone at that point.';
+
+  @override
+  String conflictCenterOverrideSet(String choice) {
+    return 'Recorded: the next conflict on this document will use \"$choice\"';
+  }
+
+  @override
+  String get conflictCenterOverrideCleared =>
+      'Override cleared: you will be asked again the next time this document conflicts';
+
+  @override
   String get docMenuExportPdf => 'Export PDF';
 
   @override
