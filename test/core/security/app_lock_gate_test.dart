@@ -70,6 +70,15 @@ Future<AppLockService> _configuredService(String pin) async {
   return service;
 }
 
+/// 逐位点按密码盘输入 [pin]。
+///
+/// ⚠️ [pin] **不能含数字 `0`**：本文件各用例走默认 800×600 测试视口，
+/// 而锁屏密码盘的底行「0」在这一高度上恰好压在 AppLockGate 底部操作条
+/// （忘记密码/快速解锁）之下——Stack 里后画的底部操作条命中区覆盖键帽，
+/// `tester.tap` 会落在操作条上而非数字键。
+/// 这是**既有的布局重叠**（与 S-002 无关：4 位 PIN 用例历来不用 `0`，
+/// 所以才没暴露），本文件选用的 6 位 PIN（`135792`/`246813`）据此避开；
+/// 重叠本身留待产品侧修（底行需在任何窗口高度都可达）。
 Future<void> _enterPin(WidgetTester tester, String pin) async {
   for (final digit in pin.split('')) {
     await tester.tap(find.text(digit));
@@ -119,7 +128,7 @@ void main() {
   });
 
   testWidgets('冷启动已配置 PIN：显示锁屏，正确 PIN 解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -130,14 +139,14 @@ void main() {
 
     expect(find.text('输入密码'), findsOneWidget);
 
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     expect(find.text('输入密码'), findsNothing);
     expect(find.text('SECRET_HOME'), findsOneWidget);
   });
 
   testWidgets('保险库解锁失败：仍放行进入 UI，但弹用户可见提示（不再静默）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     // 保险库底座故意坏掉：resolver 同步抛错（零真实 IO——testWidgets 假时钟
     // 内真实 IO Future 永不完成，与 KDF isolate bypass 同一纪律）。
     // isConfigured / unlock 任何一步炸掉都进同一条 catch——这正是被测契约。
@@ -157,7 +166,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     // 放行语义不变（降级进入——保住导出/恢复入口），但根因必须可见。
     expect(find.text('输入密码'), findsNothing);
@@ -168,7 +177,7 @@ void main() {
   });
 
   testWidgets('错误 PIN：抖动清空，仍锁定；随后正确输入可解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -177,15 +186,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await _enterPin(tester, '2468');
+    await _enterPin(tester, '246813');
     expect(find.text('输入密码'), findsOneWidget);
 
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
   testWidgets('切后台回锁（宽限关闭）：解锁后 app 退到后台再回来必须重新解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0); // 关闭宽限 = 旧行为
 
     await tester.pumpWidget(
@@ -200,7 +209,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     // 回归锁「离开树即注销监听」：解锁后锁屏子树必须整棵撤下——若残留
@@ -220,7 +229,7 @@ void main() {
   });
 
   testWidgets('宽限期（默认 30s）：瞬时切后台回来免重新解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -232,7 +241,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     // Windows 任务视图扫一眼：立即回来（真实秒表 ≈ 0s < 30s）→ 不弹锁屏。
@@ -246,7 +255,7 @@ void main() {
   });
 
   testWidgets('宽限期超时（离开 > 30s）：回来仍须重新解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -260,7 +269,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     await _toBackground(tester);
@@ -273,12 +282,12 @@ void main() {
     await _toForeground(tester);
     expect(find.text('输入密码'), findsOneWidget);
 
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
   testWidgets('冷启动锁定不吃宽限期（未解锁即切后台再回来仍锁）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -302,7 +311,7 @@ void main() {
   });
 
   testWidgets('设置页关闭应用锁（disable 通知）→ 锁屏立即放行', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -329,7 +338,7 @@ void main() {
 
   // ① 桌面纯失焦（仅 inactive，桌面从不投递 paused）：必须置锁并回前台重解锁。
   testWidgets('①仅 inactive 即锁：桌面纯失焦回前台须重新解锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0); // 关宽限，让「回前台仍锁」不依赖真实秒表
 
     await tester.pumpWidget(
@@ -342,7 +351,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     // 只投 inactive（不经过 hidden/paused）——Windows「焦点切走、窗口仍可见」
@@ -354,7 +363,7 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
     expect(find.text('输入密码'), findsOneWidget); // 回前台仍锁，须重解锁
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
@@ -362,7 +371,7 @@ void main() {
   //    （不倒退）。注：hidden/paused 会关闭帧渲染，锁屏要到 resumed 才可见，
   //    故锁屏断言放在回前台后；KEK 清理是同步副作用，可在后台态即时断言。
   testWidgets('②最小化链锁定 + hidden 清 KEK 行为不倒退', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0); // 关宽限：回前台仍锁，不依赖真实秒表
 
     KekSessionCache.instance.clear(); // 归零起点
@@ -383,7 +392,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     // 最小化链（resumed→inactive→hidden→paused，Windows 真实形态）。
@@ -399,7 +408,7 @@ void main() {
   //    后续信号不重置成「免锁」——超宽限回前台仍锁（既有「连续快切不重置
   //    资格」断言的同一会话版本）。
   testWidgets('③同一后台会话多信号不重置宽限期（超宽限仍锁）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -413,13 +422,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     await _toBackground(tester); // inactive→hidden→paused，同一会话
     await _toForeground(tester);
 
     expect(find.text('输入密码'), findsOneWidget); // 锚在首个，未重置 → 仍锁
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
@@ -427,7 +436,7 @@ void main() {
   //    hidden/paused 关帧，锁屏只在 resumed 可见；宽限期锚点仅在「非豁免」
   //    首信号起，故豁免期间的失焦不吃宽限期。
   testWidgets('④豁免窗口内不锁；释放后真后台超宽限才锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -440,7 +449,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
 
     // —— 相位 A：原生对话框抢焦点（豁免窗口）期间切后台再回来 → 不假锁 ——
@@ -455,13 +464,13 @@ void main() {
     await _toBackground(tester); // 非豁免：inactive 即锁 + 锚表
     await _toForeground(tester); // resumed：reader 61s > 30s → 仍锁
     expect(find.text('输入密码'), findsOneWidget); // ④b 超剩余宽限期锁定
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
   // ④b hidden 在豁免窗口内不清 KEK 缓存（原生选择器不算切后台）；出窗口即清。
   testWidgets('④b 豁免窗口内 hidden 不清 KEK，出窗口后即清', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     KekSessionCache.instance.clear();
     await KekSessionCache.instance.deriveKek('seed', const [
@@ -481,7 +490,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     LockExemption.begin();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
@@ -501,7 +510,7 @@ void main() {
   //    永远不锁。现在：窗口一关而应用仍不在前台 ⇒ 宽限期从那一刻起表，
   //    等满宽限仍未 resumed 就落锁；TTL 到点视为调用方漏 end，直接落锁。
   testWidgets('④c 窗口关闭后人立刻回来：宽限内放行，不闪锁屏', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -514,7 +523,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('SECRET_HOME'), findsOneWidget);
 
     LockExemption.begin();
@@ -534,7 +543,7 @@ void main() {
   });
 
   testWidgets('④d 窗口关闭后无人回来：等满宽限期落锁，回来必须重新验证', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -547,7 +556,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     LockExemption.begin();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -563,12 +572,12 @@ void main() {
 
     await _toForeground(tester);
     expect(find.text('输入密码'), findsOneWidget); // 落锁不给宽限资格
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('SECRET_HOME'), findsOneWidget);
   });
 
   testWidgets('④e 门到点自己复核豁免到期：之后再无生命周期信号也照样落锁', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -580,7 +589,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     LockExemption.ttlOverrideForTest = const Duration(milliseconds: 120);
     LockExemption.begin(); // 调用方漏 end 的场景
@@ -602,7 +611,7 @@ void main() {
   });
 
   testWidgets('④f 宽限期关闭时：豁免窗口一关即锁（无到期定时器可等）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0); // 用户明确不要宽限
 
     await tester.pumpWidget(
@@ -615,7 +624,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     LockExemption.begin();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -633,7 +642,7 @@ void main() {
 
   // ⑤a 新路径锁定后失败计数仍生效：键盘通道与九宫格都不获旁路。
   testWidgets('⑤a 新路径锁定后键盘/九宫格失败都计入防爆破', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0);
 
     await tester.pumpWidget(
@@ -646,7 +655,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(service.failedAttempts, 0);
 
     // inactive→resumed 触发新路径锁定。
@@ -658,13 +667,13 @@ void main() {
 
     // 键盘通道输错——仍走同一条 service.verify，记一次失败（非旁路）。
     expect(find.byType(TextField), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '2468');
+    await tester.enterText(find.byType(TextField), '246813');
     await tester.pumpAndSettle();
     expect(service.failedAttempts, 1);
     expect(find.text('输入密码'), findsOneWidget);
 
     // 键盘输对——同管线解锁并清零计数。
-    await tester.enterText(find.byType(TextField), '1357');
+    await tester.enterText(find.byType(TextField), '135792');
     await tester.pumpAndSettle();
     expect(find.text('输入密码'), findsNothing);
     expect(service.failedAttempts, 0);
@@ -672,7 +681,7 @@ void main() {
 
   // ⑤b 冷却在新路径下仍生效：达阈值后锁屏切冷却面板，键盘槽一并销毁。
   testWidgets('⑤b 冷却期内新路径不获继续尝试（九宫格+键盘都被替换）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
     await service.setGraceSeconds(0);
 
     await tester.pumpWidget(
@@ -685,7 +694,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     // 新路径锁定。
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -696,7 +705,7 @@ void main() {
 
     // 打满防爆破阈值（默认 10 次）触发冷却。
     for (var i = 0; i < 10; i++) {
-      await _enterPin(tester, '2468');
+      await _enterPin(tester, '246813');
     }
     expect(service.isLockedOut, isTrue);
     // 冷却面板替换密码盘：九宫格与桌面键盘槽都撤下（都不获「冷却期继续猜」）。
@@ -707,7 +716,7 @@ void main() {
 
   // ⑥ Android 既有链路（inactive→hidden→paused）宽限/锁定语义保持。
   testWidgets('⑥Android 三信号链路：超宽限仍锁（既有语义不破）', (tester) async {
-    final service = await _configuredService('1357');
+    final service = await _configuredService('135792');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -720,13 +729,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
 
     await _toBackground(tester); // 移动端整切后台的合法链路
     await _toForeground(tester);
 
     expect(find.text('输入密码'), findsOneWidget);
-    await _enterPin(tester, '1357');
+    await _enterPin(tester, '135792');
     expect(find.text('输入密码'), findsNothing);
   });
 
@@ -737,7 +746,7 @@ void main() {
   //   ② 超宽限落锁时机同样两类都被清（M2 收口不得漏这一条）。
   group('M2 会话清理单一收口审计门禁', () {
     testWidgets('hidden 时机：KEK 缓存与 SessionSecrets 均被清', (tester) async {
-      final service = await _configuredService('1357');
+      final service = await _configuredService('135792');
       await service.setGraceSeconds(0);
 
       KekSessionCache.instance.clear();
@@ -765,7 +774,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       expect(find.text('输入密码'), findsNothing);
 
       await _toBackground(tester); // resumed→inactive→hidden→paused
@@ -775,7 +784,7 @@ void main() {
     });
 
     testWidgets('超宽限落锁时机：KEK 缓存与 SessionSecrets 均被清', (tester) async {
-      final service = await _configuredService('1357');
+      final service = await _configuredService('135792');
       // 宽限 30s，awayDurationReader 返回 45s ⇒ 回前台时超宽限 ⇒ 落锁。
 
       KekSessionCache.instance.clear();
@@ -801,7 +810,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       expect(find.text('输入密码'), findsNothing);
 
       await _toBackground(tester);
@@ -821,7 +830,7 @@ void main() {
     setUp(() => AuditLogger.clear());
 
     Future<void> pumpGate(WidgetTester tester, VaultKeyService vault) async {
-      final service = await _configuredService('1357');
+      final service = await _configuredService('135792');
       await tester.pumpWidget(
         MaterialApp(
           home: AppLockGate(
@@ -840,7 +849,7 @@ void main() {
       final vault = _StubVault(orphanBackupOnDisk: true, oldGenerationOpens: true);
       await pumpGate(tester, vault);
 
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       await tester.pumpAndSettle();
 
       expect(vault.unlockCalls, 1, reason: '先按旧那一世试解——这条腿是本条的全部价值');
@@ -855,7 +864,7 @@ void main() {
       final vault = _StubVault(orphanBackupOnDisk: true);
       await pumpGate(tester, vault);
 
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       await tester.pumpAndSettle();
 
       expect(find.text('检测到旧保险库备份'), findsOneWidget);
@@ -889,7 +898,7 @@ void main() {
       final vault = _StubVault(orphanBackupOnDisk: true);
       await pumpGate(tester, vault);
 
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       await tester.pumpAndSettle();
       await tester.tap(find.text('确认重建'));
       await tester.pumpAndSettle();
@@ -917,7 +926,7 @@ void main() {
       );
       await pumpGate(tester, vault);
 
-      await _enterPin(tester, '1357');
+      await _enterPin(tester, '135792');
       await tester.pumpAndSettle();
 
       expect(vault.initializeCalls, 1, reason: '老用户升级首建这条腿不能被新闸门挡住');

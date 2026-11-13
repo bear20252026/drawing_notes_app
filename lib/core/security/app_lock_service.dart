@@ -68,10 +68,18 @@ class AppLockService extends ChangeNotifier {
   @visibleForTesting
   static KdfParams? testPinKdfOverride;
 
-  /// PIN 长度边界（批次②：自定义 4–12 位）。
-  static const int minPinLength = 4;
+  /// PIN 长度边界（自定义 6–12 位）。
+  ///
+  /// 下限 6 出自 S-002（外部审计 2026-10-10）：4 位纯数字只有 10⁴ 空间，
+  /// 离线拿到 pin_hash + salt 即可暴力；Argon2id 与指数冷却只抬高**在线**
+  /// 成本，离线熵由长度决定。2026-11-12 业主口径「不再考虑老用户」，故直接
+  /// 收下限，而不是只做默认引导。
+  ///
+  /// 既有 4 位 PIN 的**解锁**不受影响：[verify] 不校验长度、只认哈希，
+  /// 本下限只在「新设/修改 PIN」时生效。
+  static const int minPinLength = 6;
   static const int maxPinLength = 12;
-  static const int defaultPinLength = 4;
+  static const int defaultPinLength = 6;
 
   /// 宽限期档位（秒）。默认 30s（用户 2026-09-06 拍板「锁屏 30s 宽限期」；
   /// Windows 任务视图扫一眼这类瞬时离开不再弹锁屏）。
@@ -91,7 +99,7 @@ class AppLockService extends ChangeNotifier {
   /// 是否已设置应用锁 PIN。
   bool get isConfigured => _configured;
 
-  /// 当前 PIN 长度（未配置时为默认值 4；密码盘圆点数/桌面输入框
+  /// 当前 PIN 长度（未配置时为默认值 6；密码盘圆点数/桌面输入框
   /// maxLength 均以它为准）。
   int get pinLength => _pinLength;
 

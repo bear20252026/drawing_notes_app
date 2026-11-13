@@ -4,7 +4,7 @@
 //
 // 说明：测试运行在桌面宿主（Windows），UnlockFlow 走桌面端
 // TextField 对话框分支（PinPadCore 弹出层另有门组件测试覆盖）。
-// 批次②：设置流程前插入「密码长度」选择器（4–12 位）；
+// 批次②：设置流程前插入「密码长度」选择器（S-002 起 6–12 位）；
 // 收集模式按钮文案为「确定」（验证模式仍为「解锁」）。
 
 import 'package:flutter/material.dart';
@@ -30,7 +30,7 @@ void main() {
     KekSessionCache.bypassIsolateForTests = false;
   });
 
-  /// 走过「密码长度」选择器（默认 4 位，直接下一步）。
+  /// 走过「密码长度」选择器（默认 6 位，直接下一步）。
   Future<void> confirmLength(tester) async {
     expect(find.text('密码长度'), findsOneWidget);
     await tester.tap(find.text('下一步'));
@@ -52,18 +52,18 @@ void main() {
     await confirmLength(tester);
     expect(find.text('设置密码'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '1234');
+    await tester.enterText(find.byType(TextField), '123456');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
     expect(find.text('确认密码'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '1234');
+    await tester.enterText(find.byType(TextField), '123456');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
 
     expect(service.isConfigured, isTrue);
-    expect(await service.verify('1234'), isTrue);
-    expect(service.pinLength, 4);
+    expect(await service.verify('123456'), isTrue);
+    expect(service.pinLength, 6);
     expect(find.text('已开启'), findsOneWidget);
   });
 
@@ -77,7 +77,7 @@ void main() {
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
 
-    // 拖动 Slider（值域 4–12）：往右拖一段，落点即所选长度。
+    // 拖动 Slider（值域 6–12）：往右拖一段，落点即所选长度。
     final slider = find.byType(Slider);
     expect(slider, findsOneWidget);
     await tester.drag(slider, const Offset(120, 0));
@@ -91,11 +91,11 @@ void main() {
       ),
     );
     final length = int.parse(shown.data!.split(' ').first);
-    expect(length, inInclusiveRange(4, 12));
+    expect(length, inInclusiveRange(6, 12));
     expect(
       length,
       isNot(AppLockService.defaultPinLength),
-      reason: '往右拖后应离开默认 4 位',
+      reason: '往右拖后应离开默认 6 位',
     );
 
     await tester.tap(find.text('下一步'));
@@ -124,10 +124,10 @@ void main() {
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
     await confirmLength(tester);
-    await tester.enterText(find.byType(TextField), '1234');
+    await tester.enterText(find.byType(TextField), '123456');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '9999');
+    await tester.enterText(find.byType(TextField), '999999');
     await tester.tap(find.text('确定'));
     await tester.pumpAndSettle();
 
@@ -138,7 +138,7 @@ void main() {
   testWidgets('已配置：修改密码需先验证旧密码（验证模式按钮仍为「解锁」）', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final service = AppLockService();
-    await service.setPin('0000');
+    await service.setPin('000000');
 
     await tester.pumpWidget(
       MaterialApp(home: AppLockSettingsPage(service: service)),
@@ -151,16 +151,16 @@ void main() {
     expect(find.text('验证当前密码'), findsOneWidget);
 
     // 输错旧密码：桌面端原地显示错误、对话框不关闭，锁不被关闭。
-    await tester.enterText(find.byType(TextField), '1111');
+    await tester.enterText(find.byType(TextField), '111111');
     await tester.tap(find.text('解锁'));
     await tester.pumpAndSettle();
     expect(find.text('密码不正确'), findsOneWidget);
     expect(find.text('设置密码'), findsNothing);
     expect(service.isConfigured, isTrue);
-    expect(await service.verify('0000'), isTrue);
+    expect(await service.verify('000000'), isTrue);
 
     // 输对旧密码：进入长度选择 → 两步设置新密码流程。
-    await tester.enterText(find.byType(TextField), '0000');
+    await tester.enterText(find.byType(TextField), '000000');
     await tester.tap(find.text('解锁'));
     await tester.pumpAndSettle();
     await confirmLength(tester);

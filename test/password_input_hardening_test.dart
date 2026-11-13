@@ -81,7 +81,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('桌面收集模式最短长度（P1 收口第一层，与移动端 flexibleMinLength 同口径）', () {
+  group('桌面收集模式最短长度（P1 收口第一层；固定 PIN 下限与 AppLockService.minPinLength 同档）', () {
     testWidgets('空密码：不提交、就地提示、对话框不关闭', (tester) async {
       await pumpDesktopField(tester);
 
@@ -93,19 +93,19 @@ void main() {
       expect(find.byType(TextField), findsOneWidget, reason: '对话框不关闭');
     });
 
-    testWidgets('短于 4 位拒收；补足 4 位才回传（两次回车设不出空密码）', (tester) async {
+    testWidgets('短于 6 位拒收；补足 6 位才回传（两次回车设不出空密码）', (tester) async {
       await pumpDesktopField(tester);
 
-      await tester.enterText(find.byType(TextField), '123');
+      await tester.enterText(find.byType(TextField), '12345');
       await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
       expect(find.textContaining('密码长度不足'), findsOneWidget);
       expect(popped, isNull);
 
-      await tester.enterText(find.byType(TextField), '1234');
+      await tester.enterText(find.byType(TextField), '123456');
       await tester.tap(find.text('确定'));
       await tester.pumpAndSettle();
-      expect(popped, '1234');
+      expect(popped, '123456');
       expect(find.byType(TextField), findsNothing);
     });
 
@@ -365,11 +365,11 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final guard = memoryGuard();
       final service = AppLockService(guard: guard);
-      await service.setPin('9527');
+      await service.setPin('952700');
 
       expect(service.failedAttempts, 0);
-      expect(await service.matchPinReadOnly('9527'), isTrue);
-      expect(await service.matchPinReadOnly('0000'), isFalse);
+      expect(await service.matchPinReadOnly('952700'), isTrue);
+      expect(await service.matchPinReadOnly('000000'), isFalse);
       expect(
         guard.failureCount,
         0,
@@ -377,9 +377,9 @@ void main() {
       );
 
       // 对照：登录校验照旧计次，成功照旧清零。
-      expect(await service.verify('0000'), isFalse);
+      expect(await service.verify('000000'), isFalse);
       expect(guard.failureCount, 1);
-      expect(await service.verify('9527'), isTrue);
+      expect(await service.verify('952700'), isTrue);
       expect(guard.failureCount, 0);
     });
 
@@ -389,23 +389,23 @@ void main() {
       // 静态探测入口读到的是同一条持久化记录，锁动态才可比对。
       final service = AppLockService();
       await service.load();
-      await service.setPin('9527');
+      await service.setPin('952700');
       for (var i = 0; i < 10; i++) {
         expect(await service.verify('wrong-$i'), isFalse);
       }
       expect(service.isLockedOut, isTrue);
 
       // 三态契约：null ≠ 「不同码」；收集方据此拒绝设密。
-      expect(await service.matchPinReadOnly('9527'), isNull);
+      expect(await service.matchPinReadOnly('952700'), isNull);
       expect(
-        await AppLockService.probeMatchesAppLockPin('9527'),
+        await AppLockService.probeMatchesAppLockPin('952700'),
         isNull,
         reason: '静态探测入口同样返回 null（旧实现在冷却期静默放行同码）',
       );
       // 兼容位：bool 入口仅在「确证同码」时为 true，签名不变。
-      expect(await AppLockService.matchesAppLockPin('9527'), isFalse);
+      expect(await AppLockService.matchesAppLockPin('952700'), isFalse);
       // 冷却期内正确 PIN 也被拒——新增通道不削弱惩罚。
-      expect(await service.verify('9527'), isFalse);
+      expect(await service.verify('952700'), isFalse);
     });
   });
 
@@ -433,7 +433,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final guard = memoryGuard();
       final service = AppLockService(guard: guard);
-      await service.setPin('1357');
+      await service.setPin('135790');
 
       await pumpGate(tester, service, desktopKeyboardInput: true);
 
@@ -445,14 +445,14 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
 
       // 键盘路径不获得旁路：错密码同样进 verify、同样记一次失败。
-      await tester.enterText(find.byType(TextField), '2468');
+      await tester.enterText(find.byType(TextField), '246810');
       await tester.pumpAndSettle();
       expect(guard.failureCount, 1);
       expect(find.text('输入密码'), findsOneWidget, reason: '错密码仍锁着');
       expect(find.text('密码不正确'), findsOneWidget);
 
       // 正确密码：键盘通道同样把锁屏撤掉（旧实现只 verify 不放行）。
-      await tester.enterText(find.byType(TextField), '1357');
+      await tester.enterText(find.byType(TextField), '135790');
       await tester.pumpAndSettle();
       expect(find.text('输入密码'), findsNothing);
       expect(find.text('SECRET_HOME'), findsOneWidget);
@@ -462,7 +462,7 @@ void main() {
     testWidgets('显式关闭：不叠加键盘槽（移动端/forced false 行为）', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService(guard: memoryGuard());
-      await service.setPin('1357');
+      await service.setPin('135790');
 
       await pumpGate(tester, service, desktopKeyboardInput: false);
 

@@ -273,7 +273,7 @@ void main() {
       final service = AppLockService(
         preferencesLoader: SharedPreferences.getInstance,
       );
-      await service.setPin('1234');
+      await service.setPin('123456');
 
       final vault = _tempVault();
       final mk = List<int>.generate(32, (i) => i + 1);
@@ -323,7 +323,7 @@ void main() {
         platformSupported: () => true,
       );
       final vault = _tempVault();
-      await service.setPin('1234');
+      await service.setPin('123456');
 
       await tester.pumpWidget(
         MaterialApp(

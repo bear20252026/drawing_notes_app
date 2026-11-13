@@ -305,6 +305,10 @@ class AppLockSettingsPage extends StatelessWidget {
       context,
       title:
           AppLocalizations.of(context)?.lockVerifyCurrentPassword ?? '验证当前密码',
+      // 必须显式传当前 PIN 长度：UnlockFlow 的默认值是 4，而 S-002 起
+      // 默认长度已是 6——桌面 TextField 的 LengthLimitingTextInputFormatter
+      // 会把输入截到 maxLength，不传就永远输不完自己的密码。
+      pinLength: service.pinLength,
       onVerify: (p) => service.verify(p),
     );
     if (pin == null || !context.mounted) return;
@@ -391,7 +395,7 @@ class AppLockSettingsPage extends StatelessWidget {
     );
   }
 
-  /// 先选密码长度（4–12 位），再走两步设置：设置 → 确认（一致才生效）。
+  /// 先选密码长度（6–12 位），再走两步设置：设置 → 确认（一致才生效）。
   ///
   /// [oldPinForVault] 非空表示「修改密码」流程：保险库以旧 PIN 换盐
   /// 重包裹（主密钥不变，已加密文件无需迁移）。
@@ -523,9 +527,14 @@ class AppLockSettingsPage extends StatelessWidget {
     await _startEnableFlow(context, oldPinForVault: oldPin);
   }
 
-  /// 密码长度选择器：Slider 4–12 位，默认沿用当前长度（无则 4）。
+  /// 密码长度选择器：Slider 6–12 位，默认沿用当前长度（无则 6）。
   Future<int?> _pickPinLength(BuildContext context) async {
-    var selected = service.pinLength;
+    // 既有 4 位 PIN 的用户 pinLength 仍是 4，而 Slider 下限已是 6（S-002）
+    // ——夹进值域，否则 Slider 的 value ∈ [min, max] 断言直接红。
+    var selected = service.pinLength.clamp(
+      AppLockService.minPinLength,
+      AppLockService.maxPinLength,
+    );
     final l10n = AppLocalizations.of(context);
     final confirmed = await GlassDialog.show<bool>(
       context: context,
@@ -549,7 +558,8 @@ class AppLockSettingsPage extends StatelessWidget {
                 onChanged: (v) => setDialogState(() => selected = v.round()),
               ),
               Text(
-                l10n?.lockPinLengthHint ?? '建议 6 位以上，纯数字密码强度有限。',
+                l10n?.lockPinLengthHint ??
+                    '至少 6 位；纯数字密码强度有限，建议搭配系统生物识别快速解锁。',
                 style: AppleType.captionStyle(
                   Theme.of(dialogContext).colorScheme.outline,
                 ),
@@ -630,6 +640,9 @@ class _QuickUnlockTileState extends State<_QuickUnlockTile> {
       final pin = await UnlockFlow.show(
         context,
         title: l10n?.lockVerifyCurrentPassword ?? '验证当前密码',
+        // 同 _startBindResetDiskFlow：不传会落回 UnlockFlow 默认 4 位上限，
+        // 把 6 位（S-002 起默认）的 PIN 截断——桌面端永远解不开。
+        pinLength: widget.appLock.pinLength,
         onVerify: (p) => widget.appLock.verify(p),
       );
       if (pin == null || !mounted) return;

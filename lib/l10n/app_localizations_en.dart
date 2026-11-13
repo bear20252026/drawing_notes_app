@@ -326,7 +326,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lockPinLengthHint =>
-      '6+ digits recommended; numeric-only passwords have limited strength.';
+      'At least 6 digits; numeric-only passwords have limited strength, so pair with system biometric quick unlock.';
 
   @override
   String get lockGraceTitle => 'Grace Period on Return';

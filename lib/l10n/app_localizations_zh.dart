@@ -315,7 +315,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get lockPinLengthHint => '建议 6 位以上，纯数字密码强度有限。';
+  String get lockPinLengthHint => '至少 6 位；纯数字密码强度有限，建议搭配系统生物识别快速解锁。';
 
   @override
   String get lockGraceTitle => '切后台宽限期';

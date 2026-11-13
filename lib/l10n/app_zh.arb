@@ -330,7 +330,7 @@
       }
     }
   },
-  "lockPinLengthHint": "建议 6 位以上，纯数字密码强度有限。",
+  "lockPinLengthHint": "至少 6 位；纯数字密码强度有限，建议搭配系统生物识别快速解锁。",
   "@lockPinLengthHint": {
     "description": "密码长度建议"
   },

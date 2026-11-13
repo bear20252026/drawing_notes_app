@@ -29,12 +29,12 @@ void main() {
     test('setPin 后：正确 PIN 通过、错误 PIN 拒绝，且明文不落盘', () async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
-      await service.setPin('9527');
+      await service.setPin('952700');
 
       expect(service.isConfigured, isTrue);
-      expect(await service.verify('9527'), isTrue);
-      expect(await service.verify('0000'), isFalse);
-      expect(await service.verify('95271'), isFalse);
+      expect(await service.verify('952700'), isTrue);
+      expect(await service.verify('000000'), isFalse);
+      expect(await service.verify('952701'), isFalse);
 
       // 安全底线：shared_preferences 中不得出现 PIN 明文。
       final prefs = await SharedPreferences.getInstance();
@@ -43,41 +43,41 @@ void main() {
           .map((k) => prefs.get(k))
           .whereType<String>()
           .toList();
-      expect(values.contains('9527'), isFalse);
+      expect(values.contains('952700'), isFalse);
       expect(prefs.getKeys().any((k) => k.contains('app_lock')), isTrue);
     });
 
     test('disable 后恢复未配置且 verify 拒绝', () async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
-      await service.setPin('1111');
+      await service.setPin('111111');
       await service.disable();
 
       expect(service.isConfigured, isFalse);
-      expect(await service.verify('1111'), isFalse);
+      expect(await service.verify('111111'), isFalse);
     });
 
     test('新实例 load() 从持久化恢复已配置状态（冷启动路径）', () async {
       SharedPreferences.setMockInitialValues({});
       final writer = AppLockService();
-      await writer.setPin('2468');
+      await writer.setPin('246810');
 
       // 模拟冷启动：全新 service 实例从同一持久化层 load。
       final cold = AppLockService();
       expect(cold.isConfigured, isFalse);
       await cold.load();
       expect(cold.isConfigured, isTrue);
-      expect(await cold.verify('2468'), isTrue);
+      expect(await cold.verify('246810'), isTrue);
     });
 
     test('覆盖 setPin：旧 PIN 失效，新 PIN 生效', () async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
-      await service.setPin('1111');
-      await service.setPin('2222');
+      await service.setPin('111111');
+      await service.setPin('222222');
 
-      expect(await service.verify('1111'), isFalse);
-      expect(await service.verify('2222'), isTrue);
+      expect(await service.verify('111111'), isFalse);
+      expect(await service.verify('222222'), isTrue);
     });
 
     test('批次②：setPin 记录长度，新实例 load 后 pinLength 恢复（6 位）', () async {
@@ -92,10 +92,14 @@ void main() {
       expect(await cold.verify('135790'), isTrue);
     });
 
-    test('批次②：setPin 断言 4–12 位边界', () async {
+    test('批次②：setPin 断言 6–12 位边界（S-002 下限 6）', () async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
       expect(() => service.setPin('123'), throwsA(isA<AssertionError>()));
+      expect(
+        () => service.setPin('12345'), // 5 位：S-002 前的旧下限，现应拒
+        throwsA(isA<AssertionError>()),
+      );
       expect(
         () => service.setPin('1234567890123'), // 13 位
         throwsA(isA<AssertionError>()),
@@ -113,20 +117,20 @@ void main() {
     test('批次②：matchesAppLockPin——同码探测（≠开屏密码强制的底层）', () async {
       SharedPreferences.setMockInitialValues({});
       final writer = AppLockService();
-      await writer.setPin('9527');
+      await writer.setPin('952700');
 
       // 同码 → true；不同码 → false；未配置 → false。
-      expect(await AppLockService.matchesAppLockPin('9527'), isTrue);
-      expect(await AppLockService.matchesAppLockPin('9528'), isFalse);
+      expect(await AppLockService.matchesAppLockPin('952700'), isTrue);
+      expect(await AppLockService.matchesAppLockPin('952701'), isFalse);
 
       await writer.disable();
-      expect(await AppLockService.matchesAppLockPin('9527'), isFalse);
+      expect(await AppLockService.matchesAppLockPin('952700'), isFalse);
     });
 
     test('宽限期：默认 30s，新实例 load 恢复', () async {
       SharedPreferences.setMockInitialValues({});
       final writer = AppLockService();
-      await writer.setPin('1357');
+      await writer.setPin('135790');
 
       // 默认值（setPin 不触碰宽限）。
       expect(writer.graceDuration, const Duration(seconds: 30));

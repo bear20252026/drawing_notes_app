@@ -421,7 +421,7 @@
       }
     }
   },
-  "lockPinLengthHint": "6+ digits recommended; numeric-only passwords have limited strength.",
+  "lockPinLengthHint": "At least 6 digits; numeric-only passwords have limited strength, so pair with system biometric quick unlock.",
   "@lockPinLengthHint": {
     "description": "密码长度建议"
   },

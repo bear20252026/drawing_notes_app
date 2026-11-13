@@ -184,7 +184,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
       await service.load();
-      await service.setPin('9527');
+      await service.setPin('952700');
 
       for (var i = 0; i < 12; i++) {
         expect(await AppLockService.probeMatchesAppLockPin('000$i'), isFalse);
@@ -201,27 +201,27 @@ void main() {
       // 惩罚通道未被绕过：真正的登录校验照常计次。
       expect(await service.verify('0000'), isFalse);
       expect((await _reload()).failedAttempts, 1);
-      expect(await service.verify('9527'), isTrue);
+      expect(await service.verify('952700'), isTrue);
     });
 
     test('冷却期：探测返回 null（不是 false）——笔记本路径据此拒绝设密', () async {
       SharedPreferences.setMockInitialValues({});
       final service = AppLockService();
       await service.load();
-      await service.setPin('9527');
+      await service.setPin('952700');
       for (var i = 0; i < 10; i++) {
         expect(await service.verify('wrong-$i'), isFalse);
       }
       expect(service.isLockedOut, isTrue);
 
       expect(
-        await AppLockService.probeMatchesAppLockPin('9527'),
+        await AppLockService.probeMatchesAppLockPin('952700'),
         isNull,
         reason: '三态：null = 判定不了，收集方须拒绝本次设密',
       );
       // 对照旧入口：bool 语义下「冷却期判不了」与「确实不同码」同为 false，
       // 同码会被静默放行——这正是本项缺陷的第二半。
-      expect(await AppLockService.matchesAppLockPin('9527'), isFalse);
+      expect(await AppLockService.matchesAppLockPin('952700'), isFalse);
     });
   });
 }

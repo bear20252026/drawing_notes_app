@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -137,10 +138,11 @@ class PinPadUnlockSheet extends StatelessWidget {
 ///
 /// [minLength]（P1 空密码收口，2026-10-03）：**仅作用于收集模式**
 /// （[onVerify] == null，即设密/改密/重置）——空串与短于该长度的凭据
-/// 一律不提交。口径与移动端 [PinPadCore.flexibleMinLength]（默认 4）
-/// 统一：两端「设出来的密码」必须同样强，否则桌面两次回车即可设成空密码、
-/// 文档显示「已加密」却形同裸奔。验证模式（解锁）不受影响——既有已设
-/// 短密码/空密码文档的解锁路径语义保持不变。
+/// 一律不提交。固定 PIN 场景的下限与 AppLockService.minPinLength 同档
+/// （S-002 起为 6 位）：两端「设出来的密码」必须同样强，否则桌面两次回车
+/// 即可设出短密码、文档显示「已加密」却形同裸奔。文件密码走 [UnlockFlow]
+/// 的 flexible 分支，下限由调用方显式传 [flexibleMinLength]（不经本默认）。
+/// 验证模式（解锁）不受影响——既有已设短密码/空密码文档的解锁路径语义保持不变。
 class DesktopUnlockField extends StatefulWidget {
   const DesktopUnlockField({
     super.key,
@@ -174,8 +176,8 @@ class DesktopUnlockField extends StatefulWidget {
   /// 收集模式最短长度；null 时取 [_kMinCredentialLength]。
   final int? minLength;
 
-  /// 与 AppLockService.minPinLength / PinPadCore.flexibleMinLength 同档。
-  static const int _kMinCredentialLength = 4;
+  /// 固定 PIN 场景的收集下限，与 AppLockService.minPinLength 同档（S-002：6 位）。
+  static const int _kMinCredentialLength = 6;
 
   static Future<String?> show(
     BuildContext context, {
@@ -213,7 +215,7 @@ class _DesktopUnlockFieldState extends State<DesktopUnlockField> {
   /// 「空密码」「长度不足」两类提示，改存文案。
   String? _errorText;
 
-  /// 收集模式最短长度（未指定时与移动端同口径 4 位）。
+  /// 收集模式最短长度（未指定时与 AppLockService.minPinLength 同档，6 位）。
   int get _minLength =>
       widget.minLength ?? DesktopUnlockField._kMinCredentialLength;
 
@@ -361,7 +363,9 @@ abstract final class UnlockFlow {
   static Future<String?> show(
     BuildContext context, {
     String? title,
-    int pinLength = 4,
+    // 默认跟随系统下限（S-002 起 6 位）：固定 PIN 调用方若省略本参数，
+    // 桌面 TextField 的 maxLength 会把它截到 4 位，密码永远输不完。
+    int pinLength = AppLockService.minPinLength,
     bool flexible = false,
     int flexibleMinLength = 4,
     int flexibleMaxLength = 12,
@@ -396,7 +400,8 @@ abstract final class UnlockFlow {
       // C-14：文件密码域（flexible）⇒ 桌面端放开字符与长度上限。
       allowTextInput: flexible,
       // P1：收集模式最短长度与移动端 flexibleMinLength 同口径
-      // （固定 PIN 走 DesktopUnlockField 默认 4 = AppLockService.minPinLength）。
+      // （固定 PIN 走 DesktopUnlockField 默认值 = AppLockService.minPinLength，
+      // S-002 起为 6 位）。
       minLength: flexible ? flexibleMinLength : null,
     );
   }

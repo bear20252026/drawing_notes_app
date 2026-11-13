@@ -665,7 +665,7 @@ abstract class AppLocalizations {
   /// 密码长度建议
   ///
   /// In en, this message translates to:
-  /// **'6+ digits recommended; numeric-only passwords have limited strength.'**
+  /// **'At least 6 digits; numeric-only passwords have limited strength, so pair with system biometric quick unlock.'**
   String get lockPinLengthHint;
 
   /// 切后台宽限期设置行标题
