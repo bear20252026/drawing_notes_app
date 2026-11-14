@@ -78,6 +78,10 @@
 - **pr-security.yml**：补装 Flutter（此前 job 只有 Python，check_deps.sh 因
   dart 缺失 fail-closed 恒红——PR 流程首跑暴露的既有缺陷）；依赖门禁阈值
   显式置 12 并注释 SDK 上限基线（升级 Flutter 后应清零回调）。
+- **pr-quality.yml**：补 editor_core 子包 pub get（漏了 ci.yml 2026-11-10
+  已有的修复，根 analyze 解析子包 package:test 报 33 处 undefined）；
+  「全量测试」按 kdf 标签拆分串行（v1.17.20 flake 根治同构）+ 补
+  editor_core dart test 步骤。
 - 注意：pdfium_dart 0.4.x 构建钩子需从 GitHub Releases 下载 PDFium 二进制；
   本机 DNS 将 release-assets.githubusercontent.com 解析到 127.0.0.1（污染），
   已用 DoH 查真实 IP + curl --resolve 取回放构建缓存（未改系统 DNS/hosts）。
