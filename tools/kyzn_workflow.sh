@@ -13,8 +13,18 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-# 注入 Flutter/工具 PATH（bash 环境默认不含）
-export PATH="/d/flutter/bin:$HOME/.cargo/bin:$PATH"
+# 注入 Flutter/工具 PATH（bash 环境默认不含）。
+# M-12 修复（2026-11-13 全面审计）：/d/flutter/bin 是 Windows Git Bash 的
+# D 盘路径，macOS 不存在——优先用已在 PATH 里的 flutter（command -v），
+# 否则按平台补候选路径。
+if ! command -v flutter >/dev/null 2>&1; then
+  if [ "$(uname)" = "Darwin" ]; then
+    export PATH="$HOME/development/flutter/bin:$HOME/flutter/bin:$PATH"
+  else
+    export PATH="/d/flutter/bin:$PATH"
+  fi
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
 
 log() { printf '\033[1;36m[kyzn-local]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[kyzn-local] ⚠ %s\n' "$*"; }

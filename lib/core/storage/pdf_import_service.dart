@@ -201,6 +201,10 @@ class PdfImportService {
       throw StateError('PDF 页数超过 $_maxImportPages 页限制，拒绝导入');
     }
     final results = <RenderedPdfPage>[];
+    // L-03 修复（2026-11-13 全面审计）：输出字节预算在渲染器内**逐页前置**
+    // 累计——旧式只在落盘循环里查总量，恶意 PDF 会先把整本渲染进内存
+    // （峰值可达数百 MB）才被拒。现在超限即停，已渲染页随异常释放。
+    var totalOutputBytes = 0;
     for (final initialPage in document.pages) {
       final page = await initialPage.ensureLoaded();
       final longest = page.width > page.height ? page.width : page.height;
@@ -219,10 +223,15 @@ class PdfImportService {
         throw StateError('无法渲染 PDF 第 ${page.pageNumber} 页');
       }
       try {
+        final pngBytes = await _encodePng(image);
+        totalOutputBytes += pngBytes.length;
+        if (totalOutputBytes > _maxTotalOutputBytes) {
+          throw StateError('PDF 导入输出总量超限（超过 500MB），拒绝继续');
+        }
         results.add(
           RenderedPdfPage(
             pageNumber: page.pageNumber,
-            pngBytes: await _encodePng(image),
+            pngBytes: pngBytes,
             width: image.width,
             height: image.height,
           ),

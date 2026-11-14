@@ -37,6 +37,18 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
+      # CI 缺陷修复（2026-11-14，PR #56 首次走 PR 流程暴露）：check_deps.sh
+      # 需要 dart pub outdated，而本 job 此前只装了 Python——dart 不在 PATH
+      # 时脚本 fail-closed exit 2（「查不了」不判通过），门禁恒红。补装与
+      # 其余工作流同版本的 Flutter（钉同一 SHA）。
+      - name: 安装 Flutter（依赖过期检查需要 dart）
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: 3.47.9
+          channel: 'stable'
+          cache: true
+      - name: 依赖解析（pub outdated 前置）
+        run: flutter pub get
       - name: 秘密扫描（Gitleaks 模式——0 误报）
         run: python tools/scan_secrets.py
       # 与 sbom.yml 的分工：sbom.yml 现在也监听 pull_request，但它**只归档制品**
@@ -48,4 +60,9 @@ jobs:
       # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
       # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
       - name: 依赖清单与过期检查
-        run: bash tools/check_deps.sh
+        # 阈值基线（2026-11-14，业主批准「全部升级」后实测）：可升级数 12，
+        # 全部为 Flutter 3.47.9（Dart 3.13）SDK 上限所阻——hotkey_manager
+        # 0.4.0 / window_manager 0.7.0 需 Dart ^3.14；analyzer 14.x /
+        # test_api 0.7.15 / nativeapi 0.6.x 等受 SDK 钉版传递约束。
+        # 升级 Flutter 3.50 后应清零并回调阈值。清单见 dart pub outdated。
+        run: bash tools/check_deps.sh --threshold 12

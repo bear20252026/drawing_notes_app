@@ -22,12 +22,19 @@ class FakeClock {
   /// 当前假时钟的 Unix 毫秒值。可直接读写以建模回拨（`ms -= ...`）等场景。
   int ms;
 
+  /// 独立的**单调累计毫秒**（模拟 Stopwatch / 进程 uptime）。
+  /// 只随 [advance]/[advanceBy] 增长，**不受**直接读写 [ms]（拨钟）影响——
+  /// 用于把「自然时间流逝」与「拨动墙钟」分开建模（L-04 冷却单调口径）。
+  int monotonicMs = 0;
+
   /// 返回当前假时间。
   DateTime call() => DateTime.fromMillisecondsSinceEpoch(ms);
 
   /// 推进 [milliseconds] 毫秒并返回推进后的毫秒值。
+  /// 墙钟与单调钟同步前进（模拟自然流逝）。
   int advance(int milliseconds) {
     ms += milliseconds;
+    monotonicMs += milliseconds;
     return ms;
   }
 

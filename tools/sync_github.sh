@@ -12,6 +12,17 @@ if [ -n "$(git status --porcelain)" ]; then
   if [ -z "$MSG" ]; then
     MSG="chore: 同步本地修改 $(date +%Y-%m-%d\ %H:%M)"
   fi
+  # L-14 护栏（2026-11-13 全面审计）：git add -A 曾把 spikes/ 268MB 实验
+  # 产物全收进暂存区（.gitignore 补救前）。全收前先列出 >5MB 的未跟踪
+  # 文件，命中即中止——大产物入库须人工确认（加 ignore 或显式 add）。
+  BIG_UNTRACKED="$(git ls-files --others --exclude-standard -z \
+    | xargs -0 -I{} sh -c 'test -f "{}" && find "{}" -size +5M' 2>/dev/null || true)"
+  if [ -n "$BIG_UNTRACKED" ]; then
+    echo "[sync] FATAL: 发现 >5MB 的未跟踪文件，已中止全量暂存：" >&2
+    echo "$BIG_UNTRACKED" >&2
+    echo "[sync] 请先加入 .gitignore 或显式 git add 后重试。" >&2
+    exit 1
+  fi
   git add -A
   git commit -q -m "$MSG"
   echo "[sync] committed: $MSG"

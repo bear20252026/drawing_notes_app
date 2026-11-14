@@ -394,7 +394,11 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: windows-setup-installer
-          path: build/windows/installer/setup_*.exe
+          # M-14 修复（2026-11-13 全面审计）：SHA256SUMS.txt 此前生成后
+          # 不进任何 artifact/Release——完整性文件实际不随产物分发。
+          path: |
+            build/windows/installer/setup_*.exe
+            build/windows/installer/SHA256SUMS.txt
           if-no-files-found: error
 
       - name: Upload Windows installer ZIP
@@ -411,6 +415,7 @@ jobs:
           files: |
             build/windows/installer/setup_*.exe
             build/windows/installer/drawing_notes_windows_setup.zip
+            build/windows/installer/SHA256SUMS.txt
           # CTL-04：草稿 = 推 tag 不再对外公开；发布这一步交回人（AGENTS.md §7）。
           draft: true
           generate_release_notes: true

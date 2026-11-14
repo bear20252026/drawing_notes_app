@@ -8,10 +8,11 @@
 ![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
 
-> **安全定位**：政府级安全设计——加密笔记（每笔记独立密钥）、策略引擎
-> （默认拒绝）、会话守卫（自动锁定）、VFS 加密对象仓库（版本/原子提交）、
-> 篡改可检测审计（无密钥 SHA-256 哈希链；校验范围限于进程内保留的最近
-> ≤1000 条）、导入隔离（SVG/PDF 预检）。
+> **安全定位**：政府级安全设计——加密笔记（每笔记独立密钥；媒体 K_note
+> 注入点已实现、生产暂走会话级密钥）、策略引擎（默认拒绝）、会话守卫
+> （自动锁定）、VFS 加密对象仓库（版本/原子提交；已实现未启用）、
+> 篡改可检测审计（无密钥 SHA-256 哈希链；内存链 ≤1000 条 + 落盘文件双段
+> 重放，尾截断/整段删除不可检——详见 SECURITY.md）、导入隔离（SVG/PDF 预检）。
 
 ---
 
@@ -75,7 +76,7 @@ flutter build macos --debug
 # 静态检查（提交门禁：必须 No issues found）
 flutter analyze
 
-# 全部单元/组件测试（约 2750 项——覆盖画布/块文档/安全审计回归/
+# 全部单元/组件测试（约 3000 项——覆盖画布/块文档/安全审计回归/
 # WebDAV 同步/导出链路 + 2026-09 全量审计回归；真 KDF 用例按标签拆分串行）
 flutter test
 
@@ -88,9 +89,10 @@ bash tools/check_boundaries.sh
 python tools/code_guard.py --dir lib --force-native --json
 ```
 
-直推 master 触发 7 条编排，全部绿才合并：`CI` / `PR Architecture` / `软件质量工程门禁` /
-`Code Guard (行数门禁)` / `SBOM` / `Secret Scan` 六个仓库自定义编排 + GitHub 托管的 `CodeQL`。
-两个已知边界：`软件质量工程门禁` 带 `paths:` 过滤，纯文档提交那轮只有 6 条；
+直推 master 触发 8 条编排，全部绿才合并：`CI` / `PR Architecture` / `软件质量工程门禁` /
+`Code Guard (行数门禁)` / `SBOM` / `Secret Scan` / `macOS Build (Release)` 七个仓库自定义编排
++ GitHub 托管的 `CodeQL`。
+两个已知边界：`软件质量工程门禁` 带 `paths:` 过滤，纯文档提交那轮只有 7 条；
 `PR Platform` / `PR Quality` / `PR Security` 只在 `pull_request` 触发，直推流程不跑它们。
 
 ## 安全特性（专家审计闭环）
@@ -98,14 +100,14 @@ python tools/code_guard.py --dir lib --force-native --json
 | 安全组件 | 说明 |
 | --- | --- |
 | **加密笔记** | AES-256-GCM + AAD 上下文绑定（NIST SP 800-38D）——正文/媒体/回收站加密，nonce 每次随机 |
-| **每笔记独立密钥** | 独立数据密钥 + AAD 绑定笔记 ID——一笔记密钥泄露不影响其他（Knovya 模式） |
+| **每笔记独立密钥** | 独立数据密钥 + AAD 绑定笔记 ID——一笔记密钥泄露不影响其他（Knovya 模式）。正文已生效；媒体 K_note 注入点已实现、生产暂走会话级密钥（2026-11-13 审计对齐） |
 | **开屏密码 / 保险库** | Argon2id 派生 + 恒定时间比较 + 持久化指数冷却防爆破；信封加密（版本化）+ 原子提交 |
 | **快速解锁** | Windows Hello / Android BiometricPrompt（local_auth），DPAPI/Keystore 绑定 |
 | **USB 重置盘** | 分页画布/文件密码「忘记密码」重置（LUKS 同款：盘钥匙解 DEK → 新盐重绕密码槽） |
 | **策略引擎** | 操作白名单**默认拒绝**（fail-closed）+ 审计（PolicyEngine）——导入/删除经策略门禁 |
-| **会话守卫** | 切后台 / 最小化 / 纯失焦（`inactive`）**全量锁定**——走开屏锁并清除内存密钥，桌面与安卓一致（宽限期锚在**首个**后台信号，同会话重复信号不重锚）。原生文件对话框 / 系统权限弹窗 / 外部查看器抢焦点期间失焦走**豁免窗口**（默认不豁免、5 分钟 TTL 上界，防导入/导出/绑盘时假锁）。回前台一律经同一条 `AppLockService.verify`（防爆破失败计数与指数冷却、快速解锁语义不旁路）。（AppLockGate + SessionGuard） |
-| **VFS 加密对象仓库** | 对象清单 + 版本回溯 + AAD 绑定 + 原子提交（临时文件+rename——崩溃安全） |
-| **篡改可检测审计** | 无密钥 SHA-256 哈希链（prevHash 链接——篡改断链）+ verifyIntegrity（AuditLogger）；用户可见错误一律脱敏。**范围限定**：链是无密钥哈希，能改写文件的攻击者可整链重算，故本项提供的是**篡改可检测（tamper-evident）**保证，不等于防篡改（tamper-proof）；verifyIntegrity 只重放**进程内保留的最近 ≤1000 条**（`_maxEntries` 滚动裁剪），不读落盘文件——对 `audit.log` 全量与轮转出的 `audit.log.1` 做跨重启重放验证**尚未实现**（详见 SECURITY.md「审计链的保证边界」） |
+| **会话守卫** | 切后台 / 最小化 / 纯失焦（`inactive`）**全量锁定**——走开屏锁，桌面与安卓一致（宽限期锚在**首个**后台信号，同会话重复信号不重锚）。密钥清零时机：hidden 即清 KEK/会话机密；主密钥在**超宽限落锁时**清零（宽限期内仍驻留内存，有意设计）。原生文件对话框 / 系统权限弹窗 / 外部查看器抢焦点期间失焦走**豁免窗口**（默认不豁免、5 分钟 TTL 上界，防导入/导出/绑盘时假锁）。回前台一律经同一条 `AppLockService.verify`（防爆破失败计数与指数冷却、快速解锁语义不旁路）。（AppLockGate + SessionGuard） |
+| **VFS 加密对象仓库** | 对象清单 + 版本回溯 + AAD 绑定 + 原子提交（临时文件+rename——崩溃安全）。**已实现未启用**：生产组合根未装配，当前媒体走会话密码路径（2026-11-13 审计对齐） |
+| **篡改可检测审计** | 无密钥 SHA-256 哈希链（prevHash 链接——篡改断链）+ verifyIntegrity（AuditLogger）；用户可见错误一律脱敏。**范围与盲区**：链是无密钥哈希，能改写文件的攻击者可整链重算，故本项提供的是**篡改可检测（tamper-evident）**保证，不等于防篡改（tamper-proof）；verifyIntegrity 重放**内存链（最近 ≤1000 条）+ 落盘文件（audit.log.1/audit.log，含跨重启历史）**两段（2026-11-10 起）；**尾截断/整段删除/跨段拼接不可检**（详见 SECURITY.md「审计链的保证边界」） |
 | **导入隔离** | SVG 预检（XXE/Billion Laughs/脚本注入/膨胀防护）+ PDF 页数/大小配额 + 超链接 scheme 白名单 |
 | **发布门禁** | SBOM 生成（CycloneDX）+ 秘密扫描（Gitleaks 模式）+ CI 集成 |
 

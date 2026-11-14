@@ -34,8 +34,13 @@ class SvgPreflight {
   );
 
   /// 事件属性（onload/onclick/onerror 等——脚本执行风险）。
+  ///
+  /// L-01 修复（2026-11-13 全面审计）：属性分隔符不限于空白——
+  /// `<svg/onload=…>` 用 `/` 分隔即绕过旧式 `\s` 判据。改为「空白或 `/`
+  /// 前导 + on 后至少一个字母 + 词边界」：`<button onclick=`、`<svg/onload=`
+  /// 均命中；`once=`/`online=` 这类良性属性因 `\b` 不误伤。
   static final RegExp _eventAttributes = RegExp(
-    r'\son[a-z]+\s*=',
+    r'[\s/]on[a-z]+\b\s*=',
     caseSensitive: false,
   );
 

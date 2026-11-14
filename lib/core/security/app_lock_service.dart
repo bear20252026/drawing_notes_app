@@ -197,6 +197,8 @@ class AppLockService extends ChangeNotifier {
       if (!guard.isLoaded) await guard.load(_preferencesLoader);
       // 冷却期内拒绝且不计数（既有语义）——判定不了，故为 null。
       if (guard.isLockedOut) return null;
+      // L-04：冷却已自然走完 ⇒ 清锚点落盘（防重启复活旧冷却）。
+      await guard.settleElapsedLockout(_preferencesLoader);
     }
     return _compareAgainstStore(pin);
   }
@@ -216,6 +218,8 @@ class AppLockService extends ChangeNotifier {
     if (guard != null) {
       if (!guard.isLoaded) await guard.load(_preferencesLoader);
       if (guard.isLockedOut) return null;
+      // L-04：与 verify 同口径——冷却走完即清锚点落盘。
+      await guard.settleElapsedLockout(_preferencesLoader);
     }
     return _compareAgainstStore(candidate);
   }

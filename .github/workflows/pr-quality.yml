@@ -26,10 +26,26 @@ jobs:
           flutter-version: 3.47.9
           cache: true
       - run: flutter pub get
+      # 与 ci.yml / quality_gate.yml 同构（2026-11-14，PR #56 首跑暴露）：
+      # packages/editor_core 是独立 Dart 包，根 flutter analyze 会分析其
+      # test/，analyzer 需要该包自己的 package_config.json 才能解析
+      # package:test——否则报 undefined_function（expect/test/closeTo）。
+      - name: editor_core dependencies
+        run: |
+          cd packages/editor_core
+          dart pub get
       - name: 静态分析
         run: flutter analyze
-      - name: 全量测试
-        run: flutter test
+      # v1.17.20 CI flake 根治同构：真 KDF 用例按 @Tags(['kdf']) 拆出串行，
+      # 主套件不再被 KDF 排队拖慢/击穿等待（原「全量测试」未拆分）。
+      - name: 全量测试（主套件，排除真 KDF）
+        run: flutter test --exclude-tags kdf
+      - name: 真 KDF 加密套件（串行）
+        run: flutter test --tags kdf --concurrency=1
+      - name: editor_core tests
+        run: |
+          cd packages/editor_core
+          dart test
       - name: 行数门禁
         # code_guard 的退出码 2 表示 500 行预警而非 1000 行超限；
         # 保留 JSON 告警并放行，真实 error（退出码 1）仍会阻断合并。

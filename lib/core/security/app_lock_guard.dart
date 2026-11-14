@@ -48,7 +48,9 @@ class LockoutGuard {
     this.lockoutCap = const Duration(hours: 24),
     this.lockoutThreshold = 10,
     Future<List<int>> Function()? secretLoader,
-  }) : _secretLoader = secretLoader ?? defaultSecretLoader;
+    int Function()? monotonicElapsedMs,
+  }) : _secretLoader = secretLoader ?? defaultSecretLoader,
+       _monotonicOverride = monotonicElapsedMs;
 
   // M4：记录与签名合并存入 security/ 私有文件（不再走 SharedPreferences）。
   // 兼容读：旧版 SharedPreferences 里的记录仍可在迁移期读出（见 [_loadRecord]）。
@@ -70,10 +72,34 @@ class LockoutGuard {
   int _untilMs = 0;
   int _highWaterMs = 0;
 
+  /// L-04（2026-11-13 全面审计）：冷却**起点锚点 + 时长**（新格式）。
+  /// 剩余 = 时长 − 单调经过时间（生产 = Stopwatch，不受系统时钟调整影响；
+  /// 测试可注入假时钟增量）。会话内向前/向后拨钟都压缩不了冷却；重启后
+  /// 单调钟归零、boot 锚点取 max(墙钟, 持久化高水位)，到期按「锚点 + 时长」
+  /// 重算——拨快再重启同样压缩不了。起点/时长随记录落盘，旧格式记录
+  /// （无时长字段）回退绝对到期值口径。
+  int _lockoutStartMs = 0;
+  int _lockoutDurationMs = 0;
+
   /// 会话单调钟：boot 时刻的可信时间 + 已流逝时长（ Stopwatch 不受
   /// 系统时钟调整影响，会话内调钟也无效）。
   final Stopwatch _uptime = Stopwatch()..start();
   int _bootTrustedMs = 0;
+
+  /// L-04：单调经过时间源（自进程启动的累计毫秒）。生产 = Stopwatch
+  /// （拨钟无效）；测试注入假时钟增量以便确定性推进冷却。null = [_uptime]。
+  final int Function()? _monotonicOverride;
+  int _monotonicNowMs() {
+    final override = _monotonicOverride;
+    return override != null ? override() : _uptime.elapsedMilliseconds;
+  }
+
+  /// 冷却起点的单调读数（recordAttempt 上锁 / load 恢复时记录）。
+  int _lockoutMonotonicMarkMs = 0;
+
+  /// 自冷却起点以来的单调经过毫秒。
+  int _monotonicElapsedSinceLockoutMs() =>
+      _monotonicNowMs() - _lockoutMonotonicMarkMs;
 
   bool _loaded = false;
   List<int>? _secret;
@@ -84,12 +110,22 @@ class LockoutGuard {
   /// 当前连续失败次数。
   int get failureCount => _count;
 
+  /// L-04：冷却剩余毫秒。
+  /// 新格式（时长 > 0）：到期 = 起点锚点 + 时长，剩余 = 到期 − 单调经过
+  /// 时间——系统时钟怎么拨都不影响；重启后锚点抬高、单调钟归零，剩余
+  /// 只会多不会少。旧格式记录（无时长）：绝对到期值 − 可信时间（原口径）。
+  int _remainingMs() {
+    if (_lockoutDurationMs > 0) {
+      return max(0, _lockoutDurationMs - _monotonicElapsedSinceLockoutMs());
+    }
+    return max(0, _untilMs - trustedNowMs());
+  }
+
   /// 是否处于冷却期。
-  bool get isLockedOut => trustedNowMs() < _untilMs;
+  bool get isLockedOut => _remainingMs() > 0;
 
   /// 冷却剩余时长（不在冷却时为 0）。
-  Duration get remaining =>
-      Duration(milliseconds: max(0, _untilMs - trustedNowMs()));
+  Duration get remaining => Duration(milliseconds: _remainingMs());
 
   /// 下一次失败将触发的冷却时长（未达阈值时为 0）；设置页/调试展示用。
   Duration get nextLockoutForFailure =>
@@ -102,8 +138,13 @@ class LockoutGuard {
     return Duration(milliseconds: min(ms, lockoutCap.inMilliseconds));
   }
 
-  /// 可信当前时间：单调会话钟、系统时钟、持久化高水位线三者取最大。
+  /// 可信当前时间：单调会话钟、注入时钟、持久化高水位线三者取最大。
   /// 任何一路被调低都影响不了结果——冷却只可能「走完」，不可能「绕过」。
+  ///
+  /// L-04 修复（2026-11-13 全面审计）在**重启锚点**而非本式：会话内
+  /// 向前拨钟与自然流逝在本地单调钟下不可区分（操作系统无可见的单调
+  /// 墙钟），故会话内语义保持原样；跨重启的「拨快→重启→提前解锁」
+  /// 由 load() 的锚点抬高（max(墙钟, 持久化高水位)）阻断。
   int trustedNowMs() {
     final monotonicMs = _bootTrustedMs + _uptime.elapsedMilliseconds;
     final systemMs = clock().millisecondsSinceEpoch;
@@ -150,6 +191,21 @@ class LockoutGuard {
     _count = record['c'] as int;
     _untilMs = record['u'] as int;
     _highWaterMs = record['hw'] as int;
+    // L-04（2026-11-13 全面审计）：重启锚点 = max(当前墙钟, 持久化高水位)，
+    // 时钟回拨到上次会话之前时冷却仍从高水位继续走完。
+    _bootTrustedMs = max(clock().millisecondsSinceEpoch, _highWaterMs);
+    _uptime.reset();
+    // L-04：新格式记录按「起点 + 时长」恢复。单调钟重启归零，把起点标记
+    // 设为「负剩余」——剩余 = 时长 − (0 − 标记) = 时长 + 标记；要让剩余回到
+    // 完整时长（保守方向，拨快再重启压缩不了），标记置 0 即可（经过量从 0
+    // 起算）。旧格式记录（无时长）沿用落盘到期值。
+    _lockoutStartMs = record['ls'] ?? 0;
+    _lockoutDurationMs = record['ld'] ?? 0;
+    _lockoutMonotonicMarkMs = _monotonicNowMs();
+    if (_lockoutDurationMs > 0) {
+      // 重启后到期按锚点重算，且不低于落盘到期值（防高水位被清后绕过）。
+      _untilMs = max(_untilMs, _lockoutStartMs + _lockoutDurationMs);
+    }
     _loaded = true;
     // M4 迁移：旧 SharedPreferences 记录读到后立即迁移到私有文件/新键——
     // 否则用户不触发 recordAttempt 就永远停在旧存储（重启后丢失）。
@@ -169,16 +225,38 @@ class LockoutGuard {
     if (ok) {
       _count = 0;
       _untilMs = 0;
+      _lockoutStartMs = 0;
+      _lockoutDurationMs = 0;
       _highWaterMs = trustedNowMs();
       await _deleteRecord(prefs);
       return;
     }
     _count += 1;
     final delay = _delayFor(_count);
-    _untilMs = delay == Duration.zero
-        ? 0
-        : trustedNowMs() + delay.inMilliseconds;
+    if (delay == Duration.zero) {
+      _untilMs = 0;
+      _lockoutStartMs = 0;
+      _lockoutDurationMs = 0;
+    } else {
+      final startMs = trustedNowMs();
+      _untilMs = startMs + delay.inMilliseconds;
+      _lockoutStartMs = startMs;
+      _lockoutDurationMs = delay.inMilliseconds;
+      _lockoutMonotonicMarkMs = _monotonicNowMs();
+    }
     await _persistRecord(prefs);
+  }
+
+  /// L-04：冷却自然走完后清时长字段并落盘（校验路径调用——本就有异步
+  /// 上下文）。不清的话下次重启会按旧时长把已结束的冷却「复活」；
+  /// 清零后重启走兼容分支，只剩高水位兜底。幂等：无时长时零开销。
+  Future<void> settleElapsedLockout(
+    Future<SharedPreferences> Function() prefsLoader,
+  ) async {
+    if (_lockoutDurationMs <= 0 || isLockedOut) return;
+    _lockoutStartMs = 0;
+    _lockoutDurationMs = 0;
+    await _persistRecord(await prefsLoader());
   }
 
   /// 守卫整体清零（关闭应用锁时随 [AppLockService.disable] 调用）。
@@ -186,6 +264,8 @@ class LockoutGuard {
     final prefs = await prefsLoader();
     _count = 0;
     _untilMs = 0;
+    _lockoutStartMs = 0;
+    _lockoutDurationMs = 0;
     await _deleteRecord(prefs);
   }
 
@@ -239,6 +319,9 @@ class LockoutGuard {
       'c': _count,
       'u': _untilMs,
       'hw': _highWaterMs,
+      // L-04：冷却起点锚点 + 时长（单调口径；重启按锚点重算，拨钟压缩不了）。
+      'ls': _lockoutStartMs,
+      'ld': _lockoutDurationMs,
     });
     final sig = _sign(record);
     if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -315,7 +398,13 @@ class LockoutGuard {
       final hw = decoded['hw'];
       if (c is! int || u is! int || hw is! int) return null;
       if (c < 0 || u < 0 || hw < 0) return null;
-      return {'c': c, 'u': u, 'hw': hw};
+      final result = <String, int>{'c': c, 'u': u, 'hw': hw};
+      // L-04 起点/时长字段（可选——旧格式记录没有，按 0 兼容）。
+      final ls = decoded['ls'];
+      final ld = decoded['ld'];
+      if (ls is int && ls >= 0) result['ls'] = ls;
+      if (ld is int && ld >= 0) result['ld'] = ld;
+      return result;
     } catch (_) {
       return null;
     }

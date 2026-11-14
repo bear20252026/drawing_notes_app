@@ -22,11 +22,12 @@ fi
 NEW_VERSION="$1"
 NEW_BASE="${NEW_VERSION%%+*}"
 
-# 现版本与 build 号（锚定 version: 行 + \K 起配——全文件扫会把依赖约束
-# 里的 "+1"（如 perfect_freehand ^2.5.2+1）也抓进来；\K 亦规避本机
-# grep 不支持变长 lookbehind 的限制）。
-CURRENT_BASE="$(grep -oP '^version: \K\d+\.\d+\.\d+' pubspec.yaml)"
-CURRENT_BUILD="$(grep -oP '^version: \d+\.\d+\.\d+\+\K\d+' pubspec.yaml)"
+# 现版本与 build 号（锚定 version: 行——全文件扫会把依赖约束里的 "+1"
+# （如 perfect_freehand ^2.5.2+1）也抓进来）。
+# M-12 修复（2026-11-13 全面审计）：grep -oP 是 GNU 扩展，macOS BSD grep
+# 不支持——改 sed 捕获组（BSD/GNU 通用）。
+CURRENT_BASE="$(sed -n 's/^version: \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' pubspec.yaml)"
+CURRENT_BUILD="$(sed -n 's/^version: [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*+\([0-9][0-9]*\).*/\1/p' pubspec.yaml)"
 if [ "$NEW_BASE" = "$CURRENT_BASE" ]; then
   NEW_BUILD=$((CURRENT_BUILD + 1))
   NEW_VERSION="${NEW_BASE}+${NEW_BUILD}"
@@ -39,12 +40,22 @@ fi
 
 echo "→ 版本: $CURRENT_BASE+$CURRENT_BUILD ⇒ $NEW_VERSION"
 
+# M-12 修复（2026-11-13）：BSD sed（macOS）的 -i 必须带备份后缀参数，
+# GNU sed 的 -i 不带——按 uname 分派，两平台同一脚本可跑。
+sed_inplace() {
+  if [ "$(uname)" = "Darwin" ]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
+
 # 1. pubspec.yaml
-sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+sed_inplace "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
 grep -n "^version" pubspec.yaml
 
 # 2. Inno Setup 脚本
-sed -i "s/#define MyAppVersion \".*\"/#define MyAppVersion \"$NEW_BASE\"/" tools/drawing_notes_setup.iss
+sed_inplace "s/#define MyAppVersion \".*\"/#define MyAppVersion \"$NEW_BASE\"/" tools/drawing_notes_setup.iss
 grep -n 'MyAppVersion "' tools/drawing_notes_setup.iss | head -1
 
 # 3. CHANGELOG 顶部条目校验（仅警告）。

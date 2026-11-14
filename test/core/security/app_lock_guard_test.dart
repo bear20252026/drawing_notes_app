@@ -54,6 +54,7 @@ void main() {
       lockoutBase: base,
       lockoutCap: cap,
       secretLoader: () async => secret,
+      monotonicElapsedMs: () => clock.monotonicMs,
     );
     final service = AppLockService(
       preferencesLoader: () async => prefs ?? SharedPreferences.getInstance(),
@@ -144,6 +145,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: secretLoader,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service1.setPin('135790');
@@ -158,6 +160,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: secretLoader,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service2.load();
@@ -186,6 +189,77 @@ void main() {
     // 单调钟 + 高水位线兜底：冷却状态不变。
     expect(service.isLockedOut, isTrue);
     expect(await service.verify('135790'), isFalse);
+  });
+
+  test('L-04：向前拨钟 + 重启不得缩短冷却（2026-11-13 全面审计修复）', () async {
+    // 攻击路径：失败 10 次进入冷却 → 把系统钟向前拨 30 天 → 重启应用，
+    // 指望冷却「已经走完」。修复后重启锚点取 max(墙钟, 持久化高水位)，
+    // 拨快的钟最多把时间推进到高水位，冷却剩余时长不被压缩。
+    SharedPreferences.setMockInitialValues({});
+    final clock = FakeClock(DateTime.now());
+    final secret = VaultKeyService.randomBytes(32);
+    Future<List<int>> secretLoader() async => secret;
+    Future<SharedPreferences> prefsLoader() async =>
+        SharedPreferences.getInstance();
+
+    final service1 = AppLockService(
+      preferencesLoader: prefsLoader,
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: secretLoader,
+        monotonicElapsedMs: () => clock.monotonicMs,
+      ),
+    );
+    await service1.setPin('135790');
+    await failNTimes(service1, '135790', 10);
+    expect(service1.isLockedOut, isTrue);
+
+    // 会话内向前拨钟 30 天：只动墙钟（ms），单调钟不动——剩余时长按
+    // 进程单调钟计量，拨快无效。
+    clock.ms += const Duration(days: 30).inMilliseconds;
+    expect(service1.isLockedOut, isTrue);
+    expect(service1.lockoutRemaining.inSeconds, inInclusiveRange(9, 10));
+    expect(await service1.verify('135790'), isFalse);
+
+    // 重启：全新 service + guard，同一持久化层。单调钟归零 ⇒ 剩余回到
+    // 完整时长（保守方向）——拨快的钟压缩不了冷却。
+    final service2 = AppLockService(
+      preferencesLoader: prefsLoader,
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: secretLoader,
+        monotonicElapsedMs: () => clock.monotonicMs,
+      ),
+    );
+    await service2.load();
+    expect(service2.isLockedOut, isTrue);
+    expect(service2.lockoutRemaining.inSeconds, inInclusiveRange(9, 10));
+    expect(await service2.verify('135790'), isFalse);
+
+    // 再拨快 + 再重启，冷却依旧完整。
+    clock.ms += const Duration(days: 30).inMilliseconds;
+    final service3 = AppLockService(
+      preferencesLoader: prefsLoader,
+      guard: LockoutGuard(
+        clock: clock.call,
+        lockoutBase: base,
+        lockoutCap: cap,
+        secretLoader: secretLoader,
+        monotonicElapsedMs: () => clock.monotonicMs,
+      ),
+    );
+    await service3.load();
+    expect(service3.isLockedOut, isTrue);
+    expect(service3.lockoutRemaining.inSeconds, inInclusiveRange(9, 10));
+
+    // 向后拨钟同样无效（单调钟不受系统时钟影响）。
+    clock.ms -= const Duration(days: 60).inMilliseconds;
+    expect(service3.isLockedOut, isTrue);
+    expect(await service3.verify('135790'), isFalse);
   });
 
   test('冷却期内的失败尝试不延长冷却', () async {
@@ -242,6 +316,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: () async => secret,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service1.setPin('135790');
@@ -257,6 +332,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: () async => secret,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service2.load();
@@ -278,6 +354,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: () async => secret,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service1.setPin('135790');
@@ -298,6 +375,7 @@ void main() {
         lockoutBase: base,
         lockoutCap: cap,
         secretLoader: () async => secret,
+        monotonicElapsedMs: () => clock.monotonicMs,
       ),
     );
     await service2.load();
