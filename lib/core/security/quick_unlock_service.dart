@@ -75,8 +75,19 @@ abstract class SystemAuthBackend {
 
 /// local_auth 生产实现。
 class LocalAuthBackend implements SystemAuthBackend {
-  LocalAuthBackend({LocalAuthentication? auth})
-    : _auth = auth ?? LocalAuthentication();
+  LocalAuthBackend({LocalAuthentication? auth, bool Function()? biometricOnlyEnforced})
+    : _auth = auth ?? LocalAuthentication(),
+      _biometricOnlyEnforced =
+          biometricOnlyEnforced ?? _defaultBiometricOnlyEnforced;
+
+  /// H-01 修复（2026-11-13 全面审计）：`biometricOnly: true` 是否被平台
+  /// 强制执行。Android BiometricPrompt 强制——通过即生物识别；
+  /// Windows Hello 忽略该开关（可能回退设备 PIN），且 local_auth 不提供
+  /// 「本次验证方式」查询——无法确认时 fail-closed 按非生物识别处理。
+  /// 抽成可注入函数：测试与各运行 OS 解耦（沿用 platformSupported 先例）。
+  static bool _defaultBiometricOnlyEnforced() => Platform.isAndroid;
+
+  final bool Function() _biometricOnlyEnforced;
 
   final LocalAuthentication _auth;
 
@@ -106,24 +117,23 @@ class LocalAuthBackend implements SystemAuthBackend {
       // 到设备 PIN / 系统凭据（否则保险库口令强度降级为设备 PIN 强度）。
       // local_auth 3.0.2 API：biometricOnly 为 bool 直参（无 options 包裹）。
       //
-      // H1 修复（2026-11-11）：Windows Hello 平台忽略 `biometricOnly`，
-      // 因此**验证后回查 getAvailableBiometrics**——若设备有已注册生物识别
-      // 但 authenticate 只认设备凭据（PIN），说明系统回退了，必须如实上报
-      // `biometric: false`，由调用方拒绝落副本。
-      //
-      // 回查失败（插件异常）按最坏情况处理：视为非生物识别（fail-closed）。
+      // H-01 修复（2026-11-13 全面审计）：H1（2026-11-11）用
+      // getAvailableBiometrics 回查，但那只查「设备注册过哪些生物识别」，
+      // 不查「本次验证用了哪种方式」——注册过生物识别的设备用 PIN 回退
+      // 验证仍会被判 biometric: true，MK 副本保护强度降级为设备 PIN。
+      // 正确判据是平台的 biometricOnly 强制语义：
+      // - Android BiometricPrompt 强制 biometricOnly: true，通过即生物识别；
+      // - Windows Hello 忽略该开关且 local_auth 无「本次验证方式」查询，
+      //   无法确认 → fail-closed 按非生物识别处理（调用方拒绝落副本/解锁）。
       final ok = await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: true,
       );
       if (!ok) return const SystemAuthResult(success: false, biometric: false);
-      var biometric = false;
-      try {
-        biometric = (await _auth.getAvailableBiometrics()).isNotEmpty;
-      } catch (_) {
-        biometric = false;
-      }
-      return SystemAuthResult(success: true, biometric: biometric);
+      return SystemAuthResult(
+        success: true,
+        biometric: _biometricOnlyEnforced(),
+      );
     } catch (_) {
       return const SystemAuthResult(success: false, biometric: false);
     }
@@ -153,7 +163,9 @@ abstract class SystemUnlockKeyStore {
 /// 必须重新走 `enable`（再次生物识别验证）才能刷新。
 ///
 /// 载荷格式（JSON）：`{"mk": "<base64 32B>", "issuedAtMs": <int>, "ttlMs": <int>}`。
-/// 兼容旧格式：纯 base64 字符串按「无 TTL」处理（仍可读，但新写入恒带 TTL）。
+/// 旧格式（纯 base64、无 TTL）：L-06 修复（2026-11-13）起按「已过期」处理——
+/// 无 TTL 的旧副本可被同用户进程无限期捡漏，拒绝读取；用户重新开启快速
+/// 解锁（再次生物识别验证）即写入新格式。
 class QuickUnlockCopyEnvelope {
   const QuickUnlockCopyEnvelope({
     required this.masterKeyBase64,
@@ -206,11 +218,17 @@ class QuickUnlockCopyEnvelope {
     }
   }
 
-  /// 副本是否已过期（fail-closed：时钟异常按未过期处理，但 TTL 已到点仍拒）。
+  /// 副本是否已过期。
+  /// - 无 TTL（旧格式/畸形）→ 视为已过期（L-06 fail-closed）；
+  /// - TTL 到点 → 已过期；
+  /// - now 早于写入时刻（时钟被回拨）→ 视为已过期（L-06：回拨不得延长
+  ///   副本有效期；快速解锁仅在 Windows/Android 可用，无单调钟 API，
+  ///   墙钟回拨按最坏情况处理，重新开启即可恢复）。
   bool isExpired(DateTime now) {
-    if (ttlMs <= 0 || issuedAtMs <= 0) return false; // 无 TTL（旧格式）
-    final expiresAtMs = issuedAtMs + ttlMs;
-    return now.millisecondsSinceEpoch >= expiresAtMs;
+    if (ttlMs <= 0 || issuedAtMs <= 0) return true;
+    final nowMs = now.millisecondsSinceEpoch;
+    if (nowMs < issuedAtMs) return true;
+    return nowMs >= issuedAtMs + ttlMs;
   }
 }
 

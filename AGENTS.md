@@ -79,31 +79,26 @@ DESIGN.md:502-503 禁止**装饰性**渐变与阴影；但 :396-398、:434、:47
 ## 6. 门禁（提交前必须全绿）
 
 ```bash
-cd /d/Workbuddy/2026-08-29-23-43-00/drawing_notes_app
+cd /Users/bear/Documents/CatPaw/drawnote
 flutter analyze          # 必须 No issues found
 flutter test             # 必须全绿
 ```
 
-> ⚠️ **shell 工作目录铁律**：本工作区外层是 `2026-08-29-23-43-00`，项目在子目录 `drawing_notes_app`。
-> 每条命令**必须**以 `cd /d/Workbuddy/2026-08-29-23-43-00/drawing_notes_app &&` 开头，
-> 否则 `flutter` 报 "No pubspec.yaml file found"、`git` 作用错仓库、`flutter analyze` 会静默分析外层
-> 目录并误报 "No issues found"（最危险）。同一命令失败 ≥3 次立即改用子代理接管。
-> （2026-10-05 仓库从 `C:\Users\17296\WorkBuddy\` 迁至 `D:\Workbuddy\`，C 盘那份副本已清空删除
-> ——仅剩一个空目录名被其他会话占用。迁移原因正是两棵同名目录树会让门禁静默跑在另一份代码上。）
+> ⚠️ **shell 工作目录铁律（2026-11-13 修订）**：**唯一权威工作区 = macOS 这份**
+> `/Users/bear/Documents/CatPaw/drawnote`（项目根目录本身，`lib/`、`test/`、`pubspec.yaml`
+> 都在这一层，没有子目录）。每条命令必须以 `cd /Users/bear/Documents/CatPaw/drawnote &&`
+> 开头（或用等效 cwd），否则 `flutter` 报 "No pubspec.yaml file found"、`git` 作用错仓库、
+> `flutter analyze` 会静默分析外层目录并误报 "No issues found"（最危险）。
+> 同一命令失败 ≥3 次立即改用子代理接管。
 >
-> ⚠️ **本机代理断本地测试加载器（2026-10-10 根因归档）**：本 shell 环境带
-> `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:57777` 且无 NO_PROXY 回环豁免——
-> flutter test 的加载器/集成测试经 WebSocket 连 `127.0.0.1:<port>` 会被路由进
-> 该代理并失败，报「Connection closed before full header was received」。
-> **跑任何 flutter test 前缀 `NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost`**。
-> 当天单测与集成加载「全灭」、干净 worktree 对照同样失败（曾被误归因为负载），
-> 真因即此。代理本身活着（git push 正常），只是不转发回环。
->
-> ⚠️ **C 盘旧路径复发警示（2026-10-10）**：`C:\Users\17296\WorkBuddy\2026-08-29-23-43-00\drawing_notes_app`
-> 曾于 10-09 被再次 clone 并在其上产生过一批未提交工作（已整体抢救入 `salvage/cdrive-ui-polish`
-> 分支，见该分支 commit message 的来历取证）。**唯一权威工作区 = D 盘这份**；任何会话开始前必须
-> 先 `pwd` 确认在 `/d/Workbuddy/` 下，禁止在 C 盘旧路径 clone/修改；发现 C 盘再现同名仓库，
-> 先抢救未提交工作到分支、再报告用户清理，不得两边并行开发。
+> **历史环境备忘（已失效，仅存档）**：2026-10-05 之前仓库在 Windows
+> `D:\Workbuddy\2026-08-29-23-43-00\drawing_notes_app`（更早 C 盘副本已清空删除）；
+> 当时本机代理 `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:57777` 无回环豁免，会断
+> flutter test 的 WebSocket 加载器（报「Connection closed before full header was
+> received」），须前缀 `NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost`。
+> 2026-11-13 仓库迁至 macOS 后上述 Windows 路径与代理假设不再适用；若新环境再现
+> 回环代理干扰，沿用同一 NO_PROXY 前缀即可。禁止在其他位置 clone 同名仓库并行开发；
+> 发现同名副本先抢救未提交工作到分支、再报告用户清理。
 
 提交后 push，并确认**这次 push 实际触发的编排全部**绿。直推 master 是 **8 条**：`CI` /
 `PR Architecture` / `软件质量工程门禁` / `Code Guard (行数门禁)` / `SBOM` / `Secret Scan` /

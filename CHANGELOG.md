@@ -4,6 +4,87 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 全方位审计修复批（2026-11-13，同版本增量，未 bump）
+
+> 依据《绘图笔记应用全方位审计报告》（2026-11-13）逐项修复。本批**未 bump 版本**
+> （发版时按 AGENTS §7 三处同步）；门禁复验结果见本条末尾。
+
+#### 安全
+
+- **H-01 快速解锁生物识别回查**（`quick_unlock_service.dart`）：H1 用
+  `getAvailableBiometrics` 回查只查「设备注册过哪些生物识别」，不查「本次验证
+  方式」——注册过生物识别的设备用设备 PIN 回退仍被判 `biometric: true`，MK 副本
+  保护强度降级为 4 位 PIN。改为按平台 `biometricOnly` 强制语义判定：Android
+  BiometricPrompt 强制该开关（通过即生物识别）；Windows Hello 忽略该开关且
+  local_auth 无「本次验证方式」查询，**fail-closed 判非生物识别**（拒绝落副本/
+  解锁）。新增可注入 `biometricOnlyEnforced` 判据 + 4 条回归用例。
+- **L-06 快速解锁副本 TTL**：旧格式（纯 base64 无 TTL）副本改按「已过期」处理
+  （拒绝读取，须重新开启）；时钟回拨到写入时刻之前视为已过期（不得延长有效期）。
+  新增 4 条回归用例；锁屏组件测试改用新格式 TTL 信封。
+- **L-04 防爆破冷却时钟**（`app_lock_guard.dart`）：冷却剩余改按**单调经过时间**
+  计量（生产 = Stopwatch，不受系统时钟调整影响；可注入 `monotonicElapsedMs`），
+  起点锚点 + 时长随记录落盘，重启按锚点重算——会话内向前/向后拨钟、拨快再重启
+  都压缩不了冷却。新增「向前拨钟 + 重启」回归用例；FakeClock 增加独立单调累计量。
+- **L-01 SVG 事件属性正则**（`svg_preflight.dart`）：`\son[a-z]+\s*=` 要求前置
+  空白，`<svg/onload=…>` 以 `/` 分隔即绕过。改为 `[\s/]on[a-z]+\b\s*=`。
+- **L-02 PROPFIND XML 深度**（`webdav_sync_client.dart`）：`XmlDocument.parse`
+  自身递归，4MiB 字节帽内深嵌套可在结构闸门前爆栈。解析前增加线性原始文本深度
+  预扫描（保守上界，fail-closed）。
+- **L-05 备份轮转原子性**（`storage_write_pipeline.dart`）：`.bak` 各级此前直接
+  `writeAsBytes` 覆盖，崩溃写一半即损坏。改为 tmp + flush + rename 原子换入
+  （提取静态 `_replaceWithTempImpl` 与主文档共用），失败旧备份原样保留。
+- **L-03 PDF 输出预算前置**（`pdf_import_service.dart`）：500MB 输出预算从落盘
+  循环移入默认渲染器**逐页累计**，超限即停，不再整本渲染进内存后才拒。
+
+### 文档与口径对齐（宣称 vs 实际）
+
+- **SECURITY.md / README.md / README_EN.md**：审计链口径更新为「内存链 + 落盘
+  文件双段重放」（2026-11-10 已实现），如实列出尾截断/整段删除/跨段拼接盲区；
+  媒体 K_note 与 VFS 标注「已实现、生产未接线」；会话守卫密钥清零时机如实描述
+  （宽限期内主密钥仍驻留，超宽限落锁才清零）；README 编排数 7→8（补 macOS Build）；
+  支持版本 1.1.x→1.17.x；测试规模 391+/2750→3000+。
+- **diagnostics_exporter.dart**：诊断报告完整性声明与文件侧重放实现对齐（原文案
+  「不读落盘文件」与实现相反），同步更新测试断言。
+- **AGENTS.md**：§6 工作目录铁律由 Windows `D:\Workbuddy\` 更新为 macOS
+  `/Users/bear/Documents/CatPaw/drawnote`；旧 Windows 路径/代理假设降级为历史备忘。
+
+### 工具与 CI
+
+- **bump_version.sh**：`grep -oP`（GNU 扩展）改 sed 捕获组；`sed -i` 按 uname 分派
+  BSD/GNU——macOS 可运行（M-12）。
+- **kyzn_workflow.sh**：PATH 注入不再硬编码 `/d/flutter/bin`，优先用已在 PATH 的
+  flutter，按平台补候选（M-12）。
+- **sync_github.sh**：`git add -A` 前增加 >5MB 未跟踪文件护栏，命中即中止（L-14，
+  防 spikes/ 268MB 类险情重演）。
+- **release-build.yml**：SHA256SUMS.txt 补入 windows-setup-installer artifact 与
+  GitHub Release 附件（M-14，此前生成后不随产物分发）。
+- **quality_gate.yml**：移除未使用的 `actions: write`（L-11，upload-artifact 走
+  运行时 token，不依赖该权限）。
+- **THIRD_PARTY_NOTICES.md**：许可表移除 pubspec 未引用的 cupertino_icons /
+  cupertino_ui（L-13）。
+
+### 仓库卫生
+
+- **M-13**：3 个历史审计报告（`docs/audit_round2/round3/ux_*.html`）`git rm --cached`
+  移出索引（本地保留，.gitignore 已覆盖），落实 AGENTS §7「audit_*.html 不入库」。
+
+### 待业主决策（本批未动）
+
+- VFS / 媒体 K_note **生产接线**（涉及加密装配，需专门设计与回归）；
+- 审计链**带密钥锚**加固（能力升级，代码注释明确业主尚未裁决）；
+- **pdfrx 升级**（2.6.5→2.12.x，PDF 解析攻击面，需隔离分支回归）；
+- 行数门禁 max_files 放宽 / 死 DI 缝隙与空壳 V2 包处置（删改须业主同意）。
+
+### 门禁复验
+
+- `flutter analyze`：No issues found。
+- 受影响域 + 架构守护：140 项全绿（quick_unlock / app_lock_guard / app_lock_service /
+  audit_logger / svg_preflight / webdav_sync_client / response_budget / backup_rotation /
+  pdf_import / diagnostics_exporter / architecture_test）。
+- 全量 `flutter test` 复验（2026-11-13 本机实测）：主套件 **2990 通过 / 5 环境跳过 /
+  0 失败**，KDF 串行套件 **84 通过 / 1 跳过 / 0 失败**；`flutter analyze` 零问题、
+  边界检查通过。本批不 push，云端编排未触发。
+
 ### CTL-03 ② 落盘枚举显式 wire 名（混淆解锁第二步）
 
 > 2026-11 审计。混淆（`--obfuscate`）此前被回滚，回滚原因里的「① 诊断面字面量码」

@@ -812,8 +812,36 @@ class WebDavSyncClient {
     }
   }
 
+  /// L-02 修复（2026-11-13 全面审计）：解析**前**的原始文本深度预扫描。
+  /// XmlDocument.parse 自身是递归实现——4MiB 字节帽内仍可构造数千层嵌套
+  /// 在 [_guardXmlStructure] 生效前爆栈。这里用线性扫描（不建树、不递归）
+  /// 先数嵌套深度，超限即拒；预扫描是保守上界（CDATA/注释里的标签也计数），
+  /// 误伤仅拒绝该响应，fail-closed。
+  void _guardRawXmlDepth(String xmlBody) {
+    final tagRe = RegExp(r'<(/?)([a-zA-Z][\w.:-]*)([^<>]*?)(/?)>');
+    var depth = 0;
+    for (final m in tagRe.allMatches(xmlBody)) {
+      final name = m.group(2)!;
+      if (name.startsWith('!') || name.startsWith('?')) continue;
+      if (m.group(1) == '/') {
+        depth = depth > 0 ? depth - 1 : 0;
+      } else if (m.group(4) != '/') {
+        depth++;
+        if (depth > WebDavResponseLimits.propfindMaxDepth) {
+          throw WebDavResponseTooLargeException(
+            budget: WebDavResponseBudget.propfind,
+            kind: WebDavResponseLimitKind.xmlDepth,
+            limit: WebDavResponseLimits.propfindMaxDepth,
+            observed: depth,
+          );
+        }
+      }
+    }
+  }
+
   /// 从 PROPFIND 多状态 XML 中解析叶子文件名。
   List<String> _parseLeafNames(String xmlBody, String relativePath) {
+    _guardRawXmlDepth(xmlBody);
     final document = XmlDocument.parse(xmlBody);
     _guardXmlStructure(document);
     // 按本地名查找（忽略命名空间前缀），递归遍历全部后代。

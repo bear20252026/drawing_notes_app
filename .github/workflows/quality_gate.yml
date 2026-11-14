@@ -29,11 +29,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# P1 修复（审计）：最小权限——checkout 需 contents:read，
-# 失败产物上传需 actions:write；其余一律不授。
+# P1 修复（审计）：最小权限——checkout 需 contents:read；其余一律不授。
+# L-11 修复（2026-11-13 全面审计）：actions:write 移除——本工作流只用
+# upload-artifact（走运行时 ARTIFACTS token，不依赖 GITHUB_TOKEN 的
+# actions 权限），无任何步骤需要 actions 写权限。
 permissions:
   contents: read
-  actions: write
 
 jobs:
   quality:

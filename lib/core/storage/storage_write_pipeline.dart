@@ -199,7 +199,21 @@ class StorageWritePipeline {
       if (fault != null && fault(id, level, finalFile.path, target.path)) {
         throw FileSystemException('备份轮转失败（注入）：$finalFile', target.path);
       }
-      await target.writeAsBytes(carried[level], flush: true);
+      // L-05 修复（2026-11-13 全面审计）：旧备份此前被直接 writeAsBytes
+      // 覆盖——崩溃在写一半时该级备份损坏，恢复副本失效。改为与主文档
+      // 同纪律的 tmp + flush + rename 原子换入：失败时旧备份原样保留。
+      final tmp = File('${target.path}.${LocalIdGenerator.next('bak')}.tmp');
+      try {
+        await tmp.writeAsBytes(carried[level], flush: true);
+        await _replaceWithTempImpl(tmp, target, null);
+      } catch (_) {
+        try {
+          if (tmp.existsSync()) await tmp.delete();
+        } catch (_) {
+          // 清理失败不覆盖原始异常。
+        }
+        rethrow;
+      }
     }
     // 注意：这里**不做**「历史缺口补位」。缺口是盘上的既有事实（旧写法留下、
     // 或用户手工清理造成），在写入路径里复制字节去填它有两个问题：① 新保存的
@@ -525,15 +539,24 @@ class StorageWritePipeline {
   /// 返回后的 delete-pending 窗口里 rename 也会失败。与 [readWithRetry]
   /// 同思路做有界退避重试：`.bak` 已先行落盘，重试不放大风险；耗尽后
   /// 按原样抛出（备份仍在，读路径可恢复）。
-  Future<void> replaceWithTemp(File tmp, File destination) async {
+  Future<void> replaceWithTemp(File tmp, File destination) =>
+      _replaceWithTempImpl(tmp, destination, renameFaultForTest);
+
+  /// 原子换入核心（静态——实例方法 [replaceWithTemp] 与静态备份轮转
+  /// [_rotateBackup] 共用；L-05 修复时从实例方法提取，逻辑逐字未变）。
+  static Future<void> _replaceWithTempImpl(
+    File tmp,
+    File destination,
+    bool Function(String tmpPath, String destinationPath)? fault,
+  ) async {
     for (var attempt = 1;; attempt++) {
       try {
         try {
-          await renameIntoPlace(tmp, destination, renameFaultForTest);
+          await renameIntoPlace(tmp, destination, fault);
         } on FileSystemException {
           if (!destination.existsSync()) rethrow;
           await destination.delete();
-          await renameIntoPlace(tmp, destination, renameFaultForTest);
+          await renameIntoPlace(tmp, destination, fault);
         }
         return;
       } on FileSystemException catch (e) {

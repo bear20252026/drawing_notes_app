@@ -14,6 +14,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_gate.dart';
@@ -279,7 +280,15 @@ void main() {
       final mk = List<int>.generate(32, (i) => i + 1);
       vault.debugInjectMasterKey(mk);
       final store = _MemoryKeyStore();
-      await store.write(base64Encode(mk));
+      // L-06（2026-11-13）：旧格式（纯 base64 无 TTL）副本按已过期处理——
+      // 组件测试改用新格式 TTL 信封，与生产写入口径一致。
+      await store.write(
+        QuickUnlockCopyEnvelope(
+          masterKeyBase64: base64Encode(mk),
+          issuedAtMs: DateTime.now().millisecondsSinceEpoch,
+          ttlMs: QuickUnlockService.copyTtl.inMilliseconds,
+        ).encode(),
+      );
 
       final quickUnlock = QuickUnlockService(
         backend: FakeAuthBackend(),
@@ -341,4 +350,118 @@ void main() {
       expect(find.text('系统验证解锁'), findsNothing);
     });
   });
+
+  group('H-01：生物识别判据（2026-11-13 全面审计修复）', () {
+    test('后端上报非生物识别（设备 PIN 回退）：enable 拒绝且不落副本', () async {
+      final backend = FakeAuthBackend(biometric: false);
+      final store = _MemoryKeyStore();
+      final service = _service(backend, store);
+      final vault = _tempVault()..debugInjectMasterKey(List.filled(32, 7));
+
+      await expectLater(
+        service.enable(pin: '1234', vault: vault),
+        throwsA(isA<QuickUnlockException>()),
+      );
+      expect(await store.contains(), isFalse);
+      expect(await service.isEnabled(), isFalse);
+    });
+
+    test('解锁侧 PIN 回退同样拒绝（防「开启时生物识别、解锁时 PIN」绕过）', () async {
+      final backend = FakeAuthBackend();
+      final service = _service(backend, _MemoryKeyStore());
+      final vault = _tempVault();
+
+      await vault.initialize('1234');
+      await service.enable(pin: '1234', vault: vault);
+      vault.lock();
+      backend.biometric = false;
+
+      expect(await service.authenticateAndUnlock(vault: vault), isFalse);
+      expect(vault.isUnlocked, isFalse);
+    });
+
+    test('LocalAuthBackend：平台强制 biometricOnly → 通过即生物识别', () async {
+      final backend = LocalAuthBackend(
+        auth: _AlwaysPassLocalAuth(),
+        biometricOnlyEnforced: () => true,
+      );
+      final result = await backend.authenticate('测试');
+      expect(result.success, isTrue);
+      expect(result.biometric, isTrue);
+    });
+
+    test('LocalAuthBackend：平台不强制（Windows Hello）→ fail-closed 判非生物识别', () async {
+      final backend = LocalAuthBackend(
+        auth: _AlwaysPassLocalAuth(),
+        biometricOnlyEnforced: () => false,
+      );
+      final result = await backend.authenticate('测试');
+      // 系统验证通过，但无法确认本次用了生物识别——不得落 MK 副本。
+      expect(result.success, isTrue);
+      expect(result.biometric, isFalse);
+    });
+  });
+
+  group('L-06：副本 TTL 时钟回拨与旧格式（2026-11-13 全面审计修复）', () {
+    QuickUnlockCopyEnvelope envelopeAt(int issuedAtMs) => QuickUnlockCopyEnvelope(
+      masterKeyBase64: base64Encode(List.filled(32, 1)),
+      issuedAtMs: issuedAtMs,
+      ttlMs: const Duration(days: 7).inMilliseconds,
+    );
+
+    test('TTL 到点即过期；到点前有效', () {
+      final issued = DateTime(2026, 11, 13);
+      final envelope = envelopeAt(issued.millisecondsSinceEpoch);
+      expect(envelope.isExpired(issued.add(const Duration(days: 6))), isFalse);
+      expect(envelope.isExpired(issued.add(const Duration(days: 7))), isTrue);
+    });
+
+    test('时钟回拨到写入时刻之前：视为已过期（不得延长有效期）', () {
+      final issued = DateTime(2026, 11, 13);
+      final envelope = envelopeAt(issued.millisecondsSinceEpoch);
+      expect(
+        envelope.isExpired(issued.subtract(const Duration(days: 30))),
+        isTrue,
+      );
+    });
+
+    test('旧格式（纯 base64 无 TTL）：按已过期处理，拒绝读取', () {
+      final legacy = QuickUnlockCopyEnvelope.tryDecode(base64Encode(List.filled(32, 1)));
+      expect(legacy, isNotNull);
+      expect(legacy!.isExpired(DateTime(2026, 11, 13)), isTrue);
+    });
+
+    test('旧格式副本在 authenticateAndUnlock 中被拒（须重新开启）', () async {
+      final backend = FakeAuthBackend();
+      final store = _MemoryKeyStore();
+      final service = _service(backend, store);
+      final vault = _tempVault();
+
+      await vault.initialize('1234');
+      await service.enable(pin: '1234', vault: vault);
+      final mk = vault.masterKey;
+      vault.lock();
+      // 外部把副本替换成旧格式（无 TTL）。
+      await store.write(base64Encode(mk));
+
+      expect(await service.authenticateAndUnlock(vault: vault), isFalse);
+      expect(vault.isUnlocked, isFalse);
+    });
+  });
+}
+
+/// 恒通过的 local_auth 替身（H-01 判据测试用——不触真实插件）。
+/// 只覆写 authenticate，其余成员走 noSuchMethod（本测试不会触达）。
+class _AlwaysPassLocalAuth implements LocalAuthentication {
+  @override
+  Future<bool> authenticate({
+    required String localizedReason,
+    Iterable<Object> authMessages = const [],
+    bool biometricOnly = false,
+    bool persistAcrossBackgrounding = false,
+    bool sensitiveTransaction = true,
+  }) async => true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
