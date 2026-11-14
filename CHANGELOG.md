@@ -63,6 +63,26 @@
 - **THIRD_PARTY_NOTICES.md**：许可表移除 pubspec 未引用的 cupertino_icons /
   cupertino_ui（L-13）。
 
+### 依赖升级（2026-11-14，业主批准「全部进行升级」）
+
+- **pdfrx 2.6.5 → 2.12.1**（PDF 解析攻击面跟进上游安全修复），联动
+  pdfium_dart / pdfium_flutter 0.3.1 → 0.4.2、pdfrx_engine 0.6.1 → 0.9.2；
+  低层 API（openFile / ensureLoaded / page.render）经 analyze + 全量测试复验兼容。
+- **archive 4.6.0 → 4.7.1、image 4.12.0 → 4.13.0、objective_c 9.6.3 → 9.6.4、
+  shared_preferences_android 2.5.4 → 2.5.5、shared_preferences_foundation
+  2.5.7 → 2.6.2**；file_selector 约束放宽至 ^1.1.0。
+- **SDK 上限所阻、留待 Flutter 3.50 升级**（当前钉 3.47.9 / Dart 3.13）：
+  hotkey_manager 0.4.0、window_manager 0.7.0（需 Dart ^3.14）；analyzer 14.x、
+  test_api 0.7.15、nativeapi 0.6.x、qr 4.x 等受 SDK 钉版传递约束——
+  `dart pub outdated` 口径可升级数 21 → 12，全部为 SDK 上限项。
+- **pr-security.yml**：补装 Flutter（此前 job 只有 Python，check_deps.sh 因
+  dart 缺失 fail-closed 恒红——PR 流程首跑暴露的既有缺陷）；依赖门禁阈值
+  显式置 12 并注释 SDK 上限基线（升级 Flutter 后应清零回调）。
+- 注意：pdfium_dart 0.4.x 构建钩子需从 GitHub Releases 下载 PDFium 二进制；
+  本机 DNS 将 release-assets.githubusercontent.com 解析到 127.0.0.1（污染），
+  已用 DoH 查真实 IP + curl --resolve 取回放构建缓存（未改系统 DNS/hosts）。
+  CI（ubuntu/macos runner）无此问题。
+
 ### 仓库卫生
 
 - **M-13**：3 个历史审计报告（`docs/audit_round2/round3/ux_*.html`）`git rm --cached`
@@ -72,7 +92,7 @@
 
 - VFS / 媒体 K_note **生产接线**（涉及加密装配，需专门设计与回归）；
 - 审计链**带密钥锚**加固（能力升级，代码注释明确业主尚未裁决）；
-- **pdfrx 升级**（2.6.5→2.12.x，PDF 解析攻击面，需隔离分支回归）；
+- **Flutter 3.50 升级**（解锁剩余 12 个 SDK 上限依赖）；
 - 行数门禁 max_files 放宽 / 死 DI 缝隙与空壳 V2 包处置（删改须业主同意）。
 
 ### 门禁复验

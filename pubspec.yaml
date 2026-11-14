@@ -58,14 +58,19 @@ dependencies:
   # 上游已自带 pdfrx_engine 0.6.x，移除 dependency_overrides；2.4.7 时代的
   # PdfFileCache 可空性 override（0.4.6）不再需要。低层 API（openFile/
   # ensureLoaded/page.render）未破坏。
-  pdfrx: 2.6.5
+  # 2026-11-14 全面升级（业主批准）：2.6.5 → 2.12.1，PDFium 引擎
+  # pdfium_dart/pdfium_flutter 0.4.2、pdfrx_engine 0.9.2 联动；
+  # PDF 导入为不受信输入面，跟进上游安全修复。低层 API 兼容性经
+  # analyze + 全量测试复验。
+  pdfrx: ^2.12.1
+  # 0.4.0 需 Dart ^3.14（Flutter 3.50）——当前钉 3.47.9，随 SDK 升级再升。
   hotkey_manager: ^0.3.0
   # 与 pdfrx 的 PDFium 渲染引擎共用 image 4.x 依赖树。
   # 4.6.0（2026-10-31）：解码器契约变更（默认不再对损坏数据抛错）——
   # 备份恢复侧必须显式传 throwOnError: true 才能保住 fail-closed 语义，
   # 见 lib/core/storage/backup_service.dart 的 decodeStream 调用。
   archive: ^4.6.0
-  file_selector: ^1.0.3
+  file_selector: ^1.1.0
   # MIT：将压感输入点转为连续的填充轮廓，避免粗笔分段成离散圆点。
   perfect_freehand: ^2.5.2+1
   # V2 纯 Dart 核心（专家第一周更正期 V-001——path dependency 接线——
@@ -86,6 +91,7 @@ dependencies:
   http: ^1.2.2
   xml: ^7.1.0
 
+  # 0.7.0 需 Dart ^3.14（Flutter 3.50）——当前钉 3.47.9，随 SDK 升级再升。
   window_manager: ^0.6.0
 dev_dependencies:
   flutter_test:

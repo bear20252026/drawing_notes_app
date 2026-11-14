@@ -60,4 +60,9 @@ jobs:
       # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
       # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
       - name: 依赖清单与过期检查
-        run: bash tools/check_deps.sh
+        # 阈值基线（2026-11-14，业主批准「全部升级」后实测）：可升级数 12，
+        # 全部为 Flutter 3.47.9（Dart 3.13）SDK 上限所阻——hotkey_manager
+        # 0.4.0 / window_manager 0.7.0 需 Dart ^3.14；analyzer 14.x /
+        # test_api 0.7.15 / nativeapi 0.6.x 等受 SDK 钉版传递约束。
+        # 升级 Flutter 3.50 后应清零并回调阈值。清单见 dart pub outdated。
+        run: bash tools/check_deps.sh --threshold 12
