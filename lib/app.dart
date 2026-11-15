@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +30,7 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
+import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 // 首页刷新修复②：注册全局路由观察者（HomePage 的 RouteAware 兜底刷新依赖它）。
 // 审计 2026-09-26 #43：原 features/security/sync_fix.dart 归位 core/navigation。
 import 'package:drawing_notes_app/core/navigation/app_refresh.dart'
@@ -142,6 +145,25 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // 系统验证快速解锁（批D1）：Windows Hello 快速解锁开屏（默认关闭，
   // 设置页开启后生效）。仅作用于开屏锁；文件密码不参与。
   late final QuickUnlockService _quickUnlockService = QuickUnlockService();
+
+  /// 解锁收口装配 VFS（M-01 接线 2026-11-14，幂等）：解析数据根下 vfs/ 目录
+  /// → configure（单例持有）→ 注入解锁态主密钥 → 挂到笔记本存储。此后
+  /// storeImage 走 VFS 写、渲染走 VFS 读；旧媒体 DAN/DNV 文件兼容读（双轨）。
+  /// 回锁经 SessionSecrets.clearAll() 清零（VaultService 已注册，M-04）。
+  /// 失败静默降级到既有文件路径（审计永不阻断业务）。
+  Future<void> _wireVaultServiceOnUnlock() async {
+    try {
+      final vault = _vaultKeyService;
+      if (!vault.isUnlocked) return;
+      final root = await _appDataRoot.root();
+      final dir = Directory('${root.path}${Platform.pathSeparator}vfs');
+      final service = VaultService.configure(dir);
+      service.setKey(vault.masterKey);
+      _notebookStorage.vaultService = service;
+    } catch (_) {
+      // VFS 装配失败 → 保持既有文件路径（双轨兼容，不阻断业务）。
+    }
+  }
 
   // ── 跨 feature 路由服务（2026-10-10 解耦） ─────────────────────────────
   //
@@ -269,6 +291,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             service: _appLockService,
             vault: _vaultKeyService,
             quickUnlock: _quickUnlockService,
+            onUnlocked: _wireVaultServiceOnUnlock,
             child: CloudSyncNoticeHost(
               appDataRoot: _appDataRoot,
               appLockService: _appLockService,

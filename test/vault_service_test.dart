@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'helpers/temp_dir_cleanup.dart';
 
@@ -59,5 +60,27 @@ void main() {
     service.clearKey();
     expect(service.hasKey, isFalse);
     expect(() => service.getObject('media/x'), throwsStateError);
+  });
+
+  // M-04（2026-11-14）：VFS 会话密钥是主密钥副本——回锁时随统一清理注册表
+  // 一并清零（此前 lock() 只清权威 MK，VFS 副本整会话驻留内存）。
+  test('VaultService：注册进 SessionSecrets——clearAll 联动清零（M-04）', () async {
+    final service = VaultService(directory: tempDir);
+    service.setKey(key);
+    expect(service.hasKey, isTrue);
+    // 回锁收口（AppLockGate.hidden / 超宽限）调 SessionSecrets.clearAll()。
+    SessionSecrets.clearAll();
+    expect(service.hasKey, isFalse, reason: 'VFS 副本随回锁清零，不再驻留');
+    expect(() => service.getObject('media/x'), throwsStateError);
+  });
+
+  test('VaultService：clearAllSessionSecrets 幂等清零（M-04）', () async {
+    final service = VaultService(directory: tempDir);
+    service.setKey(key);
+    service.clearAllSessionSecrets();
+    expect(service.hasKey, isFalse);
+    // 幂等：再清一次不抛错。
+    service.clearAllSessionSecrets();
+    expect(service.hasKey, isFalse);
   });
 }

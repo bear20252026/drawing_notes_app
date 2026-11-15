@@ -339,11 +339,9 @@ class StorageWritePipeline {
         secrets.cacheV3Material(id, unlock);
         return unlock.plain;
       }
-      return VaultFileCodec.decryptWithPassword(
-        raw,
-        filePassword,
-        aadContext: 'doc:$id',
-      );
+      // M-06 收口（2026-11-14）：v2 旧文件密码信封不再支持——fail-closed
+      // 拒绝（存量旧数据须先升级 v3）。
+      throw const VaultFileException('旧版文件密码格式已不再支持，请升级后重试');
     }
     final key = await currentKey();
     if (VaultFileCodec.isEncrypted(raw)) {

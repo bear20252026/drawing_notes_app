@@ -345,7 +345,9 @@ void main() {
     const id = 'bd_kdf_mig';
     const pw = 'old-pass-1';
 
-    test('旧 pw 槽（无 kdf = PBKDF2 it）解锁成功；改密懒升级 Argon2id', () async {
+    // M-06 收口（2026-11-14，删除旧版加密支持）：v5 旧 PBKDF2 槽不再可解——
+    // fail-closed 拒绝（删除旧版 KDF 支持后不再懒升级；存量旧槽须先经其他通道迁移）。
+    test('旧 pw 槽（无 kdf = PBKDF2 it）→ 拒绝（删除旧版支持，fail-closed）', () async {
       // 生成槽位（注入 pbkdf2(1000)）→ 删 kdf 字段 → 批B 前旧形态。
       KdfParams.newSlotDefault = const KdfParams.pbkdf2(1000);
       final envelope = await svc.encryptBlockDocPasswordV5(
@@ -363,35 +365,50 @@ void main() {
       expect(pwSlot['it'], 1000);
       final legacyEnvelope = jsonEncode(map);
 
-      // 旧格式解锁成功。
+      // 旧 PBKDF2 槽不再支持：解锁与改密均 fail-closed 拒绝。
       expect(
-        await svc.decryptBlockDocPassword(
+        () => svc.decryptBlockDocPassword(
           docId: id,
           encryptedJson: legacyEnvelope,
           password: pw,
         ),
-        '旧载荷机密',
+        throwsFormatException,
+        reason: '旧版 PBKDF2 槽不再支持，fail-closed 拒绝',
       );
+      expect(
+        () => svc.changeBlockDocPasswordV5(
+          docId: id,
+          encryptedJson: legacyEnvelope,
+          oldPassword: pw,
+          newPassword: 'new-pass-2',
+        ),
+        throwsFormatException,
+        reason: '旧版 PBKDF2 槽不再支持改密懒升级',
+      );
+    });
 
-      // 改密 → 懒升级 Argon2id；载荷与 USB 槽语义保持。
+    test('v5 Argon2id 槽：改密重绕仍 Argon2id（唯一支持格式）', () async {
+      final envelope = await svc.encryptBlockDocPasswordV5(
+        docId: id,
+        plaintext: '机密载荷',
+        password: pw,
+      );
       final upgraded = await svc.changeBlockDocPasswordV5(
         docId: id,
-        encryptedJson: legacyEnvelope,
+        encryptedJson: envelope,
         oldPassword: pw,
         newPassword: 'new-pass-2',
       );
       final up = jsonDecode(upgraded) as Map<String, dynamic>;
       final upPw = (up['slots'] as Map)['pw'] as Map<String, dynamic>;
       expect(upPw['kdf'], KdfParams.kdfArgon2id);
-      expect(upPw['m'], KdfParams.testLight.memoryKiB);
-
       expect(
         await svc.decryptBlockDocPassword(
           docId: id,
           encryptedJson: upgraded,
           password: 'new-pass-2',
         ),
-        '旧载荷机密',
+        '机密载荷',
       );
       expect(
         () => svc.decryptBlockDocPassword(

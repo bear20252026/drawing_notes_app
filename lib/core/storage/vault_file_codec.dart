@@ -106,9 +106,6 @@ abstract final class VaultFileCodec {
   static const int _v3Version = 3;
   static const int _headerBytes = 4;
 
-  /// v2 头部长度：魔数(3)+版本(1)+salt(16)+iterations(4)。
-  static const int _passwordHeaderBytes = 4 + 16 + 4;
-
   /// v3 头部长度：魔数(3)+版本(1)+jsonLen(4)。
   static const int _v3HeaderBytes = 8;
 
@@ -197,78 +194,10 @@ abstract final class VaultFileCodec {
     }
   }
 
-  /// 单文件密码信封加密（批次② v2）：随机盐 + PBKDF2 派生密钥 +
-  /// AES-256-GCM；盐与迭代次数内嵌头部（明文无密——盐无需保密）。
-  static Future<Uint8List> encryptWithPassword(
-    Uint8List plain,
-    String password, {
-    required String aadContext,
-    int iterations = filePasswordIterations,
-  }) async {
-    final salt = VaultKeyService.randomBytes(16);
-    final key = await VaultKeyService.deriveKek(
-      password,
-      salt,
-      KdfParams.pbkdf2(iterations),
-    );
-    final payload = await VaultKeyService.aeadEncrypt(
-      Uint8List.fromList(key),
-      plain,
-      _aadFor(aadContext),
-    );
-    final iter = ByteData(4)..setUint32(0, iterations);
-    return Uint8List.fromList([
-      _m0,
-      _m1,
-      _m2,
-      _passwordVersion,
-      ...salt,
-      ...iter.buffer.asUint8List(),
-      ...payload,
-    ]);
-  }
-
-  /// 单文件密码信封解密（批次② v2）。密码错误 / 载荷被篡改 →
-  /// 抛 [VaultFileException]（GCM tag 校验，与「密码错误」不可区分——
-  /// 同一报错防侧信道枚举）。
-  static Future<Uint8List> decryptWithPassword(
-    Uint8List blob,
-    String password, {
-    required String aadContext,
-  }) async {
-    if (!isPasswordEnvelopeV2(blob)) {
-      throw const VaultFileException('不是 v2 单文件密码信封');
-    }
-    if (blob.length <= _passwordHeaderBytes) {
-      throw const VaultFileException('信封长度不合法');
-    }
-    final salt = blob.sublist(4, 20);
-    final iter = ByteData.sublistView(blob, 20, 24).getUint32(0);
-    // P0 修复：v2 头部 iter 无界——`1` 瞬间爆破、`0xFFFFFFFF` 挂起 isolate。
-    // 合法产线仅 100k/600k，上限取 2 倍生产值，超限 fail-closed。
-    if (iter <= 0 || iter > KdfParams.maxPbkdf2Iterations) {
-      throw const VaultFileException('信封 KDF 迭代数不合法');
-    }
-    final key = await VaultKeyService.deriveKek(
-      password,
-      salt,
-      KdfParams.pbkdf2(iter),
-    );
-    try {
-      final plain = await VaultKeyService.aeadDecrypt(
-        Uint8List.fromList(key),
-        blob.sublist(_passwordHeaderBytes),
-        _aadFor(aadContext),
-      );
-      return Uint8List.fromList(plain);
-    } on SecretBoxAuthenticationError {
-      throw const VaultFileException('密码错误或密文被篡改');
-    } on VaultUnlockException {
-      // R53：同 decrypt——过短载荷的 VaultUnlockException 必须转成
-      // VaultFileException，否则单文件密码解锁界面会假死。
-      throw const VaultFileException('密文长度不合法或密文被篡改');
-    }
-  }
+  // M-06 收口（2026-11-14，删除旧版加密支持）：v2 单文件密码信封
+  // （PBKDF2 派生密钥）的加解密方法已移除——存量 v2 数据不再可解，
+  // 读路径一律 fail-closed 拒绝（见 storage_* 各调用点）。文件密码仅
+  // 支持 v3 双保护器信封（Argon2id，见下）。
 
   // ================= v3 双保护器信封（N4 批 2，2026-09-02 定案） =================
   //

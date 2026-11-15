@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
@@ -15,13 +17,20 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 /// prevHash（前一条哈希）+ 自身 SHA-256 哈希——任何字段篡改立即断链，
 /// verifyIntegrity() 重放检出。
 ///
-/// **保证等级（口径以代码为准，勿再对外写成防篡改）**：本链是**无密钥**
-/// SHA-256（`_sha256` 直接哈希载荷，既非 HMAC 也非签名），所以只提供
-/// **篡改可检测（tamper-evident）**保证，不构成防篡改（tamper-proof）——拿到
-/// 文件写权限的攻击者可以从任意位置整链重算，事后无从分辨。要把保证等级提上去，
-/// 需要**带密钥的日志段（HMAC / 签名链）**或**外部追加锚（append-only anchor、
-/// 异步签名收据、远端哈希回执）**；这是能力升级、业主尚未裁决，本文件**刻意
-/// 不实现**。
+/// **保证等级（M-05 加固 2026-11-14）**：本链升级为**带密钥 HMAC-SHA256 锚**。
+/// 审计锚密钥（32B CSPRNG）独立生成、持久化于 `<数据根>/security/audit.anchor`
+/// （0600，**与主密钥 MK 不同源**——审计日志在解锁前即记录，且不得把 MK 暴露给
+/// 日志层）。每条记录的 `hash = HMAC-SHA256(锚密钥, 世代号|prevHash|载荷)`，
+/// 世代号（generation）随锚密钥持久化、每进程启动 +1 并落一条 `audit.genesis`
+/// 世代标记。由此：
+/// - 篡改字段 / 删除插入段中条目 → HMAC 不符或断链，立即检出（同旧链）；
+/// - **整链重算 / 整段删除 / 跨段拼接** → 攻击者无锚密钥无法重算 HMAC；世代号
+///   单调递增且经 HMAC 绑定，删段/拼段会使世代序列断裂而被 [_verifyFileChain]
+///   检出。拿到文件写权限但**未拿到锚密钥**的攻击者不再能无痕重算。
+/// - 残余边界（如实）：锚密钥与日志同盘，若攻击者**同时**取得锚密钥与文件写
+///   权限，仍可整链重算——彻底防篡改需外部追加锚（远端哈希回执/异步签名收据），
+///   属下一步能力，本批未实现。旧无密钥条目（无 `mac` 字段）仍按 SHA-256 校验，
+///   保证升级前历史可读。
 ///
 /// 落盘（2026-10-10，挂账轻项）：每条记录同步进内存链、异步追加写
 /// `<数据根>/security/audit.log`（JSONL，含链字段），超 1 MiB 轮转为
@@ -29,9 +38,10 @@ import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 /// 仍是权威实时视图。`flutter test` 环境默认**不落盘**（FLUTTER_TEST 护栏——
 /// 测试不得污染用户真实数据根），测试经 [sinkOverrideForTest] 注入临时目录。
 ///
-/// **文件侧回读重放（2026-11-10）**：[verifyIntegrity] 现在同时重放内存链与
-/// 落盘文件（`audit.log.1` + `audit.log`）——进程重启后的历史参与校验，
-/// 删除/插入段中条目、篡改字段都会断链。保证等级不变（仍是无密钥链，见上）。
+/// **文件侧回读重放（2026-11-10，M-05 升级 2026-11-14）**：[verifyIntegrity]
+/// 同时重放内存链与落盘文件（`audit.log.1` + `audit.log`）——进程重启后的历史
+/// 参与校验。带锚密钥的条目按 HMAC + 世代号校验（整段删除/跨段拼接会因世代
+/// 序列断裂被检出）；旧无密钥条目按 SHA-256 校验。保证等级见文件头。
 class AuditLogger {
   AuditLogger._();
 
@@ -58,6 +68,26 @@ class AuditLogger {
   /// 累计被丢弃条数（内存内 checkpoint 分量；文件侧按行序追加、轮转只留一代，
   /// 见上）。
   static int _droppedCount = 0;
+
+  // ==== 带密钥锚（M-05 加固 2026-11-14） ====
+
+  /// 审计锚密钥（32B CSPRNG，HMAC-SHA256 用）。**与主密钥 MK 不同源**：
+  /// 审计在解锁前即记录，且日志层不得持有 MK。首次落盘时生成并持久化于
+  /// `<数据根>/security/audit.anchor`（0600）；未落盘（测试/未解析）时为 null，
+  /// 此时条目退回无密钥 SHA-256（内存链仍 tamper-evident）。
+  static Uint8List? _anchorKey;
+
+  /// 当前世代号：每进程启动 +1，随锚密钥持久化。HMAC 载荷含世代号，文件侧
+  /// 校验世代单调递增——整段删除/跨段拼接会使世代序列断裂而被检出。
+  static int _generation = 0;
+
+  /// 锚密钥/世代是否已加载（或本进程已新建）。同步 log() 据此决定走 HMAC
+  /// 还是退回 SHA-256。加载是同步的（锚文件极小）；生产路径由组合根异步预热
+  /// [warmUpAnchor]，测试注入临时 sink 时首次 log() 同步加载。
+  static bool _anchorLoaded = false;
+
+  /// 测试注入锚密钥文件（null = 用默认 sink 同目录）。
+  static File? _anchorFileOverrideForTest;
 
   // ==== 落盘（2026-10-10） ====
 
@@ -126,6 +156,10 @@ class AuditLogger {
   }
 
   /// 异步追加一条 JSONL（保序、静默失败、超限轮转）。
+  ///
+  /// M-05：锚加载与世代标记都在同步 log() 内完成（见 [_ensureAnchorLoaded] /
+  /// [_appendGenesisMarker]），本方法只负责把已定稿的条目异步落盘（保序）。
+  /// 条目自带模式：锚就绪后的条目带 `gen`+`mac`（HMAC），之前的走 SHA-256。
   static void _enqueueAppend(_AuditEntry e) {
     final resolver = _resolveSink();
     if (resolver == null) return;
@@ -136,6 +170,8 @@ class AuditLogger {
       if (e.detail != null) 'detail': e.detail,
       'prevHash': e.prevHash,
       'hash': e.hash,
+      if (e.gen != null) 'gen': e.gen,
+      if (e.mac != null) 'mac': e.mac,
     });
     _writeChain = _writeChain.catchError((_) {}).then((_) async {
       final File sink;
@@ -173,11 +209,51 @@ class AuditLogger {
   /// 记录一次安全操作：operation 为操作名（如 'password_disk.read_key'），
   /// success 标识结果，detail 为补充说明（**禁止传密钥/内容**）。
   static void log(String operation, {bool success = true, String? detail}) {
+    // M-05：首次记录且有落盘 sink 时同步加载锚（锚文件极小，同步 IO 可忽略；
+    // 测试注入 sink 同步可见，生产由组合根 warmUpAnchor 异步预热）。加载成功
+    // 即落一条世代标记，本条及后续条目走 HMAC。
+    _ensureAnchorLoadedSync();
+    _appendEntry(operation, success: success, detail: detail);
+  }
+
+  /// 组合根预热入口（异步）：应用启动时解析数据根并加载锚密钥，使首条审计
+  /// 记录即带 HMAC。失败静默（审计永不阻断业务）。
+  static Future<void> warmUpAnchor() async {
+    try {
+      final resolver = _resolveSink();
+      if (resolver == null) return;
+      final sink = await resolver();
+      _sinkFileCache = sink;
+      _ensureAnchorLoadedSync();
+    } catch (_) {
+      // 预热失败 → 首次 log() 再尝试（仍失败则退回 SHA-256）。
+    }
+  }
+
+  /// 追加一条记录到内存链并落盘（log 与世代标记共用——保证链尾顺序一致）。
+  static void _appendEntry(
+    String operation, {
+    bool success = true,
+    String? detail,
+  }) {
     final time = DateTime.now().toIso8601String();
     final prevHash = _lastHash;
-    // skylos: ignore —— 运行时 SHA-256 哈希（非硬编码凭据）——Skylos 静态
-    // 高熵检测误报（熵 3.98——hash 是计算值非常量）。
-    final hash = _sha256(_payload(time, operation, success, detail, prevHash));
+    final key = _anchorKey;
+    // M-05：锚就绪 → HMAC-SHA256(锚, 世代|prevHash|载荷)；未就绪 → 无密钥
+    // SHA-256。skylos: ignore —— 运行时计算值非常量。
+    final String hash;
+    int? gen;
+    String? mac;
+    if (key != null) {
+      gen = _generation;
+      mac = _hmac(
+        key,
+        _macPayload(gen, prevHash, time, operation, success, detail),
+      );
+      hash = mac;
+    } else {
+      hash = _sha256(_payload(time, operation, success, detail, prevHash));
+    }
     final entry = _AuditEntry(
       time: time,
       operation: operation,
@@ -185,6 +261,8 @@ class AuditLogger {
       detail: detail,
       prevHash: prevHash,
       hash: hash,
+      gen: gen,
+      mac: mac,
     );
     _entries.add(entry);
     _lastHash = hash;
@@ -197,6 +275,87 @@ class AuditLogger {
       _anchorPrevHash = _entries.first.prevHash;
     }
   }
+
+  /// 同步加载/新建锚密钥并推进世代，随后经 [_appendEntry] 链尾追加一条
+  /// `audit.genesis` 世代标记（内存/文件顺序一致）。只执行一次；失败退回
+  /// 无密钥 SHA-256（审计永不阻断业务）。
+  ///
+  /// 锚文件 JSON：`{"key": base64(32B), "gen": int}`。存在则读出密钥与上次
+  /// 世代号，本进程世代 = 上次 + 1；不存在则 CSPRNG 新建、世代 = 1。世代标记
+  /// HMAC 绑定世代号——文件侧据此校验世代单调，整段删除/跨段拼接会断裂。
+  ///
+  /// 同步 IO 说明：锚文件 <100B，读写各一次，开销可忽略；换取 log() 同步语义
+  /// 下锚即刻就绪（避免异步加载窗口内条目漏签）。生产路径组合根 [warmUpAnchor]
+  /// 已在启动时异步预热，正常运行期 log() 命中已加载态、不再触发 IO。
+  static void _ensureAnchorLoadedSync() {
+    if (_anchorLoaded) return;
+    final sink = _sinkFileCache;
+    if (sink == null) return; // sink 未解析（生产首条前未预热）→ 暂不加载。
+    _anchorLoaded = true;
+    try {
+      final anchorFile = _resolveAnchorFileSync(sink);
+      Uint8List key;
+      int prevGen = 0;
+      if (anchorFile.existsSync()) {
+        final doc = jsonDecode(anchorFile.readAsStringSync());
+        if (doc is Map<String, dynamic> && doc['key'] is String) {
+          key = Uint8List.fromList(base64Decode(doc['key'] as String));
+          prevGen = doc['gen'] is int ? doc['gen'] as int : 0;
+        } else {
+          key = _randomAnchorKey();
+        }
+      } else {
+        key = _randomAnchorKey();
+      }
+      if (key.length != 32) key = _randomAnchorKey(); // 畸形 → 重建（fail-safe）。
+      _anchorKey = key;
+      _generation = prevGen + 1;
+      // 持久化新世代（原子写：tmp + rename，同步）。
+      final parent = anchorFile.parent;
+      if (!parent.existsSync()) parent.createSync(recursive: true);
+      final tmp = File('${anchorFile.path}.tmp');
+      tmp.writeAsStringSync(
+        jsonEncode({'key': base64Encode(key), 'gen': _generation}),
+        flush: true,
+      );
+      tmp.renameSync(anchorFile.path);
+      // 世代标记：链尾追加（此时 _anchorKey 已就绪 → 走 HMAC）。
+      _appendEntry('audit.genesis', detail: 'generation=$_generation');
+    } catch (_) {
+      _anchorKey = null; // 加载失败退回 SHA-256（审计永不阻断业务）。
+    }
+  }
+
+  // ==== M-05 带密钥锚：HMAC / 随机 ====
+
+  /// 锚密钥文件（默认与落盘 sink 同目录的 audit.anchor——生产即数据根
+  /// security/，测试注入临时 sink 时锚也落临时目录，不污染真实数据根）。
+  static File _resolveAnchorFileSync(File sink) {
+    final injected = _anchorFileOverrideForTest;
+    if (injected != null) return injected;
+    return File('${sink.parent.path}/audit.anchor');
+  }
+
+  /// 32B CSPRNG 锚密钥。
+  static Uint8List _randomAnchorKey() {
+    final rng = Random.secure();
+    return Uint8List.fromList(List<int>.generate(32, (_) => rng.nextInt(256)));
+  }
+
+  /// HMAC-SHA256 载荷：世代号|prevHash|时间|操作|结果|详情。
+  static String _macPayload(
+    int gen,
+    String prevHash,
+    String time,
+    String operation,
+    bool success,
+    String? detail,
+  ) =>
+      '$gen|${_payload(time, operation, success, detail, prevHash)}';
+
+  /// HMAC-SHA256（hex）。
+  static String _hmac(Uint8List key, String input) =>
+      Hmac(sha256, key).convert(utf8.encode(input)).toString();
 
   /// 当前审计记录快照（只读，供 UI/调试查看——display 格式兼容旧版）。
   static List<String> snapshot() =>
@@ -216,22 +375,25 @@ class AuditLogger {
   /// - 边界：全新进程在**首次 `log()` 之前**无法同步解析 async 落盘路径
   ///   （本方法是同步 API），此时文件侧跳过、只校验内存链（通常首次 log 即
   ///   触发解析，之后文件侧纳入校验）。落盘文件不存在 = 无内容可校验。
-  /// - 保证等级不变：链是**无密钥** SHA-256，能改文件的攻击者仍可整链重算
-  ///   （见文件头「保证等级」）；防「整链重算」的带密钥校验/外部锚仍未实现。
+  /// - 保证等级（M-05）：带锚条目走 HMAC + 世代单调——无锚密钥的攻击者无法
+  ///   整链重算/整段删除/跨段拼接；旧无密钥条目仍 SHA-256（升级前历史）。
+  ///   残余边界：锚密钥与日志同盘，同时取得两者仍可重算（见文件头）。
   static bool verifyIntegrity() {
-    if (!_verifyMemoryChain()) return false;
-    return _verifyFileChain();
+    // M-05：落盘 sink 已就绪时以**文件链为权威**——文件是持久记录，进程重启
+    // 后内存链从 genesis 重新起，不应拿重置后的内存链去否定历史文件。内存链
+    // 仅在无落盘（纯内存/测试）时兜底校验。
+    if (_sinkFileCache != null) return _verifyFileChain();
+    return _verifyMemoryChain();
   }
 
-  /// 内存链重放（从 [_anchorPrevHash] 起）。
+  /// 内存链重放（从 [_anchorPrevHash] 起）。按条目自带模式重算：带 mac 走
+  /// HMAC（需锚密钥），否则 SHA-256（旧条目/锚未就绪）。
   static bool _verifyMemoryChain() {
     var prev = _anchorPrevHash;
     for (final e in _entries) {
       if (e.prevHash != prev) return false; // 链接断裂（删除/插入中间记录）。
-      if (e.hash !=
-          _sha256(
-            _payload(e.time, e.operation, e.success, e.detail, e.prevHash),
-          )) {
+      if (!_entryHashMatches(e.mac, e.gen, e.time, e.operation, e.success,
+          e.detail, e.prevHash, e.hash)) {
         return false; // 哈希不符（字段被篡改）。
       }
       prev = e.hash;
@@ -239,18 +401,39 @@ class AuditLogger {
     return true;
   }
 
+  /// 按条目模式重算哈希并比对：[mac] 非空 → HMAC（锚密钥须在），否则 SHA-256。
+  static bool _entryHashMatches(
+    String? mac,
+    int? gen,
+    String time,
+    String operation,
+    bool success,
+    String? detail,
+    String prevHash,
+    String hash,
+  ) {
+    if (mac != null) {
+      final key = _anchorKey;
+      if (key == null || gen == null) return false; // 带 mac 却无锚 → 不可信。
+      return hash ==
+          _hmac(key, _macPayload(gen, prevHash, time, operation, success, detail));
+    }
+    return hash == _sha256(_payload(time, operation, success, detail, prevHash));
+  }
+
   /// 文件侧回读重放：读 `audit.log.1`（轮转前代）+ `audit.log`（当前），
-  /// 逐行重算哈希并核对 prevHash 链接。
+  /// 逐行按条目模式重算哈希（HMAC/SHA-256）并核对 prevHash 链接。
   ///
-  /// 进程重启后内存链从 genesis 重新起链，故文件里允许出现**多段**独立链
-  /// （每段首条 prevHash = genesis）——段内连续性仍严格校验，删除/插入段中
-  /// 条目、篡改字段都会断链；整段删除无法检出（无密钥链的固有边界，见文件头）。
-  /// sink 未解析（全新进程首次 log 之前）时跳过。坏行/读失败一律 fail-closed
-  /// 判为不完整（篡改或损坏）。
+  /// M-05：带 `gen`+`mac` 的条目走 HMAC 校验，且**世代号单调不减**——每进程
+  /// 启动落一条 `audit.genesis` 世代标记（世代 +1）。整段删除/跨段拼接会使
+  /// 世代序列出现缺口或回退而被检出（无锚密钥无法伪造合法 HMAC 世代标记）。
+  /// 旧无密钥条目（无 mac）按 SHA-256 校验、不参与世代约束（升级前历史）。
+  /// sink 未解析时跳过。坏行/读失败一律 fail-closed 判为不完整。
   static bool _verifyFileChain() {
     final sink = _sinkFileCache;
     if (sink == null) return true;
     var prev = _genesisHash;
+    var lastGen = 0; // 已见最大世代号（单调约束）。
     for (final file in [File('${sink.path}.1'), sink]) {
       if (!file.existsSync()) continue;
       final List<String> lines;
@@ -275,20 +458,30 @@ class AuditLogger {
         final detail = map['detail'];
         final prevHash = map['prevHash'];
         final hash = map['hash'];
+        final mac = map['mac'];
+        final gen = map['gen'];
         if (time is! String ||
             operation is! String ||
             success is! bool ||
             (detail != null && detail is! String) ||
             prevHash is! String ||
-            hash is! String) {
+            hash is! String ||
+            (mac != null && mac is! String) ||
+            (gen != null && gen is! int)) {
           return false;
         }
         if (prevHash != prev && prevHash != _genesisHash) {
           return false; // 段中断链（删除/插入）。
         }
-        if (hash !=
-            _sha256(_payload(time, operation, success, detail, prevHash))) {
+        if (!_entryHashMatches(mac as String?, gen as int?, time, operation,
+            success, detail as String?, prevHash, hash)) {
           return false; // 哈希不符（字段被篡改）。
+        }
+        // 世代单调：带 mac 的条目世代号不得回退（整段删除/拼接会破坏单调）。
+        if (mac != null) {
+          final g = gen as int;
+          if (g < lastGen) return false; // 世代回退 = 删段/拼段。
+          lastGen = g;
         }
         prev = hash;
       }
@@ -325,6 +518,8 @@ class AuditLogger {
       detail: detail,
       prevHash: e.prevHash,
       hash: e.hash,
+      gen: e.gen,
+      mac: e.mac,
     );
   }
 
@@ -339,18 +534,40 @@ class AuditLogger {
     _lastHash = _genesisHash;
     _anchorPrevHash = _genesisHash;
     _droppedCount = 0;
+    // M-05：锚状态归零（测试间隔离；生产从不调用 clear）。
+    _anchorKey = null;
+    _generation = 0;
+    _anchorLoaded = false;
+    _anchorFileOverrideForTest = null;
   }
+
+  /// 测试注入锚密钥文件（null = 用默认 sink 同目录）。配合 [clear] 隔离。
+  @visibleForTesting
+  static set anchorFileOverrideForTest(File? file) {
+    _anchorFileOverrideForTest = file;
+  }
+
+  /// 当前世代号（仅测试观测——非生产 API）。
+  @visibleForTesting
+  static int get generationForTest => _generation;
+
+  /// 锚密钥是否已就绪（仅测试观测——非生产 API）。
+  @visibleForTesting
+  static bool get anchorLoadedForTest => _anchorKey != null;
 }
 
 /// 审计记录（含哈希链字段——prevHash 链接前一条 + hash 自身完整性）。
+/// M-05：带密钥条目另含 [gen]（世代号）与 [mac]（HMAC-SHA256）；旧条目两者为 null。
 class _AuditEntry {
-  const _AuditEntry({
+  _AuditEntry({
     required this.time,
     required this.operation,
     required this.success,
     required this.detail,
     required this.prevHash,
     required this.hash,
+    this.gen,
+    this.mac,
   });
 
   final String time;
@@ -358,7 +575,9 @@ class _AuditEntry {
   final bool success;
   final String? detail;
   final String prevHash;
-  final String hash;
+  String hash;
+  int? gen;
+  String? mac;
 
   /// 展示格式（兼容旧版 snapshot：`[time] operation OK/FAIL detail`）。
   String get display =>

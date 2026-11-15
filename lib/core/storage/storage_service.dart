@@ -383,11 +383,9 @@ class StorageService implements DocumentRepository, SessionSecretsHolder {
             _secrets.cacheV3Material(fileId, unlock);
             bytes = unlock.plain;
           } else {
-            bytes = await VaultFileCodec.decryptWithPassword(
-              raw,
-              filePassword,
-              aadContext: 'doc:$fileId',
-            );
+            // M-06 收口（2026-11-14）：v2 旧文件密码信封不再支持——按锁定
+            // 占位处理（不暴露元信息），存量旧数据须先升级 v3。
+            locked = true;
           }
         } else if (VaultFileCodec.isEncrypted(raw)) {
           final key = await _pipeline.currentKey();

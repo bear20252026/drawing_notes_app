@@ -295,8 +295,15 @@ class VaultKeyService {
           pinSlot: _normalizedPinSlot(pinSlot, doc),
           usbSlot: usbSlot,
         );
-      } catch (_) {
+      } catch (e) {
         // 迁移失败不阻塞解锁（下次成功解锁再试）；旧文件仍可读。
+        // M-08（2026-11-14）：安全降级可观测——旧格式槽位未能升级 Argon2id
+        // 落审计（此前全静默，降级藏进黑盒）。只记错误类型，不带凭据。
+        AuditLogger.log(
+          'vault.slot_migration_failed',
+          success: false,
+          detail: errorCode(e),
+        );
       }
     }
   }
@@ -643,8 +650,15 @@ class VaultKeyService {
           await entry.delete();
         }
       }
-    } catch (_) {
+    } catch (e) {
       // 清扫尽力而为：失败不影响正常读写路径。
+      // M-08（2026-11-14）：孤儿 tmp 清扫失败落审计——残留的旧密钥副本可能
+      // 滞留磁盘（此前全静默）。只记错误类型，不带凭据。
+      AuditLogger.log(
+        'vault.tmp_sweep_failed',
+        success: false,
+        detail: errorCode(e),
+      );
     }
   }
 

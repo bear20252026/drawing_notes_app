@@ -62,11 +62,12 @@ void main() {
     );
   });
 
-  test('密码模式：同盐往返 + 不同盐失败（方案 B）', () async {
-    // M1 修复（2026-11-11）：盐升级为 [MediaSalt]（带 KDF 版本）。
-    // 本用例锁定旧版（PBKDF2-600k）路径仍可用——用 MediaSalt.legacy 显式
-    // 声明版本 1，语义与升级前逐字一致。
-    final salt = MediaSalt.legacy(MediaCryptoService.generateSalt());
+  test('密码模式：同盐往返 + 不同盐失败（方案 B，Argon2id 版本 2）', () async {
+    // M-06 收口（2026-11-14）：仅支持版本 2 盐（Argon2id）。
+    final salt = MediaSalt(
+      bytes: MediaCryptoService.generateSalt(),
+      kdf: MediaSalt.argon2idKdf,
+    );
     await MediaCryptoService.instance.setSessionPassword('secret123', salt);
     final enc = await MediaCryptoService.instance.encryptBytes(
       Uint8List.fromList(utf8Encode('数据')),
@@ -77,7 +78,10 @@ void main() {
     // 不同盐派生——key 不同——解密认证失败。
     await MediaCryptoService.instance.setSessionPassword(
       'secret123',
-      MediaSalt.legacy(MediaCryptoService.generateSalt()),
+      MediaSalt(
+        bytes: MediaCryptoService.generateSalt(),
+        kdf: MediaSalt.argon2idKdf,
+      ),
     );
     expect(
       () => MediaCryptoService.instance.decryptBytes(enc),
@@ -111,14 +115,14 @@ void main() {
     expect(MediaCryptoService.instance.isActive, isFalse);
   });
 
-  group('M1：MediaSalt 版本分派（Argon2id 升级）', () {
-    test('旧版 16B 裸盐解析为版本 1（PBKDF2-600k）', () {
+  group('MediaSalt 版本分派（M-06 收口：仅 Argon2id 版本 2）', () {
+    test('旧版 16B 裸盐（版本 1 PBKDF2）→ 拒绝（删除旧版支持）', () {
       final raw = List<int>.generate(16, (i) => i);
-      final salt = MediaSalt.parse(raw);
-      expect(salt.bytes, raw);
-      expect(salt.kdf, MediaSalt.legacyKdf);
-      expect(salt.kdf.kdf, KdfParams.kdfPbkdf2);
-      expect(salt.kdf.iterations, 600000);
+      expect(
+        () => MediaSalt.parse(raw),
+        throwsArgumentError,
+        reason: '旧版 PBKDF2 盐不再支持，fail-closed 拒绝',
+      );
     });
 
     test('版本 2 + 16B 盐解析为 Argon2id 生产参数', () {

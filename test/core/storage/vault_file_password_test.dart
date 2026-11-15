@@ -5,129 +5,91 @@ import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 批次②：v2 独立密码信封（PBKDF2 现场派生 + 内嵌盐）回归测试。
-///
-/// 测试用小迭代数（encryptWithPassword 的 iterations 参数），避免
-/// 600k PBKDF2 拖慢套件——迭代数本身随 blob 持久化，逻辑路径一致。
+/// M-06 收口（2026-11-14，删除旧版加密支持）：v2 独立密码信封（PBKDF2
+/// 现场派生 + 内嵌盐）的加解密方法已移除。本套件验证 v2 旧信封不再可解——
+/// 主密钥解密路径抛明确指引（fail-closed），存量旧数据须先升级 v3。
 void main() {
   const aad = 'doc:test-file';
   final masterKey = VaultKeyService.randomBytes(32);
 
   Uint8List plainOf(String s) => Uint8List.fromList(utf8.encode(s));
 
-  group('VaultFileCodec v2 密码信封', () {
-    test('往返：原字节一致，头部为 DNV+0x02，内嵌盐与迭代数', () async {
+  /// 手工构造 v2 旧信封字节（DNV + 0x02 + salt(16) + iter(4) + 载荷）。
+  /// 载荷内容任意（v2 解密已删除，不再实际解密——只验证识别与拒绝）。
+  Uint8List legacyV2Blob() {
+    final salt = List<int>.generate(16, (i) => i);
+    final iter = ByteData(4)..setUint32(0, 600000);
+    final payload = List<int>.generate(48, (i) => i); // nonce+密文+tag 占位
+    return Uint8List.fromList([
+      0x44, 0x4E, 0x56, 0x02, // DNV + v2
+      ...salt,
+      ...iter.buffer.asUint8List(),
+      ...payload,
+    ]);
+  }
+
+  group('VaultFileCodec v2 旧信封（删除旧版支持）', () {
+    test('v2 旧信封仍被识别为密码信封（读路径据此要求会话密码）', () {
+      final blob = legacyV2Blob();
+      expect(VaultFileCodec.isPasswordEnvelope(blob), isTrue);
+      expect(VaultFileCodec.isPasswordEnvelopeV2(blob), isTrue);
+      expect(VaultFileCodec.isEncrypted(blob), isTrue); // 同为 DNV 家族
+      expect(blob[3], 2); // 版本 2
+      expect(VaultFileCodec.isV3Envelope(blob), isFalse);
+    });
+
+    test('v2 不可走主密钥解密：decrypt 抛明确指引（fail-closed）', () async {
+      final blob = legacyV2Blob();
+      await expectLater(
+        VaultFileCodec.decrypt(blob, masterKey, aadContext: aad),
+        throwsA(isA<VaultFileException>()),
+        reason: 'v2 密码信封不走主密钥路径，删除旧版后仍 fail-closed',
+      );
+    });
+
+    test('v3 双保护器信封：Argon2id 往返（唯一支持的文件密码格式）', () async {
       final plain = plainOf('{"document":{"title":"独立密码画作"}}');
-      final blob = await VaultFileCodec.encryptWithPassword(
+      final blob = await VaultFileCodec.encryptWithPasswordV3(
         plain,
         '654321',
         aadContext: aad,
-        iterations: 1000,
       );
-
-      expect(VaultFileCodec.isPasswordEnvelope(blob), isTrue);
-      expect(VaultFileCodec.isEncrypted(blob), isTrue); // 同为 DNV 家族
-      expect(blob[3], 2); // 版本 2
-
-      final round = await VaultFileCodec.decryptWithPassword(
+      expect(VaultFileCodec.isV3Envelope(blob), isTrue);
+      expect(VaultFileCodec.isPasswordEnvelopeV2(blob), isFalse);
+      final unlock = await VaultFileCodec.unlockWithPasswordV3(
         blob,
         '654321',
         aadContext: aad,
       );
-      expect(round, equals(plain));
+      expect(unlock.plain, equals(plain));
     });
 
-    test('错误密码 → 拒绝解密（密码错误与篡改统一报错，防侧信道）', () async {
-      final blob = await VaultFileCodec.encryptWithPassword(
+    test('v3 错误密码 → 拒绝解密（fail-closed）', () async {
+      final blob = await VaultFileCodec.encryptWithPasswordV3(
         plainOf('secret'),
         '654321',
         aadContext: aad,
-        iterations: 1000,
       );
       await expectLater(
-        VaultFileCodec.decryptWithPassword(blob, '000000', aadContext: aad),
+        VaultFileCodec.unlockWithPasswordV3(blob, '000000', aadContext: aad),
         throwsA(isA<VaultFileException>()),
       );
     });
 
-    test('AAD 绑定：v2 密文不可跨文件移植', () async {
-      final blob = await VaultFileCodec.encryptWithPassword(
+    test('v3 AAD 绑定：密文不可跨文件移植', () async {
+      final blob = await VaultFileCodec.encryptWithPasswordV3(
         plainOf('body'),
         '654321',
         aadContext: 'doc:one',
-        iterations: 1000,
       );
       await expectLater(
-        VaultFileCodec.decryptWithPassword(
+        VaultFileCodec.unlockWithPasswordV3(
           blob,
           '654321',
           aadContext: 'doc:two',
         ),
         throwsA(isA<VaultFileException>()),
       );
-    });
-
-    test('盐随机性：同一密码两次加密 → 密文不同（盐不重复）', () async {
-      final a = await VaultFileCodec.encryptWithPassword(
-        plainOf('same body'),
-        'same-pass',
-        aadContext: aad,
-        iterations: 1000,
-      );
-      final b = await VaultFileCodec.encryptWithPassword(
-        plainOf('same body'),
-        'same-pass',
-        aadContext: aad,
-        iterations: 1000,
-      );
-      // 盐区（头部 4..20 字节）必须不同。
-      expect(
-        List<int>.from(a.sublist(4, 20)),
-        isNot(equals(List<int>.from(b.sublist(4, 20)))),
-      );
-      expect(a, isNot(equals(b)));
-    });
-
-    test('v2 不可走主密钥解密：decrypt 抛明确指引（层级独立）', () async {
-      final blob = await VaultFileCodec.encryptWithPassword(
-        plainOf('body'),
-        '654321',
-        aadContext: aad,
-        iterations: 1000,
-      );
-      await expectLater(
-        VaultFileCodec.decrypt(blob, masterKey, aadContext: aad),
-        throwsA(isA<VaultFileException>()),
-      );
-    });
-
-    test('密文被篡改 → 拒绝解密（fail-closed）', () async {
-      final blob = await VaultFileCodec.encryptWithPassword(
-        plainOf('secret body'),
-        '654321',
-        aadContext: aad,
-        iterations: 1000,
-      );
-      blob[blob.length - 1] ^= 0xFF;
-      await expectLater(
-        VaultFileCodec.decryptWithPassword(blob, '654321', aadContext: aad),
-        throwsA(isA<VaultFileException>()),
-      );
-    });
-
-    test('迭代数随 blob 持久化：换迭代数加密仍可解开', () async {
-      final blob = await VaultFileCodec.encryptWithPassword(
-        plainOf('body'),
-        '654321',
-        aadContext: aad,
-        iterations: 12345,
-      );
-      final round = await VaultFileCodec.decryptWithPassword(
-        blob,
-        '654321',
-        aadContext: aad,
-      );
-      expect(round, equals(plainOf('body')));
     });
   });
 }

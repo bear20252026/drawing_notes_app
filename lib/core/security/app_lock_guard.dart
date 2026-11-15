@@ -32,6 +32,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart' as hex;
 
 /// 守卫记录文件名（与签名密钥 [defaultSecretLoader] 同目录——M4 同域共储）。
@@ -345,8 +346,15 @@ class LockoutGuard {
       await AppDataRoot.tightenFilePermissions(file);
       // 写入成功后清掉旧 SharedPreferences 条目（迁移完成）。
       await _clearLegacyPrefs(prefs);
-    } catch (_) {
+    } catch (e) {
       // 落盘失败不阻断守卫语义——内存态仍自洽。
+      // M-08（2026-11-14）：防爆破守卫记录落盘失败落审计——重启后冷却/计数
+      // 可能丢失（此前全静默）。只记错误类型，不带凭据。
+      AuditLogger.log(
+        'app_lock.guard_persist_failed',
+        success: false,
+        detail: errorCode(e),
+      );
     }
   }
 
@@ -358,8 +366,15 @@ class LockoutGuard {
       final dir = await AppDataRoot.defaultSecurityDir();
       final file = File('${dir.path}${Platform.pathSeparator}$kGuardRecordFile');
       if (file.existsSync()) await file.delete();
-    } catch (_) {
+    } catch (e) {
       // 删除失败不阻断。
+      // M-08（2026-11-14）：守卫记录删除失败落审计——旧冷却/计数可能残留
+      // （此前全静默）。只记错误类型，不带凭据。
+      AuditLogger.log(
+        'app_lock.guard_delete_failed',
+        success: false,
+        detail: errorCode(e),
+      );
     }
   }
 

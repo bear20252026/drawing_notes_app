@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/repository.dart';
@@ -172,6 +173,9 @@ class _AppShellState extends State<AppShell> {
     widget.docStorage?.onWrite = _services.bumpDataVersion;
     _services.blockDocStore.onWrite = _services.bumpDataVersion;
     _servicesWired = true;
+    // M-05（2026-11-14）：启动即异步预热审计锚密钥——首条审计记录即带 HMAC，
+    // 不必等首次 log() 才同步加载。失败静默（审计永不阻断业务）。
+    AuditLogger.warmUpAnchor();
     // R51：把「同数据根的第二个实例」说给用户看。**只在 post-frame 里做**——initState
     // 阶段 `ScaffoldMessenger.of(context)` 还找不到宿主 Scaffold。
     WidgetsBinding.instance.addPostFrameCallback(

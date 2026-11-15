@@ -7,13 +7,14 @@ A cross-platform **drawing and note-taking** application for **Windows desktop +
 ![CI](https://img.shields.io/github/actions/workflow/status/bear20252026/drawing_notes_app/ci.yml)
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
 
-> **Security posture**: government-grade security — encrypted notes (per-note keys;
-> media K_note injection implemented, production currently on session-level keys),
-> policy engine (default-deny), session guard (auto-lock), VFS encrypted object vault
-> (versioned / atomic commits; implemented, not yet wired into production),
-> tamper-evident audit (unkeyed SHA-256 hash chain; in-memory ≤1000 entries +
-> on-disk two-file replay; tail truncation / whole-segment deletion undetectable —
-> see SECURITY.md), import isolation (SVG/PDF preflight).
+> **Security posture**: government-grade security — encrypted notes (v5 dual-protector
+> only: Argon2id + AAD; legacy v2/v3/v4 removed, per-note keys; media K_note injection
+> implemented, production currently on session-level keys), policy engine (default-deny),
+> session guard (auto-lock), VFS encrypted object vault (versioned / atomic commits;
+> wired into production — new media writes VFS, legacy media read-compatible),
+> tamper-evident audit (keyed HMAC-SHA256 anchor + generation counter; file-chain
+> authoritative replay + generation monotonicity — see SECURITY.md), import isolation
+> (SVG/PDF preflight).
 
 ---
 
@@ -88,8 +89,8 @@ pushes run seven); PR Platform / PR Quality / PR Security run on pull_request on
 | USB reset disk | "Forgot password" reset for notebook/file passwords (LUKS-style: disk key unwraps DEK → re-wrap password slot with new salt) |
 | Policy engine | Operation allowlist with **default-deny** (fail-closed) + audit — import/delete gated |
 | Session guard | Backgrounding / minimize / plain focus loss (`inactive`) all trigger a **full lock** — boot lock, identical on desktop and Android (grace window anchored at the **first** background signal; repeat signals in one session never re-anchor it). Key zeroization timing: KEK/session secrets cleared on `hidden`; the master key is zeroed when the lock lands **after the grace window** (it stays in memory during the grace period — deliberate design). While a native file dialog / system permission prompt / external viewer holds OS focus, losing focus is routed through an **exemption window** (off by default, 5-minute TTL cap) so import / export / USB-bind never false-lock. Returning to the foreground always re-runs the single `AppLockService.verify` pipeline — brute-force failure counting, exponential cooldown and quick-unlock semantics are never bypassed. (AppLockGate + SessionGuard) |
-| VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe). **Implemented, not yet enabled**: production composition root does not wire it; media currently uses the session-password path (2026-11-13 audit alignment) |
-| Tamper-evident audit | Unkeyed SHA-256 hash chain (prevHash linkage — tamper breaks chain) + verifyIntegrity; user-facing errors always sanitized. **Scope & blind spots**: the chain carries no key, so an attacker who can rewrite the file can recompute it end-to-end — this is tamper-*evidence*, not tamper-*proofing*. verifyIntegrity replays the in-memory chain (last ≤1000 entries) **and** the on-disk files `audit.log.1` + `audit.log` (cross-restart history included, since 2026-11-10); **tail truncation / whole-segment deletion / cross-segment splicing are undetectable** (see SECURITY.md section 「审计链的保证边界」 (Audit chain guarantee boundary)) |
+| VFS encrypted vault | Object manifest + version rollback + AAD binding + atomic commits (crash-safe). **Wired into production (M-01, 2026-11-14)**: the composition root's unlock sink runs configure + setKey (master key as vault key) + injects NotebookStorage — new media writes VFS objects, legacy media DAN/DNV files read-compatible (dual-track); cleared on re-lock via SessionSecrets |
+| Tamper-evident audit | **Keyed HMAC-SHA256 anchor + generation counter (M-05, 2026-11-14)** + verifyIntegrity; user-facing errors always sanitized. The anchor key is persisted independently (distinct from the master key); each record's HMAC binds the generation counter, which increments per process start with a genesis marker. verifyIntegrity replays the **file chain as authoritative** once the sink is resolved + generation monotonicity. **Detectable**: field tampering / entry deletion-insertion / whole-chain recompute / whole-segment deletion / cross-segment splicing (no anchor key → no valid HMAC; generation monotonicity catches deleted/spliced segments). **Residual boundary**: anchor key and log share the disk — possessing both still allows recompute (full tamper-proofing needs an external anchor); legacy unkeyed entries still verified via SHA-256 (see SECURITY.md section 「审计链的保证边界」 (Audit chain guarantee boundary)) |
 | Import isolation | SVG preflight (XXE/Billion Laughs/script injection/bomb) + PDF page/size quotas + hyperlink scheme allowlist |
 | Release gates | SBOM generation (CycloneDX) + secret scanning (Gitleaks pattern) + CI integration |
 

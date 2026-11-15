@@ -50,28 +50,6 @@ void main() {
 
   Uint8List diskKey() => VaultKeyService.randomBytes(32);
 
-  /// 构造文档的明文落盘字节（与 StorageService.save 的编码一致）：
-  /// 经无密钥临时实例落明文再读回，避免依赖 codec 细节。
-  Future<Uint8List> documentBytes(DrawingDocument d) async {
-    final temp = await Directory.systemTemp.createTemp('v3_doc_bytes_');
-    try {
-      final s = StorageService(
-        directoryProvider: () async => temp,
-        keyProvider: null,
-      );
-      await s.save(d);
-      return await File(
-        '${temp.path}${Platform.pathSeparator}documents'
-        '${Platform.pathSeparator}${d.id}.json',
-      ).readAsBytes();
-    } finally {
-      // Windows 下句柄释放可能有延迟——删除失败忽略（系统临时目录自行回收）。
-      try {
-        await temp.delete(recursive: true);
-      } catch (_) {}
-    }
-  }
-
   test('设密（不绑盘）：v3 信封、验密/读取/列表正常、无 USB 槽', () async {
     final storage = storageWith(VaultKeyService.randomBytes(32));
     await storage.save(doc('v3_doc1', '机密画作A'));
@@ -185,37 +163,31 @@ void main() {
     );
   });
 
-  test('修改密码（v2 旧文件）：自动升级为 v3（暂无槽位，可事后绑定）', () async {
+  // M-06 收口（2026-11-14，删除旧版加密支持）：v2 旧文件不再可解/改密——
+  // fail-closed 拒绝（删除旧版读支持后不再自动升级）。
+  test('v2 旧文件：改密拒绝、验证返回 false（删除旧版支持，fail-closed）', () async {
     final storage = storageWith(VaultKeyService.randomBytes(32));
-    // 手工落一个 v2 信封（模拟 v1.5.x 旧数据——用真实文档明文字节）。
-    final plain = await documentBytes(doc('v3_doc6', '机密画作F'));
-    final realV2 = await VaultFileCodec.encryptWithPassword(
-      plain,
-      '777888',
-      aadContext: 'doc:v3_doc6',
-      iterations: 1000,
-    );
+    // 手工落一个 v2 信封字节（DNV + 0x02 + salt(16) + iter(4) + 载荷占位）。
+    final salt = List<int>.generate(16, (i) => i);
+    final iter = ByteData(4)..setUint32(0, 600000);
+    final realV2 = Uint8List.fromList([
+      0x44, 0x4E, 0x56, 0x02,
+      ...salt,
+      ...iter.buffer.asUint8List(),
+      ...List<int>.generate(48, (i) => i),
+    ]);
     await Directory(
       '${tempDir.path}${Platform.pathSeparator}documents',
     ).create(recursive: true);
     await File(docPath('v3_doc6')).writeAsBytes(realV2, flush: true);
 
-    // 修改密码 → 自动升级 v3。
+    // v2 旧文件：验证返回 false（不可读），改密 fail-closed 拒绝。
     storage.cacheFilePassword('v3_doc6', '777888');
-    await storage.changeFilePassword('v3_doc6', '777888', '123321');
-    final bytes = await File(docPath('v3_doc6')).readAsBytes();
-    expect(VaultFileCodec.isV3Envelope(bytes), isTrue);
-    expect(await storage.hasFileUsbSlot('v3_doc6'), isFalse);
     expect(await storage.verifyFilePassword('v3_doc6', '777888'), isFalse);
-    expect(await storage.verifyFilePassword('v3_doc6', '123321'), isTrue);
-
-    // 升级后可事后绑定重置盘。
-    final key = diskKey();
-    await storage.bindFileUsbSlot('v3_doc6', '123321', key);
-    expect(await storage.hasFileUsbSlot('v3_doc6'), isTrue);
-    expect(
-      await storage.resetFilePasswordWithUsb('v3_doc6', key, '321123'),
-      isTrue,
+    await expectLater(
+      storage.changeFilePassword('v3_doc6', '777888', '123321'),
+      throwsA(isA<VaultFileException>()),
+      reason: '旧版 v2 不再支持，fail-closed 拒绝',
     );
   });
 
