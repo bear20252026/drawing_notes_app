@@ -240,11 +240,18 @@ abstract final class VaultFileCodec {
     final actualDek = dek ?? generateDek();
     final salt = VaultKeyService.randomBytes(_v3SaltBytes);
     final kek = await VaultKeyService.deriveKek(password, salt, params);
-    final wrapped = await VaultKeyService.aeadEncrypt(
-      kek,
-      actualDek,
-      _pwSlotAadFor(aadContext),
-    );
+    final Uint8List wrapped;
+    try {
+      wrapped = await VaultKeyService.aeadEncrypt(
+        kek,
+        actualDek,
+        _pwSlotAadFor(aadContext),
+      );
+    } finally {
+      // 零化补齐（2026-11-15）：KEK 用完即焚（含异常路径）——缩短派生密钥
+      // 堆内驻留窗口（D-2 模式，与 vault_key_service 同口径）。
+      kek.fillRange(0, kek.length, 0);
+    }
     final body = utf8.encode(
       jsonEncode({
         'v': 3,
@@ -306,6 +313,9 @@ abstract final class VaultFileCodec {
       // R53：同 decrypt——过短载荷的 VaultUnlockException 必须转成
       // VaultFileException，否则 v3 密码解锁界面会假死。
       throw const VaultFileException('密文长度不合法或密文被篡改');
+    } finally {
+      // 零化补齐（2026-11-15）：KEK 用完即焚（含密码错误的异常路径）。
+      kek.fillRange(0, kek.length, 0);
     }
     final plain = await _decryptPayloadV3(dek, payload, aadContext);
     final usbWrapped = usbSlot == null
@@ -367,11 +377,17 @@ abstract final class VaultFileCodec {
     final (_, usbSlot) = _slotsOfV3(parsedBody);
     final newSalt = VaultKeyService.randomBytes(_v3SaltBytes);
     final kek = await VaultKeyService.deriveKek(newPassword, newSalt, params);
-    final newWrapped = await VaultKeyService.aeadEncrypt(
-      kek,
-      unlock.dek,
-      _pwSlotAadFor(aadContext),
-    );
+    final Uint8List newWrapped;
+    try {
+      newWrapped = await VaultKeyService.aeadEncrypt(
+        kek,
+        unlock.dek,
+        _pwSlotAadFor(aadContext),
+      );
+    } finally {
+      // 零化补齐（2026-11-15）：重绕用的新 KEK 用完即焚（含异常路径）。
+      kek.fillRange(0, kek.length, 0);
+    }
     final body = utf8.encode(
       jsonEncode({
         'v': 3,

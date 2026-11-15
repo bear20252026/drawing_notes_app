@@ -430,16 +430,27 @@ Future<Uint8List> _migrateSyncEnvelopeV1ToV2({
   required List<int> salt,
   Future<List<int>> Function(String, List<int>)? deriveV2Key,
 }) async {
+  // 零化补齐（2026-11-15）：迁移用的两把派生密钥都是「用完即焚」的临时
+  // 材料（不像 AesSyncCipher.key 需会话期持有）——含异常路径一律擦除。
   final v1Key = await deriveMasterKeyV1(password, salt);
-  final plain = await _decryptWithKey(
-    cipher: v1Cipher,
-    aad: aad,
-    expectedMode: mode,
-    key: v1Key,
-    allowedVersion: syncEnvelopeV1,
-  );
+  final Uint8List plain;
+  try {
+    plain = await _decryptWithKey(
+      cipher: v1Cipher,
+      aad: aad,
+      expectedMode: mode,
+      key: v1Key,
+      allowedVersion: syncEnvelopeV1,
+    );
+  } finally {
+    v1Key.fillRange(0, v1Key.length, 0);
+  }
   final v2Key = await (deriveV2Key ?? deriveMasterKey)(password, salt);
-  return _encryptWithKey(plain: plain, aad: aad, mode: mode, key: v2Key);
+  try {
+    return await _encryptWithKey(plain: plain, aad: aad, mode: mode, key: v2Key);
+  } finally {
+    v2Key.fillRange(0, v2Key.length, 0);
+  }
 }
 
 /// 与 [AesSyncCipher] 实例方法同口径的阈值分流（迁移工具复用，不另抄一份算法）。

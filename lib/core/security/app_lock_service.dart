@@ -28,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/app_lock_guard.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/utils/constant_time.dart' as ct;
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// 应用启动锁服务。
@@ -320,7 +321,13 @@ class AppLockService extends ChangeNotifier {
       _saltBytes(saltHex),
       testPinKdfOverride ?? KdfParams.argon2idProduction,
     );
-    return base64Encode(derived);
+    try {
+      return base64Encode(derived);
+    } finally {
+      // 零化补齐（2026-11-15）：PIN 派生字节编码后即擦——原始 32B 不再驻留
+      // 堆中（base64 串是不可变 String，无法擦除，故只保留必要的那一份）。
+      derived.fillRange(0, derived.length, 0);
+    }
   }
 
   /// 16 字节 hex 盐 → 字节；畸形抛 FormatException（verify 侧 fail-closed）。
@@ -333,15 +340,11 @@ class AppLockService extends ChangeNotifier {
     return out;
   }
 
-  /// 恒定时间字符串比较：无论是否相等耗时一致，防时序侧信道。
-  static bool _constantTimeEquals(String a, String b) {
-    if (a.length != b.length) return false;
-    var diff = 0;
-    for (var i = 0; i < a.length; i++) {
-      diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
-    }
-    return diff == 0;
-  }
+  /// 薄委托：实现收敛至 core/utils/constant_time.dart（单一事实来源，
+  /// 2026-11-15）。保留静态入口防漏改；收敛版**不因长度不等提前返回**
+  /// （长度差折进 diff），比原实现更严谨。
+  static bool _constantTimeEquals(String a, String b) =>
+      ct.constantTimeEquals(a, b);
 
   /// L7：纯状态 ChangeNotifier，无 Timer/StreamController/监听者，
   /// 无实际泄漏；补 dispose() 让静态分析确认生命周期终止。

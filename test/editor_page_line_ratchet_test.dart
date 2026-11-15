@@ -26,7 +26,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// `setLinkMode(false)` + `setLinkSourceId(null)` 两行收敛成一行（−3），
 /// 收口方法本体落在 `editor_viewmodel.dart`（不属本库，不计入）。
 /// 抬完仍只比基线小 1 行——下一次增长要么先拆，要么再点名。
-const int kBaselineTotalLines = 7127;
+///
+/// 2026-11-15（AGENTS.md §9 part 导航规范）：7127 → 7144（+17）。动机**不是
+/// 功能增长**，而是纯注释的可读性投资：editor_page 有 15 个 part，此前主文件
+/// 只有一串裸 `part` 声明，读者无从知道哪个职责落在哪个文件。本次在主文件补
+/// 一份导航目录（17 行注释，逐个 part 标注职责），零逻辑变更、零行为变化。
+/// 这是「结构裁决说明」档：拆分本身没变（part 数与边界不动），补的是索引。
+/// 下一次**逻辑**增长仍须先拆或再点名——注释投资不构成长期放宽的先例。
+const int kBaselineTotalLines = 7144;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 
