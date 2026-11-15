@@ -41,7 +41,7 @@ All three are managed in the **All Docs workspace**: grouped timeline, favorites
 
 ## Requirements
 
-- Flutter 3.47.9 (Dart 3.13.7) or later stable
+- Flutter 3.50.0 (Dart 3.14.0) or later stable
 - Windows build: Visual Studio 2022+ (C++ desktop development workload)
 - Android build: Android SDK (compileSdk 37) + JDK 17+
 - macOS build: Xcode 15+ (minimum macOS 13 Ventura); **unsigned/notarized** — runs locally

@@ -4,6 +4,45 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 工具链与依赖全面升级（2026-11-14，业主批准「全部升最新」，同版本增量，未 bump）
+
+> 目标：所有版本升到 2026-11-14 的最新版；被 SDK/上游约束挡住的升到「可兼容的最新版」。
+
+#### Flutter SDK
+- **3.47.9（Dart 3.13.7）→ 3.50.0（Dart 3.14.0）**——2026-11-11 发布的当前最新
+  stable。`pubspec.environment.sdk` ^3.13.0 → ^3.14.0；**全部 12 处 CI 钉版**
+  （ci / quality_gate / pr-architecture / pr-platform×2 / pr-security / pr-quality /
+  macos-build / release-build×2 / weekly-evidence×2）同步 3.50.0。
+- README / README_EN / CONTRIBUTING 环境要求同步 3.50.0。
+
+#### 依赖（解锁上一批被 Dart 3.13 挡住的包）
+- **hotkey_manager 0.3.0 → 0.4.0、window_manager 0.6.0 → 0.7.0**（需 Dart ^3.14，
+  本次随 SDK 升级解锁）。
+- **nativeapi / nativeapi_flutter / cnativeapi 0.5.10 → 0.6.1**（window_manager 0.7.0
+  联动）；**test_api 0.7.12 → 0.7.14**。
+- 直接依赖与 dev 依赖全部最新（`dart pub outdated`：direct/dev all up-to-date）。
+
+#### 停在「可兼容最新版」的传递依赖（上游约束/SDK 钉死，无法再升，如实记录）
+- **analyzer 11.0.0 / _fe_analyzer_shared 97.0.0 / package_config 2.2.0**：
+  dart_arch_test 0.3.1（其最新版）约束 analyzer `>=9.0.0 <12.0.0`，11.0.0 即该范围最新。
+- **qr 3.0.3**：pdf 3.13.1 → barcode 2.2.9（最新）约束 qr `^3.0.0`。
+- **cross_file 0.3.5+5**：file_selector 平台包（均最新）约束 `^0.3.x`。
+- **test_api 0.7.14 / material_color_utilities 0.13.0**：Flutter 3.50.0 SDK 钉死。
+- 依赖门禁可升级数 12 → **7**（全部为上述约束项），阈值 12 内通过。
+
+#### 兼容性验证（本机实测）
+- `flutter analyze`：**0 error / 0 warning**（271 条 info 级弃用提示，见下）。
+- 全量测试：主套件 **2990 通过 / 5 环境跳过 / 0 失败**；KDF 串行 **84 通过 / 1 跳过 / 0 失败**。
+- 边界检查 / 版本一致性 / 依赖门禁：全过。
+
+#### 已知遗留（不影响运行，独立任务处理）
+- **material_ui 设计系统迁移**：Flutter 3.47 起 `package:flutter/material.dart` 弃用、
+  推荐 `package:material_ui`。本批尝试官方 `dart fix --code=migrate_design_widgets`
+  自动迁移（208 处），但引入 52 处 `GlobalMaterialLocalizations` 命名冲突
+  （flutter_localizations 与 material_ui 同名导出，需 Localizations 委托重构），
+  **已整体回退**以保住「0 error」干净状态。271 条 info 级弃用提示保留，迁移作为
+  独立任务另行处理（涉及 205 文件 import + 25 文件 Localizations）。
+
 ### 全方位审计修复批（2026-11-13，同版本增量，未 bump）
 
 > 依据《绘图笔记应用全方位审计报告》（2026-11-13）逐项修复。本批**未 bump 版本**

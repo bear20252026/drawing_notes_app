@@ -40,7 +40,7 @@
 
 ## 环境要求
 
-- Flutter 3.47.9（Dart 3.13.7）或更高稳定版
+- Flutter 3.50.0（Dart 3.14.0）或更高稳定版
 - Windows 构建：Visual Studio 2022+（含"使用 C++ 的桌面开发"组件）
 - Android 构建：Android SDK（compileSdk 37）+ JDK 17 及以上
 - macOS 构建：Xcode 15+（最低 macOS 13 Ventura）；**暂不签名/公证**，本地可跑

@@ -5,7 +5,7 @@
 
 ## 开发环境
 
-- Flutter 3.47.0（Dart 3.12.2）或更高稳定版
+- Flutter 3.50.0（Dart 3.14.0）或更高稳定版
 - Windows：Visual Studio 2022+（含"使用 C++ 的桌面开发"组件）
 - Android：Android SDK（compileSdk 36）+ JDK 17 及以上
 

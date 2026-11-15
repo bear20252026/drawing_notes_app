@@ -19,8 +19,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.17.68+137
 
 environment:
-  # 与 Flutter 3.47（Dart 3.13.0）对齐；pdfrx 2.6.x 也要求 sdk ^3.13.0。
-  sdk: ^3.13.0
+  # 2026-11-14 全面升级（业主批准）：Flutter 3.50.0（Dart 3.14.0，
+  # 2026-11-11 发布的当前最新 stable）。解锁 hotkey_manager 0.4.0 /
+  # window_manager 0.7.0 等需 Dart ^3.14 的包。
+  sdk: ^3.14.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -63,8 +65,8 @@ dependencies:
   # PDF 导入为不受信输入面，跟进上游安全修复。低层 API 兼容性经
   # analyze + 全量测试复验。
   pdfrx: ^2.12.1
-  # 0.4.0 需 Dart ^3.14（Flutter 3.50）——当前钉 3.47.9，随 SDK 升级再升。
-  hotkey_manager: ^0.3.0
+  # 0.4.0 需 Dart ^3.14——2026-11-14 随 Flutter 3.50.0 升级解锁（业主批准）。
+  hotkey_manager: ^0.4.0
   # 与 pdfrx 的 PDFium 渲染引擎共用 image 4.x 依赖树。
   # 4.6.0（2026-10-31）：解码器契约变更（默认不再对损坏数据抛错）——
   # 备份恢复侧必须显式传 throwOnError: true 才能保住 fail-closed 语义，
@@ -91,8 +93,9 @@ dependencies:
   http: ^1.2.2
   xml: ^7.1.0
 
-  # 0.7.0 需 Dart ^3.14（Flutter 3.50）——当前钉 3.47.9，随 SDK 升级再升。
-  window_manager: ^0.6.0
+  # 0.7.0 需 Dart ^3.14——2026-11-14 随 Flutter 3.50.0 升级解锁（业主批准）；
+  # 联动 nativeapi/nativeapi_flutter/cnativeapi 0.6.1。
+  window_manager: ^0.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
