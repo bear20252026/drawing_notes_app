@@ -8,6 +8,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart';
 
 import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
+import 'package:drawing_notes_app/core/utils/constant_time.dart' as ct;
 import 'package:drawing_notes_app/core/utils/hex_encode.dart';
 
 /// VFS 加密对象仓库核心（专家目标架构 VFS——2026-08-16）。
@@ -324,14 +325,10 @@ class EncryptedVault {
   String _manifestMac(String raw) =>
       crypto.Hmac(crypto.sha256, key).convert(utf8.encode(raw)).toString();
 
-  static bool _constantTimeEquals(String a, String b) {
-    if (a.length != b.length) return false;
-    var diff = 0;
-    for (var i = 0; i < a.length; i++) {
-      diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
-    }
-    return diff == 0;
-  }
+  /// 薄委托：实现收敛至 core/utils/constant_time.dart（单一事实来源，
+  /// 2026-11-15）。收敛版**不因长度不等提前返回**，比原实现更严谨。
+  static bool _constantTimeEquals(String a, String b) =>
+      ct.constantTimeEquals(a, b);
 
   /// 原子写入（腾讯云 Git 五细节：临时文件 + rename——crash 不留中间
   /// 状态——幂等——孤儿清理）。

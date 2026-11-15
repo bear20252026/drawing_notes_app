@@ -32,6 +32,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/constant_time.dart' as ct;
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/core/utils/hex_encode.dart' as hex;
 
@@ -476,18 +477,10 @@ class LockoutGuard {
   /// 长度差折算进 diff、循环按两者较长者遍历，避免「长度是否相等」这一点点
   /// 时间差成为侧信道。UTF-8 字节比较对 ASCII hex 与 codeUnit 等价，且对
   /// 任意输入都成立（不依赖输入是 ASCII）。
-  static bool _constantTimeEquals(String a, String b) {
-    final aBytes = utf8.encode(a);
-    final bBytes = utf8.encode(b);
-    var diff = aBytes.length ^ bBytes.length;
-    final n = aBytes.length > bBytes.length ? aBytes.length : bBytes.length;
-    for (var i = 0; i < n; i++) {
-      final x = i < aBytes.length ? aBytes[i] : 0;
-      final y = i < bBytes.length ? bBytes[i] : 0;
-      diff |= x ^ y;
-    }
-    return diff == 0;
-  }
+  /// 薄委托：实现收敛至 core/utils/constant_time.dart（单一事实来源，
+  /// 2026-11-15——本处原实现即收敛基准：长度差折进 diff、按较长者遍历）。
+  static bool _constantTimeEquals(String a, String b) =>
+      ct.constantTimeEquals(a, b);
 
   // 薄委托：实现收敛至 core/utils/hex_encode.dart（保留静态入口防漏改）。
   static String hexEncode(List<int> bytes) => hex.hexEncode(bytes);

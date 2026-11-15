@@ -36,8 +36,17 @@ import 'package:drawing_notes_app/features/doc/presentation/embedded_block_view.
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';
 
-// O1 域分权（F9，2026-09-24）：历史保存/块操作/大纲对话框三域 part。
+// ── part 导航目录（AGENTS.md §9：新增 part 必须同步本目录）────────────────
+// O1 域分权（F9，2026-09-24）：按职责切分同一 State 的方法群。
 // 新增同域私有逻辑请落对应 part；public API、字段、静态与 build 留在本体。
+//   doc_editor_history.dart      历史与保存（撤销栈/自动保存/脏标记）
+//   doc_editor_block_ops.dart    块操作（分块/合并/移动/类型切换）
+//   doc_editor_ui.dart           对话框与浮层（大纲/信息/确认）
+//   doc_editor_blocks.dart       块列表构建与渲染
+//   doc_editor_toolbar.dart      工具栏构建与动作
+//   doc_editor_editing.dart      编辑态流转（焦点/输入法/提交）
+//   doc_editor_selection.dart    选区与跨块选择
+//   doc_editor_style_entry.dart  样式入口（行内/块级样式面板）
 part 'doc_editor_history.dart';
 part 'doc_editor_block_ops.dart';
 part 'doc_editor_ui.dart';

@@ -50,6 +50,14 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 ///
 /// 设计原则：本类不依赖任何 UI 组件，只通过 [ChangeNotifier] 通知变化，
 /// 便于独立测试与后续替换存储层。
+// ── part 导航目录（AGENTS.md §9：新增 part 必须同步本目录）────────────────
+// 本文件是绘图控制器的**状态宿主与公共 API**；下列 part 按职责切分方法群。
+// 状态管理归属见 docs/STATE_MANAGEMENT_DECISION_TREE.md：本类属「画布高频
+// 状态」——手工协作者（ChangeNotifier），**不迁 Riverpod Notifier**。
+//   drawing_controller_objects.dart    对象操作（增删改/变换/层级）
+//   drawing_controller_selection.dart  选区状态与框选草稿
+//   drawing_controller_render.dart     离屏位图缓存与重绘调度
+//   drawing_controller_history.dart    撤销重做栈
 part 'drawing_controller_objects.dart';
 part 'drawing_controller_selection.dart';
 part 'drawing_controller_render.dart';

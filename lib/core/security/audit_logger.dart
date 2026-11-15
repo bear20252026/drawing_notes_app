@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
 
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
+import 'package:drawing_notes_app/core/utils/constant_time.dart' as ct;
 
 /// 安全审计日志（红蓝攻防 P2 修复 2026-08-15 + 哈希链强化 2026-08-16）：
 /// 记录密钥加载/密码盘操作（时间戳 + 操作 + 结果），**绝不含密钥与内容**
@@ -391,7 +392,8 @@ class AuditLogger {
   static bool _verifyMemoryChain() {
     var prev = _anchorPrevHash;
     for (final e in _entries) {
-      if (e.prevHash != prev) return false; // 链接断裂（删除/插入中间记录）。
+      // 链接断裂（删除/插入中间记录）——哈希是秘密值，走恒定时间比较。
+      if (!ct.constantTimeEquals(e.prevHash, prev)) return false;
       if (!_entryHashMatches(e.mac, e.gen, e.time, e.operation, e.success,
           e.detail, e.prevHash, e.hash)) {
         return false; // 哈希不符（字段被篡改）。
@@ -412,13 +414,20 @@ class AuditLogger {
     String prevHash,
     String hash,
   ) {
+    // 时序侧信道收口（2026-11-15）：秘密值（HMAC / 摘要）比较一律走恒定
+    // 时间工具，禁止裸 ==（短路返回会让逐字符猜解可计时）。
     if (mac != null) {
       final key = _anchorKey;
       if (key == null || gen == null) return false; // 带 mac 却无锚 → 不可信。
-      return hash ==
-          _hmac(key, _macPayload(gen, prevHash, time, operation, success, detail));
+      return ct.constantTimeEquals(
+        hash,
+        _hmac(key, _macPayload(gen, prevHash, time, operation, success, detail)),
+      );
     }
-    return hash == _sha256(_payload(time, operation, success, detail, prevHash));
+    return ct.constantTimeEquals(
+      hash,
+      _sha256(_payload(time, operation, success, detail, prevHash)),
+    );
   }
 
   /// 文件侧回读重放：读 `audit.log.1`（轮转前代）+ `audit.log`（当前），
@@ -470,8 +479,10 @@ class AuditLogger {
             (gen != null && gen is! int)) {
           return false;
         }
-        if (prevHash != prev && prevHash != _genesisHash) {
-          return false; // 段中断链（删除/插入）。
+        // 段中断链（删除/插入）——哈希是秘密值，走恒定时间比较。
+        if (!ct.constantTimeEquals(prevHash, prev) &&
+            !ct.constantTimeEquals(prevHash, _genesisHash)) {
+          return false;
         }
         if (!_entryHashMatches(mac as String?, gen as int?, time, operation,
             success, detail as String?, prevHash, hash)) {

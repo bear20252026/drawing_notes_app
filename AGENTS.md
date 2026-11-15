@@ -161,3 +161,40 @@ flutter test             # 必须全绿
 - 改 UI 后若涉及改密/加密路径，注意 `test/` 里真 KDF 用例需 `@Timeout(Duration(minutes: 3))`。
 - 发版 bump 三处同步：`pubspec.yaml` + `tools/drawing_notes_setup.iss`（`MyAppVersion`）+ `CHANGELOG.md`。
 - `docs/audit_*.html` 审计报告按约定保持 **untracked**，不入库。
+
+## 8. 状态管理划界（2026-11-15 定案，强制）
+
+**Riverpod 与手工协作者并存是有意设计，不是历史遗留。** 新增状态前必须先读
+`docs/STATE_MANAGEMENT_DECISION_TREE.md` 的决策树，按下面口径归位：
+
+| 状态种类 | 走哪套 | 位置 |
+| --- | --- | --- |
+| 配置/偏好（主题、语言、对比度、设置） | **Riverpod** Notifier + `ref.watch` | `core/di/providers.dart`（仅跨功能共享） |
+| 画布高频状态（每帧/每次指针事件） | **手工协作者** + 局部 setState / CustomPainter | `features/<域>/application/` |
+| 业务流水线（保存队列、同步、加密会话） | **手工协作者** + 组合根注入 | 同上；生命周期与事务绑定 |
+| 用户操作级 UI（按钮、表单、面板） | **StatefulWidget 局部 state** | 就近，不引框架 |
+| 某域独立纯状态且需独立单测 | **Riverpod** 域内 Notifier（示范单元） | `features/<域>/application/*_notifiers.dart` |
+
+**硬性禁止**（评审会挡）：
+- 同一份状态既在 provider 又在 controller 字段（两个真相必然漂移）。
+- 每帧更新的画布状态放进 `ref.watch`（每帧重建子树 → 卡顿）。
+- 用 provider 持有密钥/口令（框架 dispose 时序不可控，违反零化要求）。
+- 在 `core/di/providers.dart` 加域专属 provider（污染共享内核 + 抬高
+  Martin instability，撞架构规则 3b 的 0.4 基线）。
+
+**迁移边界**：`drawing_notifiers.dart` 的视口/历史/选区三个 Notifier 是**示范
+单元**，`DrawingController` 内部高频字段**暂不替换**；`drawingDirtyProvider`
+UI 侧零命中（别当成已接管刷新链路）。一次只迁一个域，迁完跑全量门禁 + UI 回归。
+
+## 9. part 拆分命名与导航（2026-11-15 定案）
+
+行数门禁（500 warn / 1000 error）会让大文件拆 `part`。**拆分是为可读，不是为
+凑指标**——命名与导航必须让人一眼找到逻辑：
+
+- **命名**：`<主文件名>_<职责>.dart`，职责用单词或短语，禁止 `_part1/_2` 这类
+  无语义编号。示例：`editor_page.dart` + `editor_page_shortcuts.dart`（快捷键）
+  + `editor_page_gestures.dart`（手势）。
+- **主文件顶部**必须列出全部 part 及其职责（一行一个），作为导航目录。
+- **每个 part 顶部**必须写 `part of` 归属 + 一句职责说明（"本文件承载 X"）。
+- **同一职责只在一个 part**：不允许快捷键逻辑散在两个 part 里。
+- 新增 part 时同步更新主文件导航目录，否则视为未完成。

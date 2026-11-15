@@ -315,28 +315,34 @@ class EncryptionService {
     final kdf = KdfParams.newSlotDefault;
     final salt = VaultKeyService.randomBytes(_saltLength);
     final kek = await VaultKeyService.deriveKek(password, salt, kdf);
-    final pwWrapped = await VaultKeyService.aeadEncrypt(
-      kek,
-      dek,
-      _slotAadV5(scope, 'pw', id),
-    );
-    String? usbWrapped;
-    if (usbKey != null) {
-      final w = await VaultKeyService.aeadEncrypt(
-        usbKey,
+    try {
+      final pwWrapped = await VaultKeyService.aeadEncrypt(
+        kek,
         dek,
-        _slotAadV5(scope, 'usb', id),
+        _slotAadV5(scope, 'pw', id),
       );
-      usbWrapped = base64Encode(w);
+      String? usbWrapped;
+      if (usbKey != null) {
+        final w = await VaultKeyService.aeadEncrypt(
+          usbKey,
+          dek,
+          _slotAadV5(scope, 'usb', id),
+        );
+        usbWrapped = base64Encode(w);
+      }
+      return {
+        'pw': {
+          's': base64Encode(salt),
+          ...kdf.toSlotJson(),
+          'w': base64Encode(pwWrapped),
+        },
+        if (usbWrapped != null) 'usb': {'w': usbWrapped},
+      };
+    } finally {
+      // 零化补齐（2026-11-15）：KEK 用完即焚，异常路径同样擦除——缩短
+      // 派生密钥在堆中的驻留窗口（D-2 模式，与 vault_key_service 同口径）。
+      kek.fillRange(0, kek.length, 0);
     }
-    return {
-      'pw': {
-        's': base64Encode(salt),
-        ...kdf.toSlotJson(),
-        'w': base64Encode(pwWrapped),
-      },
-      if (usbWrapped != null) 'usb': {'w': usbWrapped},
-    };
   }
 
   /// 用密码解开密码槽取出 DEK；密码错误/信封非法返回 null。
@@ -365,11 +371,16 @@ class EncryptionService {
       );
       final wrapped = base64Decode(_requireString(pw, 'w'));
       final kek = await VaultKeyService.deriveKek(password, salt, params);
-      return await VaultKeyService.aeadDecrypt(
-        kek,
-        wrapped,
-        _slotAadV5(scope, 'pw', id),
-      );
+      try {
+        return await VaultKeyService.aeadDecrypt(
+          kek,
+          wrapped,
+          _slotAadV5(scope, 'pw', id),
+        );
+      } finally {
+        // 零化补齐（2026-11-15）：KEK 用完即焚（含密码错误的异常路径）。
+        kek.fillRange(0, kek.length, 0);
+      }
     } on FormatException {
       rethrow; // 字段畸形（篡改）/旧版拒绝保持契约
     } catch (_) {

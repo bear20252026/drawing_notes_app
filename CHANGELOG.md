@@ -4,6 +4,46 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 侧信道收口 + 零化补齐 + 架构文档（2026-11-15，同版本增量，未 bump）
+
+#### 恒定时间比较收敛（防时序侧信道）
+- 新增 `core/utils/constant_time.dart` **单一事实来源**：此前 3 处各自复制
+  （`app_lock_service` / `app_lock_guard` / `encrypted_vault`），其中 2 处因长度
+  不等**提前返回**——强度不一致。收敛版取最严谨口径：长度差折进 diff、按较长者
+  遍历，不泄露长度信息。三处改薄委托。
+- **补齐审计链时序缺口**：`audit_logger` 的 HMAC 校验与 prevHash 链接比较此前
+  用裸 `==`（短路可计时），全部改走恒定时间工具。
+- 新增门禁 `test/architecture/constant_time_gate_test.dart`（10 项）：实现唯一性
+  + 调用面覆盖 + 审计链禁裸比较 + 行为正确性，防将来回退。
+- **保证边界如实声明**：Dart 层无法提供 C `CRYPTO_memcmp` 的严格恒定时间
+  （JIT 优化空间），本工具是纵深防御，不声称抵抗微架构侧信道。
+
+#### 密钥零化补齐（20 → 28 处）
+- 4 个此前**完全无零化**的文件补齐 8 处，全部 `try/finally` 覆盖异常路径：
+  `encryption_service`（v5 槽位包裹/解包 KEK）、`vault_file_codec`（v3 加密/
+  解锁/重绕 KEK）、`app_lock_service`（PIN 派生字节）、`sync_cipher`（v1→v2
+  迁移的两把临时密钥）。
+- **遗留如实记录**：`AesSyncCipher.key` 为 `final` 且经 isolate 传参，加清理需
+  动接口契约（另立专项）；Dart GC 移动式堆与不可变 `String` 是语言级限制，
+  应用层 mlock 无法真正生效（不做虚假加固）。
+
+#### 架构文档（防后续开发混用）
+- **AGENTS.md §8 状态管理划界** + `docs/STATE_MANAGEMENT_DECISION_TREE.md`：
+  明确 Riverpod（配置/偏好、域独立纯状态）与手工协作者（画布高频、业务流水线）
+  的边界、反模式、迁移纪律。实测边界：Riverpod 仅 7 文件/10 provider，
+  drawing 域是「容器接入 + 示范单元」，DrawingController 内部仍 ChangeNotifier。
+- **AGENTS.md §9 part 命名与导航规范**：核实 57 个 part 命名 **100% 合规**
+  （`主名_职责.dart`，无编号命名）；补齐 3 个最复杂主文件的导航目录
+  （editor_page 15 part / doc_editor 8 part / drawing_controller 4 part）。
+- `docs/PACKAGES_BOUNDARY.md`：**更正上轮误判**——`notebook_domain` 不是空壳，
+  它有 3 个六边形端口契约、被组合根引用、受 2 条架构门禁保护；两个子包都保留。
+
+#### 门禁基线调整（按门禁纪律显式交代）
+- `editor_page` 库级行数棘轮 **7127 → 7144（+17）**：动机**不是功能增长**，
+  而是补 part 导航目录的纯注释投资（15 个 part 逐个标注职责，零逻辑变更）。
+  按 P3-3 门禁要求「改大须随附结构裁决说明并在 commit 单独交代」执行；
+  part 数与边界不动，下一次**逻辑**增长仍须先拆或点名。
+
 ### 安全加固批（2026-11-14，删除旧版加密 + 审计链/MK/VFS 加固，同版本增量，未 bump）
 
 > 依据全方位审计遗留清单逐项加固。本批**未 bump 版本**（发版时按 AGENTS §7 三处同步）。
