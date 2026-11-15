@@ -90,7 +90,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          flutter-version: 3.47.9
+          flutter-version: 3.50.0
           cache: true
 
       - run: flutter pub get
@@ -139,7 +139,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
-          flutter-version: 3.47.9
+          flutter-version: 3.50.0
           cache: true
 
       # Linux native assets build hooks 需要 GTK/X11 开发包（window_manager /

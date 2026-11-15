@@ -19,8 +19,10 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "9.0.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.3.20" apply false
+    // 2026-11-14 Flutter 3.50.0 硬性最低：AGP 9.1.1 / Kotlin 2.4.10 /
+    // Gradle 9.3.1（见 flutter_tools DependencyVersionChecker）。
+    id("com.android.application") version "9.1.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.4.10" apply false
 }
 
 include(":app")

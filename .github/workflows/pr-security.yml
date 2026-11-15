@@ -44,7 +44,7 @@ jobs:
       - name: 安装 Flutter（依赖过期检查需要 dart）
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
-          flutter-version: 3.47.9
+          flutter-version: 3.50.0
           channel: 'stable'
           cache: true
       - name: 依赖解析（pub outdated 前置）
@@ -60,9 +60,11 @@ jobs:
       # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
       # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
       - name: 依赖清单与过期检查
-        # 阈值基线（2026-11-14，业主批准「全部升级」后实测）：可升级数 12，
-        # 全部为 Flutter 3.47.9（Dart 3.13）SDK 上限所阻——hotkey_manager
-        # 0.4.0 / window_manager 0.7.0 需 Dart ^3.14；analyzer 14.x /
-        # test_api 0.7.15 / nativeapi 0.6.x 等受 SDK 钉版传递约束。
-        # 升级 Flutter 3.50 后应清零并回调阈值。清单见 dart pub outdated。
-        run: bash tools/check_deps.sh --threshold 12
+        # 阈值基线（2026-11-14，Flutter 3.50.0 全面升级后实测）：可升级数 7，
+        # 全部为上游约束/SDK 钉死的「可兼容最新版」，无法再升——
+        # analyzer 11.0.0 / _fe_analyzer_shared 97 / package_config 2.2.0
+        # （dart_arch_test 0.3.1 最新约束 analyzer <12）；qr 3.0.3（pdf→barcode
+        # 锁 ^3.0.0）；cross_file 0.3.5+5（file_selector 平台包锁 ^0.3.x）；
+        # test_api 0.7.14 / material_color_utilities 0.13.0（Flutter SDK 钉死）。
+        # 阈值由 12 收紧到 7；上游放宽约束后再降。清单见 dart pub outdated。
+        run: bash tools/check_deps.sh --threshold 7
