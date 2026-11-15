@@ -102,7 +102,9 @@ jobs:
           fi
 
       - name: 静态分析（analyze）
-        run: flutter analyze --no-pub
+        # Flutter 3.50 起 info 默认致命；material_ui 迁移独立处理，放行 info，
+        # error/warning 仍致命。迁移完成后移除 --no-fatal-infos。
+        run: flutter analyze --no-pub --no-fatal-infos
 
       - name: 反模式扫描门禁（metrics analyze lib）
         if: steps.dcm_install.outputs.available == 'true'
