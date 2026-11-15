@@ -325,9 +325,13 @@ class SettingsPage extends StatelessWidget {
       );
       if (location == null) return; // 用户取消
       // H1（2026-11）：落盘收在 infrastructure（NotebookStorage 例接口）。
-      await NotebookStorage.writeFileBytes(
+      // 编码修复（2026-11-15）：此前用 writeFileBytes(report.codeUnits)——
+      // codeUnits 是 **UTF-16 码元**，直接当字节写会让中文全部乱码（每个汉字
+      // 写成两个裸字节、无 BOM），报告里的中文说明与凭据留存指引都读不了。
+      // 改用 writeTextFile（内部 writeAsString，默认 UTF-8）。
+      await NotebookStorage.writeTextFile(
         location.path,
-        report.codeUnits,
+        report,
         flush: true,
       );
       if (!context.mounted) return;

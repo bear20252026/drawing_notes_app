@@ -1,4 +1,7 @@
 // DiagnosticsExporter 单测（2026-09-27 增量）：报告结构 + 完整性声明 + 空条目。
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
@@ -79,5 +82,50 @@ void main() {
     );
     expect(report, isNot(contains('外部锚凭据')));
     expect(report, isNot(contains('尾哈希:')));
+  });
+
+  // 编码回归（2026-11-15）：设置页此前用 writeFileBytes(report.codeUnits)——
+  // codeUnits 是 UTF-16 码元，当字节写会让中文全部乱码（报告里的中文说明与
+  // 凭据留存指引都读不了）。现改用 writeTextFile（writeAsString，UTF-8）。
+  // 本用例锁住「报告经 UTF-8 往返后中文与凭据完好」这条契约。
+  test('报告 UTF-8 往返：中文说明与凭据均完好（防 codeUnits 乱码回归）', () async {
+    final dir = await Directory.systemTemp.createTemp('diag_enc_');
+    try {
+      final report = DiagnosticsExporter.buildReport(
+        platformInfo: 'windows',
+        localeName: 'zh',
+        auditIntegrity: true,
+        auditEntries: const ['editor.crop.save_failed'],
+        externalAnchor: {
+          'v': 1,
+          'generation': 2,
+          'entryCount': 7,
+          'tailHash': 'b' * 64,
+          'exportedAt': '2026-11-15T00:00:00Z',
+        },
+      );
+      final file = File('${dir.path}${Platform.pathSeparator}diag.txt');
+      // 正确路径：writeAsString（UTF-8）——与 NotebookStorage.writeTextFile 一致。
+      await file.writeAsString(report, flush: true);
+      final readBack = await file.readAsString();
+      expect(readBack, report, reason: 'UTF-8 往返必须逐字一致');
+      expect(readBack, contains('外部锚凭据'));
+      expect(readBack, contains('请抄存到独立介质'));
+      expect(readBack, contains('尾哈希: ${'b' * 64}'));
+
+      // 反面对照：codeUnits 当字节写会破坏中文——证明这个 bug 真实存在。
+      final bad = File('${dir.path}${Platform.pathSeparator}bad.txt');
+      await bad.writeAsBytes(report.codeUnits, flush: true);
+      final badBytes = await bad.readAsBytes();
+      expect(
+        badBytes.length,
+        isNot(utf8.encode(report).length),
+        reason: 'UTF-16 码元当字节写，长度与 UTF-8 不同——中文必乱码',
+      );
+    } finally {
+      try {
+        await dir.delete(recursive: true);
+      } catch (_) {}
+    }
   });
 }
