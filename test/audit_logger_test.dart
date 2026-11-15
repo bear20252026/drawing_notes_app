@@ -287,4 +287,169 @@ void main() {
       expect(doc2['gen'], 2);
     });
   });
+
+  // 外部追加锚（M-05 残余边界补强，2026-11-15）：锚密钥与日志同盘时，
+  // 同时拿到两者的攻击者仍可整链重算——外部凭据（独立介质）是最后一道。
+  group('外部追加锚（M-05 残余边界补强）', () {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('audit_ext_anchor_');
+      sinkFile = File(
+        '${tempDir!.path}${Platform.pathSeparator}security'
+        '${Platform.pathSeparator}audit.log',
+      );
+      AuditLogger.sinkOverrideForTest = sinkFile;
+    });
+
+    test('导出凭据：含世代/尾哈希/计数，且不含密钥', () async {
+      AuditLogger.log('op-a');
+      AuditLogger.log('op-b');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor();
+      expect(anchor, isNotNull);
+      expect(anchor!['v'], 1);
+      expect(anchor['generation'], 1);
+      expect(anchor['tailHash'], isA<String>());
+      expect((anchor['tailHash'] as String).length, 64);
+      expect(anchor['entryCount'], 3, reason: '世代标记 + 两条记录');
+      // 凭据不得含密钥材料（可安全打印/外传）。
+      expect(anchor.containsKey('key'), isFalse);
+      expect(anchor.containsKey('mac'), isFalse);
+    });
+
+    test('未篡改：凭据校验通过', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
+    });
+
+    test('追加新记录后：历史前缀仍可校验（凭据不失效）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      AuditLogger.log('op-later');
+      AuditLogger.log('op-later-2');
+      await AuditLogger.flushForTest();
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isTrue,
+        reason: '校验的是导出时刻的历史前缀，追加不影响',
+      );
+    });
+
+    test('篡改历史条目：凭据不再判「通过」（重算无法伪造原哈希）', () async {
+      AuditLogger.log('op-a', detail: 'original');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 攻击者改历史载荷并重算 HMAC（模拟同时持有锚密钥）——此处直接改
+      // 尾哈希字段模拟「重算后的链」，外部凭据仍记载旧值。
+      final lines = sinkFile!.readAsLinesSync();
+      final forged = lines.map((l) {
+        final m = jsonDecode(l) as Map<String, dynamic>;
+        if (m['operation'] == 'op-a') {
+          m['detail'] = 'forged';
+          m['hash'] = 'f' * 64; // 重算者的新尾哈希
+          m['mac'] = 'f' * 64;
+        }
+        return jsonEncode(m);
+      }).join('\n');
+      sinkFile!.writeAsStringSync('$forged\n');
+      // 核心保证：重算后原哈希已不在链上 → **绝不返回 true**。
+      // 返回 null（无从判定）而非 false：落盘信息不足以区分「被篡改」与
+      // 「已被轮转丢弃」——宁可报无从判定，也不谎报确定结论。
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isNot(isTrue),
+        reason: '重算者无法让原哈希回到链上——凭据不再判通过',
+      );
+    });
+
+    test('凭据格式非法 → false（不谎报通过）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.verifyAgainstExternalAnchor({}), isFalse);
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 'x',
+          'tailHash': 'a' * 64,
+          'entryCount': 1,
+        }),
+        isFalse,
+      );
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 1,
+          'tailHash': 'a' * 64,
+          'entryCount': 0,
+        }),
+        isFalse,
+      );
+    });
+
+    test('前缀已被轮转丢弃 → null（无从判定，不谎报）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      // 凭据声称有 999 条，实际只有 2 条 → 无从判定。
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 1,
+          'tailHash': 'a' * 64,
+          'entryCount': 999,
+        }),
+        isNull,
+      );
+    });
+
+    test('锚未加载/无落盘 → 导出返回 null（不伪造凭据）', () {
+      expect(AuditLogger.exportExternalAnchor(), isNull);
+    });
+
+    // 轮转场景实测（2026-11-15 修正为哈希锚定语义）：轮转是整文件搬移
+    // （sink.rename(.1)），.1 会被新一代覆盖。按位置序号定位会把「前缀丢弃」
+    // 误判成「被篡改」——故改用「链上是否存在该哈希 + 计数下界」三态判定。
+    test('单次轮转且前缀仍在 .1：凭据可校验通过', () async {
+      // 阈值放宽到刚好容纳「早期少量 + 一次轮转」，确保早期条目留在 .1。
+      AuditLogger.maxFileBytesOverrideForTest = 4 * 1024;
+      AuditLogger.log('pre-rotate');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 写到刚过阈值触发一次轮转（早期条目随之进入 .1，尚未被二次覆盖）。
+      for (var i = 0; i < 12; i++) {
+        AuditLogger.log('filler-$i', detail: 'x' * 20);
+      }
+      await AuditLogger.flushForTest();
+      final rotated = File('${sinkFile!.path}.1');
+      expect(rotated.existsSync(), isTrue, reason: '应已触发轮转');
+      expect(
+        rotated.readAsLinesSync().any((l) => l.contains('pre-rotate')),
+        isTrue,
+        reason: '早期条目应仍在 .1 中（未被二次轮转覆盖）',
+      );
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
+    });
+
+    test('多次轮转丢弃前缀：返回 null（无从判定，绝不谎报通过）', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      AuditLogger.log('early-op');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 大量写入触发多次轮转——.1 被反复覆盖，早期前缀彻底丢失。
+      for (var i = 0; i < 200; i++) {
+        AuditLogger.log('bulk-$i', detail: 'y' * 60);
+      }
+      await AuditLogger.flushForTest();
+      final rotated = File('${sinkFile!.path}.1');
+      expect(
+        rotated.existsSync() &&
+            rotated.readAsLinesSync().any((l) => l.contains('early-op')),
+        isFalse,
+        reason: '早期条目应已被多次轮转覆盖丢弃',
+      );
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isNull,
+        reason: '前缀已被轮转丢弃 → 无从判定（不得谎报 true 或 false）',
+      );
+    });
+  });
 }

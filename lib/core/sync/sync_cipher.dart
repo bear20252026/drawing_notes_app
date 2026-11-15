@@ -15,6 +15,7 @@ import 'package:meta/meta.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 
 /// 同步加密器抽象：远端路径映射 + 文档字节加解密 + manifest 密封。
@@ -107,13 +108,41 @@ class NoopSyncCipher implements SyncCipher {
 /// [deriveMasterKeyV1]）解开 v1 信封，再用当前 Argon2id 密钥重封。
 /// 生产解密路径仍然只认 v2，迁移是**独立的、用户主动触发**的事件，不影
 /// 响 fail-closed 口径。
-class AesSyncCipher implements SyncCipher {
-  AesSyncCipher({required this.key, int? isolateThreshold})
+class AesSyncCipher implements SyncCipher, SessionSecretsHolder {
+  AesSyncCipher({required List<int> key, int? isolateThreshold})
     : assert(key.length == 32, '主密钥必须 32 字节'),
-      _isolateThreshold = isolateThreshold ?? isolateCodecThreshold;
+      // 零化改造（2026-11-15）：复制进自有可变缓冲——调用方传入的可能是
+      // 不可变视图，直接 fillRange 会抛。
+      _key = Uint8List.fromList(key),
+      _isolateThreshold = isolateThreshold ?? isolateCodecThreshold {
+    // 回锁联动：本实例持有同步主密钥（会话期驻留），注册进统一清理注册表，
+    // AppLockGate.hidden / 超宽限落锁时随 SessionSecrets.clearAll() 一并清零。
+    SessionSecrets.register(this);
+  }
 
-  /// 32 字节主密钥。
-  final List<int> key;
+  /// 32 字节主密钥（自有可变缓冲，支持清零）。
+  final Uint8List _key;
+
+  /// 是否已清零（清零后拒绝继续加解密——fail-closed，不静默用全零密钥）。
+  bool _cleared = false;
+
+  /// 32 字节主密钥（读视图，保持既有调用点与测试兼容）。
+  ///
+  /// 清零后读取抛 [StateError]：宁可显式失败，也不让调用方拿到全零密钥继续
+  /// 加密（那会产出「看起来成功、实际不可解」的密文）。
+  List<int> get key {
+    if (_cleared) {
+      throw StateError('同步会话密钥已清零，请重新解锁后再使用');
+    }
+    return _key;
+  }
+
+  /// 会话机密清零（幂等、永不抛错——SessionSecretsHolder 契约）。
+  @override
+  void clearAllSessionSecrets() {
+    _key.fillRange(0, _key.length, 0);
+    _cleared = true;
+  }
 
   /// 本实例的 isolate 门限（缺省 [isolateCodecThreshold]）。测试用它把
   /// **同一份字节**分别逼上主 isolate / worker isolate 两条路径，验证两侧

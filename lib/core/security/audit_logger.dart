@@ -387,6 +387,133 @@ class AuditLogger {
     return _verifyMemoryChain();
   }
 
+  // ==== 外部追加锚（M-05 残余边界补强，2026-11-15） ====
+
+  /// 导出**外部锚凭据**：当前世代号 + 文件链尾哈希 + 条目计数。
+  ///
+  /// 用途：把这份凭据存到**独立介质**（另一台设备 / 打印 / 密码管理器备注），
+  /// 事后用 [verifyAgainstExternalAnchor] 比对。由此覆盖 M-05 的残余边界——
+  /// 「攻击者同时拿到锚密钥与文件写权限」时虽能整链重算，但**重算后的尾哈希
+  /// 与世代号不可能与外部凭据吻合**（外部凭据不在其控制范围内）。
+  ///
+  /// 返回 null 表示当前无从导出（锚未加载 / 落盘未解析 / 无内容）。
+  /// **凭据本身不含密钥**（只有 HMAC 结果与计数），可安全外传/打印。
+  static Map<String, Object?>? exportExternalAnchor() {
+    final sink = _sinkFileCache;
+    if (sink == null || _anchorKey == null) return null;
+    final tail = _fileChainTail();
+    if (tail == null) return null;
+    return {
+      'v': 1,
+      'generation': _generation,
+      'tailHash': tail.$1,
+      'entryCount': tail.$2,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
+
+  /// 用外部锚凭据校验当前落盘链是否仍包含导出时那一条历史。
+  ///
+  /// **判据（哈希锚定，2026-11-15 实测定案）**：
+  /// - 链上存在**哈希等于凭据尾哈希**的条目 → `true`：该条历史仍在且未被改写
+  ///   （HMAC 输入含全部前缀载荷，重算者无法伪造这个值）。**这是本机制的核心
+  ///   价值**：整链重算后必然找不到原哈希。
+  /// - 找不到 → `null`：**无从判定**。因为「找不到」有两种可能且落盘信息不足
+  ///   以区分：①该历史被改写/删除（真篡改）；②该历史已被日志轮转丢弃（正常
+  ///   业务）。**宁可报「无从判定」也不谎报 false 或 true。**
+  /// - 凭据格式非法 → `false`（这是确定的无效输入，不是判定歧义）。
+  /// - 未落盘 / 锚未加载 / 读失败 / 坏行 → `null`。
+  ///
+  /// **三条实测教训（勿再走回头路，均已验证失败）**：
+  /// 1. **按位置序号定位**：轮转是整文件搬移（`sink.rename(.1)`），`.1` 会被
+  ///    新一代覆盖，「第 N 条」轮转后已是另一条记录 → 误判。
+  /// 2. **条目计数下界**：轮转后剩余总数可能仍**大于**凭据计数（实测凭据 2
+  ///    条、轮转后剩 4 条）→ 误判。
+  /// 3. **世代号覆盖**：同一世代内也会多次轮转，世代号无法标识「这段历史是否
+  ///    还在盘上」→ 误判。
+  ///
+  /// **消费方必须如实转达**：`null` 不等于「通过」，也不等于「被篡改」——它
+  /// 意味着「凭据已过期或历史异常，请重新导出凭据」。要缩小这个歧义窗口，
+  /// 需要**不轮转的归档段**或**外部存档**，属下一步能力。
+  static bool? verifyAgainstExternalAnchor(Map<String, Object?> anchor) {
+    final sink = _sinkFileCache;
+    if (sink == null || _anchorKey == null) return null;
+    final gen = anchor['generation'];
+    final tailHash = anchor['tailHash'];
+    final count = anchor['entryCount'];
+    if (gen is! int || tailHash is! String || count is! int || count < 1) {
+      return false; // 凭据格式非法（确定的无效输入）。
+    }
+    final found = _scanFileChainForHash(tailHash);
+    if (found == null) return null; // 读失败/坏行 → 无从判定。
+    // 命中 → 历史完好；未命中 → 篡改 or 轮转丢弃，落盘信息不足以区分。
+    return found ? true : null;
+  }
+
+  /// 扫描落盘链查找 [target] 哈希是否命中。
+  /// 读失败或坏行返回 null（无从判定，不谎报）。
+  static bool? _scanFileChainForHash(String target) {
+    final sink = _sinkFileCache;
+    if (sink == null) return null;
+    var found = false;
+    for (final file in [File('${sink.path}.1'), sink]) {
+      if (!file.existsSync()) continue;
+      final List<String> lines;
+      try {
+        lines = file.readAsLinesSync();
+      } catch (_) {
+        return null;
+      }
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue;
+        final map = _decodeLine(line);
+        if (map == null) return null;
+        final h = map['hash'];
+        if (h is! String) return null;
+        if (ct.constantTimeEquals(h, target)) found = true;
+      }
+    }
+    return found;
+  }
+
+  /// 文件链尾哈希与总条目数（跨 audit.log.1 + audit.log）。
+  static (String, int)? _fileChainTail() {
+    final sink = _sinkFileCache;
+    if (sink == null) return null;
+    String? last;
+    var n = 0;
+    for (final file in [File('${sink.path}.1'), sink]) {
+      if (!file.existsSync()) continue;
+      final List<String> lines;
+      try {
+        lines = file.readAsLinesSync();
+      } catch (_) {
+        return null;
+      }
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue;
+        final map = _decodeLine(line);
+        if (map == null) return null;
+        final h = map['hash'];
+        if (h is! String) return null;
+        last = h;
+        n++;
+      }
+    }
+    if (last == null || n == 0) return null;
+    return (last, n);
+  }
+
+  /// 解析一行 JSONL（坏行返回 null）。
+  static Map<String, dynamic>? _decodeLine(String line) {
+    try {
+      final decoded = jsonDecode(line);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 内存链重放（从 [_anchorPrevHash] 起）。按条目自带模式重算：带 mac 走
   /// HMAC（需锚密钥），否则 SHA-256（旧条目/锚未就绪）。
   static bool _verifyMemoryChain() {

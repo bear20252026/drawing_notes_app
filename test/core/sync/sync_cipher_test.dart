@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/sync/sync_cipher.dart';
 
 void main() {
@@ -184,6 +185,58 @@ void main() {
       expect(s1.length, 16);
       expect(s2.length, 16);
       expect(s1, isNot(equals(s2)));
+    });
+  });
+
+  // 零化改造（2026-11-15）：同步主密钥此前 final 且无清理点，整会话驻留内存
+  // （审计 M-04 同类缺口）。现注册进 SessionSecrets，回锁随 clearAll 清零。
+  group('AesSyncCipher 会话密钥清零（M-04 同类收口）', () {
+    Uint8List key32() => Uint8List.fromList(List<int>.generate(32, (i) => i + 1));
+
+    test('注册进 SessionSecrets：clearAll 后密钥读视图拒绝（fail-closed）', () {
+      final cipher = AesSyncCipher(key: key32());
+      expect(cipher.key.length, 32);
+      SessionSecrets.clearAll();
+      // 清零后不得返回全零密钥——宁可显式失败，也不产出「看似成功实则不可解」的密文。
+      expect(() => cipher.key, throwsStateError);
+    });
+
+    test('clearAllSessionSecrets 幂等、永不抛错', () {
+      final cipher = AesSyncCipher(key: key32());
+      cipher.clearAllSessionSecrets();
+      cipher.clearAllSessionSecrets();
+      expect(() => cipher.key, throwsStateError);
+    });
+
+    test('清零后加解密显式失败（不静默用全零密钥）', () async {
+      final cipher = AesSyncCipher(key: key32());
+      final plain = Uint8List.fromList(utf8.encode('机密载荷'));
+      final sealed = await cipher.encryptDocumentBytes(plain, 'doc-zero');
+      cipher.clearAllSessionSecrets();
+      await expectLater(
+        cipher.decryptDocumentBytes(sealed, 'doc-zero'),
+        throwsStateError,
+      );
+      await expectLater(
+        cipher.encryptDocumentBytes(plain, 'doc-zero'),
+        throwsStateError,
+      );
+    });
+
+    test('构造复制入参：外部列表被清零不影响本实例（自有缓冲）', () {
+      final external = key32();
+      final cipher = AesSyncCipher(key: external);
+      external.fillRange(0, external.length, 0);
+      // 本实例持有独立副本——外部清零不应让它失效（调用方零化自己的副本是好事）。
+      expect(cipher.key.length, 32);
+      expect(cipher.key.any((b) => b != 0), isTrue);
+    });
+
+    test('不可变入参也能清零（不抛 UnsupportedError）', () {
+      final immutable = List<int>.unmodifiable(List<int>.generate(32, (i) => i));
+      final cipher = AesSyncCipher(key: immutable);
+      expect(cipher.clearAllSessionSecrets, returnsNormally);
+      expect(() => cipher.key, throwsStateError);
     });
   });
 }
