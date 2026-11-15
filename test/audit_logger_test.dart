@@ -428,12 +428,13 @@ void main() {
       expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
     });
 
-    test('多次轮转丢弃前缀：返回 null（无从判定，绝不谎报通过）', () async {
+    // 归档段（append-only，2026-11-15）：轮转时先把历史追加进 audit.archive，
+    // 故「多次轮转」不再丢前缀——凭据在归档里命中 → true（null 窗口收窄）。
+    test('多次轮转：前缀进归档段，凭据仍可校验通过', () async {
       AuditLogger.maxFileBytesOverrideForTest = 1024;
       AuditLogger.log('early-op');
       await AuditLogger.flushForTest();
       final anchor = AuditLogger.exportExternalAnchor()!;
-      // 大量写入触发多次轮转——.1 被反复覆盖，早期前缀彻底丢失。
       for (var i = 0; i < 200; i++) {
         AuditLogger.log('bulk-$i', detail: 'y' * 60);
       }
@@ -443,13 +444,52 @@ void main() {
         rotated.existsSync() &&
             rotated.readAsLinesSync().any((l) => l.contains('early-op')),
         isFalse,
-        reason: '早期条目应已被多次轮转覆盖丢弃',
+        reason: '早期条目应已被多次轮转覆盖出 .1',
+      );
+      final archive = File('${sinkFile!.path}.archive');
+      expect(
+        archive.existsSync() &&
+            archive.readAsLinesSync().any((l) => l.contains('early-op')),
+        isTrue,
+        reason: '早期条目应被归档段保留（append-only）',
       );
       expect(
         AuditLogger.verifyAgainstExternalAnchor(anchor),
-        isNull,
-        reason: '前缀已被轮转丢弃 → 无从判定（不得谎报 true 或 false）',
+        isTrue,
+        reason: '归档命中 → 历史仍在且未被改写',
       );
+    });
+
+    test('归档上限极小（首次轮转即不归档）：前缀丢弃 → null（不谎报）', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 512;
+      // 上限 1 字节：任何一次归档追加都超限 → 从不归档，前缀随轮转丢弃。
+      AuditLogger.maxArchiveBytesOverrideForTest = 1;
+      AuditLogger.log('very-early');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      for (var i = 0; i < 300; i++) {
+        AuditLogger.log('bulk-$i', detail: 'z' * 60);
+      }
+      await AuditLogger.flushForTest();
+      final archive = File('${sinkFile!.path}.archive');
+      expect(archive.existsSync(), isFalse, reason: '上限极小应从不归档');
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isNull,
+        reason: '前缀被轮转丢弃且无归档 → 无从判定，绝不谎报',
+      );
+    });
+
+    test('归档段不被 verifyIntegrity 当活跃链（不影响段内连续性校验）', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      AuditLogger.log('a');
+      for (var i = 0; i < 60; i++) {
+        AuditLogger.log('b-$i');
+      }
+      await AuditLogger.flushForTest();
+      // 归档存在但 verifyIntegrity 只校验 .1 + 当前，仍应通过。
+      expect(File('${sinkFile!.path}.archive').existsSync(), isTrue);
+      expect(AuditLogger.verifyIntegrity(), isTrue);
     });
   });
 }
