@@ -302,6 +302,9 @@ class SettingsPage extends StatelessWidget {
         localeName: l10n?.localeName ?? 'zh',
         auditIntegrity: AuditLogger.verifyIntegrity(),
         auditEntries: AuditLogger.snapshot(),
+        // 外部锚凭据（M-05 残余边界补强，2026-11-15）：让用户可抄存到独立
+        // 介质，事后比对能发现「锚密钥与日志同时失守」时的整链重算。
+        externalAnchor: AuditLogger.exportExternalAnchor(),
       );
       final now = DateTime.now();
       final stamp =

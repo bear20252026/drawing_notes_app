@@ -287,4 +287,118 @@ void main() {
       expect(doc2['gen'], 2);
     });
   });
+
+  // 外部追加锚（M-05 残余边界补强，2026-11-15）：锚密钥与日志同盘时，
+  // 同时拿到两者的攻击者仍可整链重算——外部凭据（独立介质）是最后一道。
+  group('外部追加锚（M-05 残余边界补强）', () {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('audit_ext_anchor_');
+      sinkFile = File(
+        '${tempDir!.path}${Platform.pathSeparator}security'
+        '${Platform.pathSeparator}audit.log',
+      );
+      AuditLogger.sinkOverrideForTest = sinkFile;
+    });
+
+    test('导出凭据：含世代/尾哈希/计数，且不含密钥', () async {
+      AuditLogger.log('op-a');
+      AuditLogger.log('op-b');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor();
+      expect(anchor, isNotNull);
+      expect(anchor!['v'], 1);
+      expect(anchor['generation'], 1);
+      expect(anchor['tailHash'], isA<String>());
+      expect((anchor['tailHash'] as String).length, 64);
+      expect(anchor['entryCount'], 3, reason: '世代标记 + 两条记录');
+      // 凭据不得含密钥材料（可安全打印/外传）。
+      expect(anchor.containsKey('key'), isFalse);
+      expect(anchor.containsKey('mac'), isFalse);
+    });
+
+    test('未篡改：凭据校验通过', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
+    });
+
+    test('追加新记录后：历史前缀仍可校验（凭据不失效）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      AuditLogger.log('op-later');
+      AuditLogger.log('op-later-2');
+      await AuditLogger.flushForTest();
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isTrue,
+        reason: '校验的是导出时刻的历史前缀，追加不影响',
+      );
+    });
+
+    test('篡改历史条目：外部凭据抓住（即便 verifyIntegrity 也被绕过）', () async {
+      AuditLogger.log('op-a', detail: 'original');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 攻击者改历史载荷并重算 HMAC（模拟同时持有锚密钥）——此处直接改
+      // 尾哈希字段模拟「重算后的链」，外部凭据仍记载旧值。
+      final lines = sinkFile!.readAsLinesSync();
+      final forged = lines.map((l) {
+        final m = jsonDecode(l) as Map<String, dynamic>;
+        if (m['operation'] == 'op-a') {
+          m['detail'] = 'forged';
+          m['hash'] = 'f' * 64; // 重算者的新尾哈希
+          m['mac'] = 'f' * 64;
+        }
+        return jsonEncode(m);
+      }).join('\n');
+      sinkFile!.writeAsStringSync('$forged\n');
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isFalse,
+        reason: '重算后的哈希与外部凭据不符——最后一道防线生效',
+      );
+    });
+
+    test('凭据格式非法 → false（不谎报通过）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.verifyAgainstExternalAnchor({}), isFalse);
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 'x',
+          'tailHash': 'a' * 64,
+          'entryCount': 1,
+        }),
+        isFalse,
+      );
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 1,
+          'tailHash': 'a' * 64,
+          'entryCount': 0,
+        }),
+        isFalse,
+      );
+    });
+
+    test('前缀已被轮转丢弃 → null（无从判定，不谎报）', () async {
+      AuditLogger.log('op-a');
+      await AuditLogger.flushForTest();
+      // 凭据声称有 999 条，实际只有 2 条 → 无从判定。
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor({
+          'generation': 1,
+          'tailHash': 'a' * 64,
+          'entryCount': 999,
+        }),
+        isNull,
+      );
+    });
+
+    test('锚未加载/无落盘 → 导出返回 null（不伪造凭据）', () {
+      expect(AuditLogger.exportExternalAnchor(), isNull);
+    });
+  });
 }

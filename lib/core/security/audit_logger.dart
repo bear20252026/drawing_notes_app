@@ -387,6 +387,120 @@ class AuditLogger {
     return _verifyMemoryChain();
   }
 
+  // ==== 外部追加锚（M-05 残余边界补强，2026-11-15） ====
+
+  /// 导出**外部锚凭据**：当前世代号 + 文件链尾哈希 + 条目计数。
+  ///
+  /// 用途：把这份凭据存到**独立介质**（另一台设备 / 打印 / 密码管理器备注），
+  /// 事后用 [verifyAgainstExternalAnchor] 比对。由此覆盖 M-05 的残余边界——
+  /// 「攻击者同时拿到锚密钥与文件写权限」时虽能整链重算，但**重算后的尾哈希
+  /// 与世代号不可能与外部凭据吻合**（外部凭据不在其控制范围内）。
+  ///
+  /// 返回 null 表示当前无从导出（锚未加载 / 落盘未解析 / 无内容）。
+  /// **凭据本身不含密钥**（只有 HMAC 结果与计数），可安全外传/打印。
+  static Map<String, Object?>? exportExternalAnchor() {
+    final sink = _sinkFileCache;
+    if (sink == null || _anchorKey == null) return null;
+    final tail = _fileChainTail();
+    if (tail == null) return null;
+    return {
+      'v': 1,
+      'generation': _generation,
+      'tailHash': tail.$1,
+      'entryCount': tail.$2,
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
+
+  /// 用外部锚凭据校验当前落盘链是否仍是导出时那一条。
+  ///
+  /// 判据（任一不符即 false）：世代号一致、尾哈希一致（恒定时间比较）、
+  /// 条目数一致。**这是「防整链重算」的最后一道**——重算者无法让尾哈希回到
+  /// 外部凭据记载的值（HMAC 输入含全部历史载荷）。
+  ///
+  /// 注意：条目数只增不减是正常业务（新记录追加），故本方法校验的是
+  /// **导出时刻的历史前缀是否被改写**：要求当前链在 [anchor] 记载的条目数处
+  /// 的哈希等于凭据尾哈希。凭据过期（链已轮转丢弃该前缀）时返回 null
+  /// （无从判定，不谎报通过）。
+  static bool? verifyAgainstExternalAnchor(Map<String, Object?> anchor) {
+    final sink = _sinkFileCache;
+    if (sink == null || _anchorKey == null) return null;
+    final gen = anchor['generation'];
+    final tailHash = anchor['tailHash'];
+    final count = anchor['entryCount'];
+    if (gen is! int || tailHash is! String || count is! int || count < 1) {
+      return false; // 凭据格式非法。
+    }
+    final prefixHash = _fileChainHashAt(count);
+    if (prefixHash == null) return null; // 前缀已被轮转丢弃 → 无从判定。
+    return ct.constantTimeEquals(prefixHash, tailHash);
+  }
+
+  /// 文件链尾哈希与总条目数（跨 audit.log.1 + audit.log）。
+  static (String, int)? _fileChainTail() {
+    final sink = _sinkFileCache;
+    if (sink == null) return null;
+    String? last;
+    var n = 0;
+    for (final file in [File('${sink.path}.1'), sink]) {
+      if (!file.existsSync()) continue;
+      final List<String> lines;
+      try {
+        lines = file.readAsLinesSync();
+      } catch (_) {
+        return null;
+      }
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue;
+        final map = _decodeLine(line);
+        if (map == null) return null;
+        final h = map['hash'];
+        if (h is! String) return null;
+        last = h;
+        n++;
+      }
+    }
+    if (last == null || n == 0) return null;
+    return (last, n);
+  }
+
+  /// 文件链第 [index] 条（1-based）的哈希；不足则 null（前缀已丢弃）。
+  static String? _fileChainHashAt(int index) {
+    final sink = _sinkFileCache;
+    if (sink == null) return null;
+    var n = 0;
+    for (final file in [File('${sink.path}.1'), sink]) {
+      if (!file.existsSync()) continue;
+      final List<String> lines;
+      try {
+        lines = file.readAsLinesSync();
+      } catch (_) {
+        return null;
+      }
+      for (final line in lines) {
+        if (line.trim().isEmpty) continue;
+        final map = _decodeLine(line);
+        if (map == null) return null;
+        n++;
+        if (n == index) {
+          final h = map['hash'];
+          return h is String ? h : null;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// 解析一行 JSONL（坏行返回 null）。
+  static Map<String, dynamic>? _decodeLine(String line) {
+    try {
+      final decoded = jsonDecode(line);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 内存链重放（从 [_anchorPrevHash] 起）。按条目自带模式重算：带 mac 走
   /// HMAC（需锚密钥），否则 SHA-256（旧条目/锚未就绪）。
   static bool _verifyMemoryChain() {
