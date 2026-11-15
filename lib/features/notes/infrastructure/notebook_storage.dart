@@ -515,11 +515,11 @@ class NotebookStorage
     throw const FormatException('SVG 预检未通过，已拒绝导入');
   }
 
-  /// 全局媒体加密盐 + KDF 版本（H-03 方案 B 2026-08-15；M1 升级 2026-11-11）。
+  /// 全局媒体加密盐 + KDF 版本（H-03 方案 B 2026-08-15；M-06 收口 2026-11-14）。
   ///
-  /// 旧文件（纯 16B 盐）⇒ [MediaSalt.parse] 识别为版本 1（PBKDF2-600k）——
-  /// 读旧媒体仍用旧 KDF，向后兼容。新生成 ⇒ [MediaSalt.encode]（版本 2 +
-  /// Argon2id），新写入不再新增 PBKDF2 盐。盐明文持久（盐无需保密），
+  /// 仅支持版本 2 盐（[MediaSalt.encode]：1B 版本 + 16B 盐，Argon2id）。
+  /// 旧版版本 1（纯 16B 盐，PBKDF2-600k）在 [MediaSalt.parse] fail-closed
+  /// 拒绝——存量旧盐派生的媒体须先升级。盐明文持久（盐无需保密），
   /// 跨会话一致（解密媒体重派生同 key）。
   Future<MediaSalt> ensureMediaSalt() async {
     final base = await _baseDir();
@@ -529,11 +529,11 @@ class NotebookStorage
       // R-07（审计 2026-09-27）：短于 16 字节 = 部分写入，它仍对应已加密
       // 媒体的真实盐——静默换盐会让旧盐派生的媒体全部不可解密。显式失败
       // （fail-closed）交由调用方提示，保住恢复可能。
-      if (bytes.length < MediaSalt.legacyFileLength) {
+      if (bytes.length < MediaSalt.saltLength) {
         throw StateError('媒体加密盐文件损坏（不足 16 字节），已拒绝重新生成以保护已加密媒体');
       }
-      // M1：版本前缀判定在 MediaSalt.parse 内（fail-closed：无法识别的
-      // 格式抛 ArgumentError，绝不猜 KDF——用错 KDF 解不开已加密媒体）。
+      // 版本前缀判定在 MediaSalt.parse 内（fail-closed：无法识别的格式
+      // 或旧版 PBKDF2 盐抛 ArgumentError，绝不猜 KDF）。
       return MediaSalt.parse(bytes);
     }
     final salt = MediaCryptoService.generateSalt();

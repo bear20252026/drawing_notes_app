@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/vfs/encrypted_vault.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
 
@@ -14,8 +15,17 @@ import 'package:drawing_notes_app/core/storage/vfs/vault_manifest.dart';
 ///
 /// 业务层只跟 key 打交道（VireFS 模式）——put/get/list——自动加密/版本/
 /// 原子提交（EncryptedVault 后端）。供媒体/笔记本/审计对象接入。
-class VaultService {
-  VaultService({required this.directory});
+class VaultService implements SessionSecretsHolder {
+  VaultService({required this.directory}) {
+    // M-04（2026-11-14）：VFS 会话密钥是主密钥副本——注册进统一清理注册表，
+    // 回锁（AppLockGate.hidden / 超宽限）时随 SessionSecrets.clearAll() 一并
+    // 清零。此前 lock() 只清权威 MK，本副本整会话驻留内存（审计 M-04）。
+    SessionSecrets.register(this);
+  }
+
+  /// M-04：回锁联动清零 VFS 会话密钥（D-2 内存擦除语义，幂等永不抛错）。
+  @override
+  void clearAllSessionSecrets() => clearKey();
 
   /// 全局实例（媒体读取双轨——'vfs:' 前缀对象——解锁时 [configure] + setKey）。
   //

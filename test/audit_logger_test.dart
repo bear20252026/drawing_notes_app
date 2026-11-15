@@ -127,14 +127,18 @@ void main() {
 
       expect(sinkFile!.existsSync(), isTrue);
       final lines = sinkFile!.readAsLinesSync();
-      expect(lines, hasLength(2));
-      final first = jsonDecode(lines[0]) as Map<String, dynamic>;
+      // M-05：首条目前有一条 audit.genesis 世代标记（共 3 行）。
+      expect(lines, hasLength(3));
+      final genesis = jsonDecode(lines[0]) as Map<String, dynamic>;
+      expect(genesis['operation'], 'audit.genesis');
+      final first = jsonDecode(lines[1]) as Map<String, dynamic>;
       expect(first['operation'], 'password_disk.unlock');
       expect(first['success'], isTrue);
       expect(first['prevHash'], hasLength(64));
       expect(first['hash'], hasLength(64));
-      final second = jsonDecode(lines[1]) as Map<String, dynamic>;
-      // 文件侧链连续：第二条 prevHash = 第一条 hash。
+      final second = jsonDecode(lines[2]) as Map<String, dynamic>;
+      // 文件侧链连续：后一条 prevHash = 前一条 hash。
+      expect(first['prevHash'], genesis['hash']);
       expect(second['prevHash'], first['hash']);
       expect(second['success'], isFalse);
       expect(second['detail'], 'too_large');
@@ -171,6 +175,116 @@ void main() {
       expect(AuditLogger.snapshot(), hasLength(1), reason: '内存链不受落盘失败影响');
       expect(badSink.existsSync(), isFalse);
       expect(AuditLogger.verifyIntegrity(), isTrue);
+    });
+  });
+
+  // M-05 加固（2026-11-14）：带密钥 HMAC 锚 + 世代号——堵整链重算/整段删除/
+  // 跨段拼接三个无密钥链盲区。锚密钥与落盘 sink 同目录（测试隔离）。
+  group('带密钥锚（M-05，2026-11-14）', () {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('audit_anchor_');
+      sinkFile = File(
+        '${tempDir!.path}${Platform.pathSeparator}security'
+        '${Platform.pathSeparator}audit.log',
+      );
+      AuditLogger.sinkOverrideForTest = sinkFile;
+    });
+
+    test('锚就绪后条目带 gen+mac，verifyIntegrity 通过', () async {
+      AuditLogger.log('first'); // 同步加载锚 + 世代标记，本条即走 HMAC。
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.anchorLoadedForTest, isTrue, reason: '首次落盘加载锚');
+      expect(AuditLogger.generationForTest, 1, reason: '首世代 = 1');
+      AuditLogger.log('second'); // 锚已就绪 → HMAC。
+      AuditLogger.log('third', success: false);
+      await AuditLogger.flushForTest();
+      final lines = sinkFile!.readAsLinesSync()
+          .map((l) => jsonDecode(l) as Map<String, dynamic>)
+          .toList();
+      // 世代标记 + first + second + third（同步加载后全部带 mac）。
+      final keyed = lines.where((m) => m['mac'] != null).toList();
+      expect(keyed, hasLength(4), reason: '世代标记 + 三条 HMAC 条目');
+      expect(keyed.every((m) => m['gen'] == 1), isTrue);
+      expect(keyed.any((m) => m['operation'] == 'audit.genesis'), isTrue);
+      expect(AuditLogger.verifyIntegrity(), isTrue);
+    });
+
+    test('篡改带 mac 条目的字段 → verifyIntegrity 断链', () async {
+      AuditLogger.log('first');
+      await AuditLogger.flushForTest();
+      AuditLogger.log('sensitive', detail: 'original');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.verifyIntegrity(), isTrue);
+      // 篡改文件里带 mac 条目的 detail（保留旧 mac）→ HMAC 重算必不匹配。
+      final lines = sinkFile!.readAsLinesSync();
+      final tampered = lines.map((l) {
+        final m = jsonDecode(l) as Map<String, dynamic>;
+        if (m['operation'] == 'sensitive') m['detail'] = 'TAMPERED';
+        return jsonEncode(m);
+      }).join('\n');
+      sinkFile!.writeAsStringSync('$tampered\n');
+      expect(AuditLogger.verifyIntegrity(), isFalse, reason: 'HMAC 不符即断链');
+    });
+
+    test('无锚密钥无法伪造合法 HMAC（整链重算被阻）', () async {
+      AuditLogger.log('first');
+      await AuditLogger.flushForTest();
+      AuditLogger.log('secret.op', detail: 'payload');
+      await AuditLogger.flushForTest();
+      // 攻击者改字段并试图用裸 SHA-256 重算 hash（无锚密钥）——带 mac 条目
+      // 校验走 HMAC，SHA-256 重算值必不匹配。
+      final lines = sinkFile!.readAsLinesSync();
+      final forged = lines.map((l) {
+        final m = jsonDecode(l) as Map<String, dynamic>;
+        if (m['operation'] == 'secret.op') {
+          m['detail'] = 'forged';
+          // 保留 mac 字段但内容已变 → HMAC 校验失败。
+        }
+        return jsonEncode(m);
+      }).join('\n');
+      sinkFile!.writeAsStringSync('$forged\n');
+      expect(AuditLogger.verifyIntegrity(), isFalse);
+    });
+
+    test('世代号单调：重启推进世代，跨代拼接回退被检出', () async {
+      AuditLogger.log('gen1.op');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.generationForTest, 1);
+      // 模拟进程重启：清内存链 + 复位锚加载态（锚文件保留）→ 世代 +1。
+      AuditLogger.clear();
+      AuditLogger.sinkOverrideForTest = sinkFile; // 重新注入（clear 不动 sink）。
+      AuditLogger.log('gen2.op');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.generationForTest, 2, reason: '重启世代 +1');
+      expect(AuditLogger.verifyIntegrity(), isTrue, reason: '世代 1→2 单调合法');
+      // 跨代拼接：把世代 2 的条目改成世代 1（回退）→ 单调约束检出。
+      final lines = sinkFile!.readAsLinesSync();
+      final spliced = lines.map((l) {
+        final m = jsonDecode(l) as Map<String, dynamic>;
+        if (m['gen'] == 2) m['gen'] = 1; // 世代回退（mac 不变 → 亦 HMAC 不符）。
+        return jsonEncode(m);
+      }).join('\n');
+      sinkFile!.writeAsStringSync('$spliced\n');
+      expect(AuditLogger.verifyIntegrity(), isFalse, reason: '世代回退/拼段被检出');
+    });
+
+    test('锚文件持久化：重启复用同一锚密钥', () async {
+      AuditLogger.log('a');
+      await AuditLogger.flushForTest();
+      final anchorFile = File('${sinkFile!.parent.path}/audit.anchor');
+      expect(anchorFile.existsSync(), isTrue, reason: '锚密钥落盘');
+      final doc = jsonDecode(anchorFile.readAsStringSync()) as Map<String, dynamic>;
+      expect(doc['key'], isA<String>());
+      expect(doc['gen'], 1);
+      final keyB64 = doc['key'] as String;
+      // 重启复用：锚密钥不变、世代 +1。
+      AuditLogger.clear();
+      AuditLogger.sinkOverrideForTest = sinkFile;
+      AuditLogger.log('b');
+      await AuditLogger.flushForTest();
+      final doc2 = jsonDecode(anchorFile.readAsStringSync()) as Map<String, dynamic>;
+      expect(doc2['key'], keyB64, reason: '同一锚密钥跨进程复用');
+      expect(doc2['gen'], 2);
     });
   });
 }

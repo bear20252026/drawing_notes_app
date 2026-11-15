@@ -4,108 +4,26 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 
 /// 密码保护加密服务（C3/C5，借鉴 Joplin 端到端加密理念）。
 ///
-/// 使用 AES-GCM 256 对称加密；密钥由 PBKDF2（加盐、10 万次迭代）从密码
-/// 派生（评审发现 P2：单次 SHA-256 可被离线暴力破解，必须使用慢 KDF），
-/// 每次加密生成随机盐（16B）与随机 nonce（12B），一并存入密文 JSON。
+/// **仅支持 v5 双保护器格式（M-06 收口 2026-11-14，删除旧版）**：
+/// AES-256-GCM 载荷 + Argon2id 密码槽（64MiB/t2/p2）+ 可选重置盘槽，
+/// AAD 绑定文档 ID/用途（NIST SP 800-38D，防跨文档密文交换）。
+/// 旧版 v2/v3（PBKDF2 无 AAD）、v4（PBKDF2+AAD）与 PBKDF2 旧槽**一律拒绝**
+/// （fail-closed 抛 [FormatException]）——存量旧数据须先升级 v5 方可读取。
 /// 纯 Dart 实现，离线可用，无平台依赖。
 class EncryptionService {
   const EncryptionService();
 
-  /// PBKDF2 迭代次数（慢 KDF，抵御离线暴力破解）。
-  ///
-  /// 审计修复（2026-08-15）：OWASP 2026 对 PBKDF2-HMAC-SHA256 推荐
-  /// 60 万次，原 10 万次（v=2）低于推荐。新数据用 60 万次（v=3），
-  /// 解密按 v 字段分派迭代次数，旧数据（v≤2）继续用 10 万次可解。
-  static const int _pbkdf2IterationsLegacy = 100000; // 旧数据（v ≤ 2）
-  static const int _pbkdf2IterationsCurrent = 600000; // 新数据（v ≥ 3）
-
   // H-07 修复（专家审计 2026-08-15）：封装输入严格校验——固定字段长度
-  // （GCM nonce 12 / MAC 16 / PBKDF2 盐 16 / 主密钥 32）+ 输入大小上限。
+  // （GCM nonce 12 / MAC 16 / 盐 16 / 主密钥 32）+ 输入大小上限。
   static const int _saltLength = 16;
   static const int _nonceLength = 12;
   static const int _macLength = 16;
   static const int _maxEncryptedInputBytes = 10 * 1024 * 1024; // 10MB
-
-  /// 按格式版本选择 PBKDF2 迭代次数（无 v 字段视为旧格式 v=2）。
-  static int _iterationsFor(int version) =>
-      version >= 3 ? _pbkdf2IterationsCurrent : _pbkdf2IterationsLegacy;
-
-  /// 派生 32 字节密钥：KDF 按槽位/版本声明分派（v ≤ 4 格式 = PBKDF2，
-  /// 批B 起仅存量数据；v5 双保护器槽位走 Argon2id，见 _wrapSlotsV5）。
-  ///
-  /// N3 提速 B 方案：走 KekSessionCache（会话缓存 + isolate 后台派生；
-  /// 写路径随机新盐的条目由 LRU 上限自动淘汰，调用点零特判）。
-  Future<SecretKey> _deriveKey(
-    String password,
-    List<int> salt, {
-    int iterations = _pbkdf2IterationsCurrent,
-  }) async {
-    final bytes = await KekSessionCache.instance.deriveKek(
-      password,
-      salt,
-      KdfParams.pbkdf2(iterations),
-    );
-    return SecretKey(bytes);
-  }
-
-  /// 加密 [plainText]，返回 JSON 串（含盐、nonce 与密文，base64）。
-  Future<String> encrypt(String plainText, String password) async {
-    final salt = _randomBytes(16);
-    final key = await _deriveKey(password, salt);
-    final aes = AesGcm.with256bits();
-    final nonce = _randomBytes(12);
-    final box = await aes.encrypt(
-      utf8.encode(plainText),
-      secretKey: key,
-      nonce: nonce,
-    );
-    return jsonEncode({
-      's': base64Encode(salt),
-      'n': base64Encode(nonce),
-      'c': base64Encode(box.cipherText),
-      'm': box.mac.bytes.isNotEmpty ? base64Encode(box.mac.bytes) : '',
-      'v': 3, // 格式版本（KDF=PBKDF2 60 万次，审计修复 2026-08-15）
-    });
-  }
-
-  /// 解密 [encryptedJson]；密码错误或数据损坏时抛出 [FormatException]。
-  Future<String> decrypt(String encryptedJson, String password) async {
-    // H-07 修复：输入大小预检（防恶意超长输入资源消耗）。
-    _requireInputSize(encryptedJson);
-    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
-    final salt = base64Decode(_requireString(map, 's'));
-    _requireFixedLength('盐', salt, _saltLength);
-    // 按 v 字段分派迭代次数：v≥3 用 60 万次（新数据），v≤2/无 v 用 10 万次（旧数据兼容）。
-    final v = map['v'] is int ? map['v'] as int : 2;
-    _requireKnownVersion(v);
-    final key = await _deriveKey(password, salt, iterations: _iterationsFor(v));
-    return _gcmDecrypt(map, key);
-  }
-
-  /// AES-GCM 解密封装（共用逻辑）。
-  ///
-  /// 所有字段缺失或类型错误统一转为 [FormatException]（与文档契约一致），
-  /// 避免被篡改的数据抛 [TypeError] 破坏上层调用方的异常处理。
-  Future<String> _gcmDecrypt(Map<String, dynamic> map, SecretKey key) async {
-    final nonce = base64Decode(_requireString(map, 'n'));
-    final cipher = base64Decode(_requireString(map, 'c'));
-    final macBytes = base64Decode(_requireString(map, 'm'));
-    // H-07 修复：固定字段长度校验（GCM nonce 12 / MAC 16——防畸形封装）。
-    _requireFixedLength('nonce', nonce, _nonceLength);
-    _requireFixedLength('MAC', macBytes, _macLength);
-    final aes = AesGcm.with256bits();
-    final clear = await aes.decrypt(
-      SecretBox(cipher, nonce: nonce, mac: Mac(macBytes)),
-      secretKey: key,
-    );
-    return utf8.decode(clear);
-  }
 
   /// 读取 [key] 字段并保证其为字符串；缺失/类型错误抛 [FormatException]。
   static String _requireString(Map<String, dynamic> map, String key) {
@@ -127,13 +45,6 @@ class EncryptionService {
   static void _requireFixedLength(String name, List<int> bytes, int expected) {
     if (bytes.length != expected) {
       throw FormatException('$name 长度不合法（应为 $expected 字节）');
-    }
-  }
-
-  /// H-07 修复：格式版本白名单（防未知 v 字段分派意外路径）。
-  static void _requireKnownVersion(int version) {
-    if (version != 2 && version != 3) {
-      throw FormatException('未知加密格式版本：v$version');
     }
   }
 
@@ -230,28 +141,9 @@ class EncryptionService {
     ),
   );
 
-  /// 密码模式 v4（H-06 补全，专家审计 2026-08-15）：PBKDF2 派生 key +
-  /// AAD 上下文绑定。载荷 v4 信封内嵌 salt（供解密派生）。
-  Future<String> encryptWithPasswordAad({
-    required String notebookId,
-    required String plaintext,
-    required String password,
-  }) async {
-    final salt = _randomBytes(_saltLength);
-    final key = await _deriveKey(password, salt);
-    final keyBytes = await key.extractBytes();
-    final payload = await encryptNotebookPayload(
-      notebookId: notebookId,
-      plaintext: plaintext,
-      key: keyBytes,
-    );
-    final map = jsonDecode(payload) as Map<String, dynamic>;
-    map['s'] = base64Encode(salt);
-    return jsonEncode(map);
-  }
-
-  /// 密码模式 v4 解密：v5 双保护器优先，v4 AAD 次之，v3/v2 旧数据回退
-  /// （flutter_secure_storage 两步迁移：兼容期新旧并存，旧格式仅读）。
+  /// 密码模式解密（**仅 v5**，M-06 收口 2026-11-14）：v5 双保护器信封。
+  /// 旧版 v2/v3/v4 一律拒绝（fail-closed 抛 [FormatException]）——存量旧
+  /// 数据须先升级 v5 方可读取。方法名保留 Aad 后缀以兼容生产调用点。
   Future<String> decryptWithPasswordAad({
     required String notebookId,
     required String encryptedJson,
@@ -287,30 +179,21 @@ class EncryptionService {
   }) async {
     _requireInputSize(encryptedJson);
     final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
-    if (isDualProtectorEnvelope(encryptedJson)) {
-      final dek = await _unwrapPasswordSlotV5(
-        scope: 'nb',
-        id: notebookId,
-        map: map,
-        password: password,
-      );
-      if (dek == null) {
-        throw const FormatException('密码错误或数据已损坏');
-      }
-      return _decryptPayloadV5(scope: 'nb', id: notebookId, map: map, dek: dek);
+    // M-06 收口（2026-11-14）：仅 v5 双保护器信封。旧版 v2/v3/v4 一律
+    // fail-closed 拒绝——存量旧数据须先升级 v5 方可读取（删除旧版支持）。
+    if (!isDualProtectorEnvelope(encryptedJson)) {
+      throw const FormatException('旧版加密格式已不再支持，请升级后重试');
     }
-    if (map['mode'] == 'payload' && map['v'] == 4) {
-      final salt = base64Decode(_requireString(map, 's'));
-      _requireFixedLength('盐', salt, _saltLength);
-      final key = await _deriveKey(password, salt);
-      final keyBytes = await key.extractBytes();
-      return decryptNotebookPayload(
-        notebookId: notebookId,
-        encryptedJson: encryptedJson,
-        key: keyBytes,
-      );
+    final dek = await _unwrapPasswordSlotV5(
+      scope: 'nb',
+      id: notebookId,
+      map: map,
+      password: password,
+    );
+    if (dek == null) {
+      throw const FormatException('密码错误或数据已损坏');
     }
-    return decrypt(encryptedJson, password);
+    return _decryptPayloadV5(scope: 'nb', id: notebookId, map: map, dek: dek);
   }
 
   // ==== v5 双保护器载荷（N4 批 3，2026-09-02 定案） ====
@@ -457,7 +340,10 @@ class EncryptionService {
   }
 
   /// 用密码解开密码槽取出 DEK；密码错误/信封非法返回 null。
-  /// 槽位 KDF 自描述（批B）：kdf 字段缺失 = 旧 PBKDF2 槽位（it 字段）。
+  ///
+  /// M-06 收口（2026-11-14）：**仅 Argon2id 槽位**。旧 PBKDF2 槽位（无 kdf
+  /// 字段或 kdf=pbkdf2）一律 fail-closed 拒绝（FormatException）——存量旧
+  /// 槽位须先改密升级 Argon2id 方可读取（删除旧版 KDF 支持）。
   static Future<List<int>?> _unwrapPasswordSlotV5({
     required String scope,
     required String id,
@@ -469,24 +355,14 @@ class EncryptionService {
       final pw = slots['pw'] as Map<String, dynamic>;
       final salt = base64Decode(_requireString(pw, 's'));
       _requireFixedLength('盐', salt, _saltLength);
-      final KdfParams params;
-      if (pw['kdf'] == null) {
-        // 旧 PBKDF2 槽位（it 字段；缺失按当前迭代数兜底）。
-        // P0 修复：`it` 无界——超限按字段畸形处理（FormatException →
-        // 调用方统一报「密码错误或数据已损坏」，不给敌手区分口径）。
-        final legacyIt = pw['it'] is int
-            ? pw['it'] as int
-            : _pbkdf2IterationsCurrent;
-        if (legacyIt <= 0 || legacyIt > KdfParams.maxPbkdf2Iterations) {
-          throw const FormatException('密码槽 KDF 迭代数不合法');
-        }
-        params = KdfParams.pbkdf2(legacyIt);
-      } else {
-        params = KdfParams.fromSlotJson(
-          pw,
-          legacyDefault: KdfParams.pbkdf2(_pbkdf2IterationsCurrent),
-        );
+      // 仅 Argon2id：kdf 字段缺失（旧 PBKDF2 槽位）或非 argon2id 一律拒绝。
+      if (pw['kdf'] != KdfParams.kdfArgon2id) {
+        throw const FormatException('旧版 KDF 槽位已不再支持，请升级后重试');
       }
+      final params = KdfParams.fromSlotJson(
+        pw,
+        legacyDefault: KdfParams.argon2idProduction,
+      );
       final wrapped = base64Decode(_requireString(pw, 'w'));
       final kek = await VaultKeyService.deriveKek(password, salt, params);
       return await VaultKeyService.aeadDecrypt(
@@ -495,7 +371,7 @@ class EncryptionService {
         _slotAadV5(scope, 'pw', id),
       );
     } on FormatException {
-      rethrow; // 字段畸形（篡改）保持契约
+      rethrow; // 字段畸形（篡改）/旧版拒绝保持契约
     } catch (_) {
       return null; // 密码错误（AEAD 认证失败）
     }

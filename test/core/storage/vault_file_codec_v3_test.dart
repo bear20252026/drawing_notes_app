@@ -210,47 +210,46 @@ void main() {
       );
     });
 
-    // ---- v2/v3 并存兼容（旧文件只读兼容承诺） ----
+    // ---- M-06 收口（2026-11-14，删除旧版加密支持）：v2 不再可解 ----
 
-    test('v2 文件兼容：isPasswordEnvelope 含 v2，v3 解锁器拒绝 v2', () async {
-      final v2blob = await VaultFileCodec.encryptWithPassword(
-        plainOf('old v2 body'),
-        '654321',
-        aadContext: aad,
-        iterations: 1000,
-      );
+    test('v2 旧信封：仍被识别为密码信封，但 v3 解锁器与主密钥路径均拒绝', () async {
+      // 手工构造 v2 旧信封字节（DNV + 0x02 + salt(16) + iter(4) + 载荷占位）。
+      final salt = List<int>.generate(16, (i) => i);
+      final iter = ByteData(4)..setUint32(0, 600000);
+      final v2blob = Uint8List.fromList([
+        0x44, 0x4E, 0x56, 0x02,
+        ...salt,
+        ...iter.buffer.asUint8List(),
+        ...List<int>.generate(48, (i) => i),
+      ]);
       expect(VaultFileCodec.isPasswordEnvelope(v2blob), isTrue);
       expect(VaultFileCodec.isPasswordEnvelopeV2(v2blob), isTrue);
       expect(VaultFileCodec.isV3Envelope(v2blob), isFalse);
       expect(VaultFileCodec.hasUsbSlotV3(v2blob), isFalse);
-
-      // v2 仍走原解密路径。
-      final round = await VaultFileCodec.decryptWithPassword(
-        v2blob,
-        '654321',
-        aadContext: aad,
-      );
-      expect(round, equals(plainOf('old v2 body')));
 
       // v3 解锁器不接 v2（结构不同，明确报错）。
       await expectLater(
         VaultFileCodec.unlockWithPasswordV3(v2blob, '654321', aadContext: aad),
         throwsA(isA<VaultFileException>()),
       );
+      // 主密钥路径同样拒绝（层级独立，fail-closed）。
+      await expectLater(
+        VaultFileCodec.decrypt(
+          v2blob,
+          VaultKeyService.randomBytes(32),
+          aadContext: aad,
+        ),
+        throwsA(isA<VaultFileException>()),
+      );
     });
 
-    test('v3 文件不可走 v2 解密路径（头部结构不同，明确报错）', () async {
+    test('v3 文件不可走主密钥解密路径（层级独立，明确报错）', () async {
       final blob = await VaultFileCodec.encryptWithPasswordV3(
         plainOf('body'),
         '654321',
         aadContext: aad,
         kdf: KdfParams.testLight,
       );
-      await expectLater(
-        VaultFileCodec.decryptWithPassword(blob, '654321', aadContext: aad),
-        throwsA(isA<VaultFileException>()),
-      );
-      // 主密钥路径同样拒绝（层级独立）。
       await expectLater(
         VaultFileCodec.decrypt(
           blob,

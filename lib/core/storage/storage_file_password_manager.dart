@@ -68,11 +68,9 @@ class StorageFilePasswordManager {
         );
         secrets.cacheV3Material(id, unlock);
       } else {
-        await VaultFileCodec.decryptWithPassword(
-          raw,
-          password,
-          aadContext: 'doc:$id',
-        );
+        // M-06 收口（2026-11-14）：v2 旧文件密码信封不再支持——返回 false
+        // （存量旧数据须先升级 v3）。
+        return false;
       }
     } on VaultFileException {
       return false;
@@ -216,29 +214,9 @@ class StorageFilePasswordManager {
       fireOnWrite();
       return;
     }
-    final plain = await VaultFileCodec.decryptWithPassword(
-      raw,
-      oldPassword,
-      aadContext: 'doc:$id',
-    );
-    // v2 → v3 升级：生成新 DEK，暂不嵌重置盘槽位（钥匙不在设备上）。
-    final dek = VaultFileCodec.generateDek();
-    secrets.cacheDekMaterial(id, dek, null);
-    secrets.cacheFilePassword(id, newPassword);
-    try {
-      final sealed = await VaultFileCodec.encryptWithPasswordV3(
-        Uint8List.fromList(plain),
-        newPassword,
-        aadContext: 'doc:$id',
-        dek: dek,
-      );
-      await pipeline.writeSealedBytes(id, sealed);
-    } catch (_) {
-      secrets.cacheFilePassword(id, oldPassword); // 回滚会话缓存到仍有效的旧密码
-      rethrow;
-    }
-    await media.deleteThumbnail(id);
-    fireOnWrite();
+    // M-06 收口（2026-11-14）：v2 旧文件密码信封不再支持——fail-closed
+    // 拒绝（删除旧版读支持后不再自动升级；存量旧数据须先经其他通道迁移）。
+    throw const VaultFileException('旧版文件密码格式已不再支持，请升级后重试');
   }
 
   /// 绑定重置密码盘到已设密文档（事后绑定通道；须验证文件密码）。
@@ -368,11 +346,9 @@ class StorageFilePasswordManager {
       secrets.cacheV3Material(id, unlock);
       plain = unlock.plain;
     } else {
-      plain = await VaultFileCodec.decryptWithPassword(
-        raw,
-        password,
-        aadContext: 'doc:$id',
-      );
+      // M-06 收口（2026-11-14）：v2 旧文件密码信封不再支持——fail-closed
+      // 拒绝（存量旧数据须先升级 v3）。
+      throw const VaultFileException('旧版文件密码格式已不再支持，请升级后重试');
     }
     final key = await pipeline.currentKey();
     if (key == null) {

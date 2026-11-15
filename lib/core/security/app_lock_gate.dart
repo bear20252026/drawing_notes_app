@@ -78,10 +78,16 @@ class AppLockGate extends StatefulWidget {
     this.quickUnlock,
     this.awayDurationReader,
     this.desktopKeyboardInput,
+    this.onUnlocked,
     required this.child,
   });
 
   final AppLockService service;
+
+  /// 解锁成功收口回调（M-01 接线 2026-11-14）：PIN/快速解锁/U 盘重置三条
+  /// 路径放行时统一触发一次——组合根据此装配 VFS（configure + setKey）。
+  /// 异步、尽力而为：回调失败不阻断放行（VFS 降级到既有文件路径）。
+  final Future<void> Function()? onUnlocked;
 
   /// 主密钥保险库（批次①b）：PIN 校验通过的同时解锁保险库（同一位
   /// 开屏密码派生 KEK），解锁瞬间自动完成：
@@ -417,6 +423,10 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     _lockedFromBackground = false;
     _cancelPendingGrace();
     setState(() => _locked = false);
+    // M-01：解锁收口装配 VFS（三条解锁路径共用此收口）。异步尽力而为，
+    // 失败不阻断放行（VFS 降级到既有文件路径）。
+    final cb = widget.onUnlocked;
+    if (cb != null) unawaited(cb());
   }
 
   /// 手机端判定（与 UnlockFlow 同口径）：Web 视为桌面（有物理键盘）。
