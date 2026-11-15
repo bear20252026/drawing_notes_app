@@ -112,19 +112,31 @@ void main() {
 
     test('哈希比对走恒定时间工具，不裸 ==', () {
       final lines = File(_src).readAsLinesSync();
-      final start = lines.indexWhere(
-        (l) => l.contains('static bool? verifyAgainstExternalAnchor('),
-      );
-      final buf = StringBuffer();
-      for (var i = start; i < lines.length; i++) {
-        if (i > start && RegExp(r'^  static ').hasMatch(lines[i])) break;
-        buf.writeln(lines[i]);
+      // 比对可能在校验方法本体，也可能在其委托的扫描辅助方法里——两处都查。
+      String bodyOf(String signature) {
+        final start = lines.indexWhere((l) => l.contains(signature));
+        expect(start, greaterThanOrEqualTo(0), reason: '找不到 $signature');
+        final buf = StringBuffer();
+        for (var i = start; i < lines.length; i++) {
+          if (i > start && RegExp(r'^  static ').hasMatch(lines[i])) break;
+          buf.writeln(lines[i]);
+        }
+        return buf.toString();
       }
-      final body = buf.toString();
+
+      final verifyBody = bodyOf('static bool? verifyAgainstExternalAnchor(');
+      final scanBody = bodyOf('static bool? _scanFileChainForHash(');
       expect(
-        body.contains('ct.constantTimeEquals'),
+        verifyBody.contains('ct.constantTimeEquals') ||
+            scanBody.contains('ct.constantTimeEquals'),
         isTrue,
-        reason: '凭据尾哈希是秘密值，比较必须走恒定时间工具',
+        reason: '凭据尾哈希是秘密值，比较必须走恒定时间工具（本体或扫描辅助）',
+      );
+      // 反向锁：扫描里不得出现裸哈希 == 比较。
+      expect(
+        RegExp(r'\bh\s*==\s*target|\btarget\s*==\s*\bh').hasMatch(scanBody),
+        isFalse,
+        reason: '扫描哈希不得裸 == 比较（时序侧信道）',
       );
     });
   });
@@ -161,7 +173,7 @@ void main() {
       expect(anchor.keys.toSet(), _allowedAnchorFields);
     });
 
-    test('篡改历史 → 校验 false（防线存在意义）', () async {
+    test('篡改历史 → 绝不判「通过」（防线存在意义）', () async {
       AuditLogger.log('gate.op', detail: 'orig');
       await AuditLogger.flushForTest();
       final anchor = AuditLogger.exportExternalAnchor()!;
@@ -173,7 +185,10 @@ void main() {
         return m;
       }).join('\n');
       sinkFile.writeAsStringSync('$forged\n');
-      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isFalse);
+      // 核心不变量：重算/篡改后原哈希不在链上 ⇒ **不得返回 true**。
+      // 具体是 null（无从判定：篡改 or 轮转丢弃无法区分）还是 false，
+      // 取决于落盘信息；本门禁只钉「绝不谎报通过」这条底线。
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isNot(isTrue));
     });
   });
 }

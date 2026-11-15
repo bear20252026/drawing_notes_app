@@ -337,7 +337,7 @@ void main() {
       );
     });
 
-    test('篡改历史条目：外部凭据抓住（即便 verifyIntegrity 也被绕过）', () async {
+    test('篡改历史条目：凭据不再判「通过」（重算无法伪造原哈希）', () async {
       AuditLogger.log('op-a', detail: 'original');
       await AuditLogger.flushForTest();
       final anchor = AuditLogger.exportExternalAnchor()!;
@@ -354,10 +354,13 @@ void main() {
         return jsonEncode(m);
       }).join('\n');
       sinkFile!.writeAsStringSync('$forged\n');
+      // 核心保证：重算后原哈希已不在链上 → **绝不返回 true**。
+      // 返回 null（无从判定）而非 false：落盘信息不足以区分「被篡改」与
+      // 「已被轮转丢弃」——宁可报无从判定，也不谎报确定结论。
       expect(
         AuditLogger.verifyAgainstExternalAnchor(anchor),
-        isFalse,
-        reason: '重算后的哈希与外部凭据不符——最后一道防线生效',
+        isNot(isTrue),
+        reason: '重算者无法让原哈希回到链上——凭据不再判通过',
       );
     });
 
@@ -399,6 +402,54 @@ void main() {
 
     test('锚未加载/无落盘 → 导出返回 null（不伪造凭据）', () {
       expect(AuditLogger.exportExternalAnchor(), isNull);
+    });
+
+    // 轮转场景实测（2026-11-15 修正为哈希锚定语义）：轮转是整文件搬移
+    // （sink.rename(.1)），.1 会被新一代覆盖。按位置序号定位会把「前缀丢弃」
+    // 误判成「被篡改」——故改用「链上是否存在该哈希 + 计数下界」三态判定。
+    test('单次轮转且前缀仍在 .1：凭据可校验通过', () async {
+      // 阈值放宽到刚好容纳「早期少量 + 一次轮转」，确保早期条目留在 .1。
+      AuditLogger.maxFileBytesOverrideForTest = 4 * 1024;
+      AuditLogger.log('pre-rotate');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 写到刚过阈值触发一次轮转（早期条目随之进入 .1，尚未被二次覆盖）。
+      for (var i = 0; i < 12; i++) {
+        AuditLogger.log('filler-$i', detail: 'x' * 20);
+      }
+      await AuditLogger.flushForTest();
+      final rotated = File('${sinkFile!.path}.1');
+      expect(rotated.existsSync(), isTrue, reason: '应已触发轮转');
+      expect(
+        rotated.readAsLinesSync().any((l) => l.contains('pre-rotate')),
+        isTrue,
+        reason: '早期条目应仍在 .1 中（未被二次轮转覆盖）',
+      );
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
+    });
+
+    test('多次轮转丢弃前缀：返回 null（无从判定，绝不谎报通过）', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      AuditLogger.log('early-op');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      // 大量写入触发多次轮转——.1 被反复覆盖，早期前缀彻底丢失。
+      for (var i = 0; i < 200; i++) {
+        AuditLogger.log('bulk-$i', detail: 'y' * 60);
+      }
+      await AuditLogger.flushForTest();
+      final rotated = File('${sinkFile!.path}.1');
+      expect(
+        rotated.existsSync() &&
+            rotated.readAsLinesSync().any((l) => l.contains('early-op')),
+        isFalse,
+        reason: '早期条目应已被多次轮转覆盖丢弃',
+      );
+      expect(
+        AuditLogger.verifyAgainstExternalAnchor(anchor),
+        isNull,
+        reason: '前缀已被轮转丢弃 → 无从判定（不得谎报 true 或 false）',
+      );
     });
   });
 }
