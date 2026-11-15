@@ -15,6 +15,17 @@
   macos-build / release-build×2 / weekly-evidence×2）同步 3.50.0。
 - README / README_EN / CONTRIBUTING 环境要求同步 3.50.0。
 
+#### Android 工具链（Flutter 3.50 硬性最低，DependencyVersionChecker）
+- **Gradle 9.1.0 → 9.3.1、AGP 9.0.1 → 9.1.1、Kotlin 2.3.20 → 2.4.10**——
+  原版本均低于 3.50 门槛，Android debug 构建报「Gradle version lower than
+  minimum 9.3.1」。Java 17 / minSdk 23 已达标无需改。
+
+#### CI analyze 适配
+- Flutter 3.50 起 `flutter analyze` 默认 info 也致命（3.47 不会），271 条
+  material_ui 弃用 info 致 macOS 构建 Static analysis 退出码 1。4 处 analyze
+  （ci / quality_gate / pr-quality / macos-build）加 `--no-fatal-infos`：
+  info 放行、error/warning 仍致命；material_ui 迁移完成后移除旗标恢复严格口径。
+
 #### 依赖（解锁上一批被 Dart 3.13 挡住的包）
 - **hotkey_manager 0.3.0 → 0.4.0、window_manager 0.6.0 → 0.7.0**（需 Dart ^3.14，
   本次随 SDK 升级解锁）。
