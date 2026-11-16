@@ -75,6 +75,14 @@ jobs:
           cd packages/editor_core
           dart pub get
 
+      # notebook_domain 同为独立 Dart 包，其 test/ 用 package:test——根
+      # flutter analyze 会扫到，需该包自己的 package_config.json（L-9 收口
+      # 2026-11-16：新增端口契约测试后暴露，与 editor_core 同口径）。
+      - name: notebook_domain 依赖
+        run: |
+          cd packages/notebook_domain
+          dart pub get
+
       # 版本一致性门禁（2026-09-06 审计）：pubspec 为唯一版本源，
       # 校验安装器脚本（含 VersionInfoVersion 历史残留）与 CHANGELOG 同步。
       - name: 版本一致性校验
@@ -127,6 +135,11 @@ jobs:
       - name: editor_core 测试
         run: |
           cd packages/editor_core
+          dart test
+
+      - name: notebook_domain 测试
+        run: |
+          cd packages/notebook_domain
           dart test
 
       # 本代码库尚未统一 dart format 规范（会改动 53 个 lib 文件），故此处仅作 informational，

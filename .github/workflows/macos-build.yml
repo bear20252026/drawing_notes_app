@@ -105,6 +105,14 @@ jobs:
           cd packages/editor_core
           dart pub get
 
+      # notebook_domain 同为独立 Dart 包，其 test/ 用 package:test——根
+      # flutter analyze 会扫到，需该包自己的 package_config.json（L-9 收口
+      # 2026-11-16：新增端口契约测试后暴露，与 editor_core 同口径）。
+      - name: notebook_domain dependencies
+        run: |
+          cd packages/notebook_domain
+          dart pub get
+
       # 注意：Flutter 3.50.0 的 macOS 平台使用 Swift Package Manager (SPM)
       # 管理插件依赖，不再需要 CocoaPods。插件的 macOS 原生依赖由
       # `flutter pub get` 自动生成 SPM 包（macos/Flutter/ephemeral/Packages/
