@@ -54,6 +54,7 @@ import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
 
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/app_data_root.dart';
 import 'package:drawing_notes_app/core/utils/error_code.dart';
 
@@ -520,7 +521,16 @@ abstract final class BackupService {
       if (staging.existsSync()) {
         try {
           staging.deleteSync(recursive: true);
-        } catch (_) {}
+        } catch (e) {
+          // L-7 收口（2026-11-16）：暂存清理失败补审计留痕——此前空 catch
+          // 静默。清理失败不阻断恢复（下方 createSync 会再试/抛错），但留痕
+          // 供排查。错误码走 errorCode（CTL-03）。
+          AuditLogger.log(
+            'backup.staging.cleanup',
+            success: false,
+            detail: errorCode(e),
+          );
+        }
       }
       staging.createSync(recursive: true);
       try {

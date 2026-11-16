@@ -43,6 +43,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false  # L-5：token 不残留 runner git 配置
 
       # 与本机工具链对齐（dart_code_metrics 5.7.6 需匹配 Dart 版本）
       - name: 安装 Flutter
@@ -71,6 +73,14 @@ jobs:
       - name: editor_core 依赖
         run: |
           cd packages/editor_core
+          dart pub get
+
+      # notebook_domain 同为独立 Dart 包，其 test/ 用 package:test——根
+      # flutter analyze 会扫到，需该包自己的 package_config.json（L-9 收口
+      # 2026-11-16：新增端口契约测试后暴露，与 editor_core 同口径）。
+      - name: notebook_domain 依赖
+        run: |
+          cd packages/notebook_domain
           dart pub get
 
       # 版本一致性门禁（2026-09-06 审计）：pubspec 为唯一版本源，
@@ -127,6 +137,11 @@ jobs:
           cd packages/editor_core
           dart test
 
+      - name: notebook_domain 测试
+        run: |
+          cd packages/notebook_domain
+          dart test
+
       # 本代码库尚未统一 dart format 规范（会改动 53 个 lib 文件），故此处仅作 informational，
       # 不阻塞门禁；待 M5 落地后可单独建立完整 format baseline 再收紧为 blocking。
       - name: 格式化提示（dart format，仅 lib，非阻断）
@@ -161,7 +176,10 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: quality-gate-logs
+          # L-10 收口（2026-11-16）：原 **/*.json 过宽——会夹带 pubspec/
+          # package_config 等环境/工具 json。本门禁实际不产 json 报告，
+          # 限定到 reports/ 报告目录（与 html 同口径），无报告则 ignore。
           path: |
-            **/*.json
+            **/reports/**/*.json
             **/reports/**/*.html
           if-no-files-found: ignore

@@ -3,27 +3,39 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-export PATH="/d/flutter/bin:$PATH"
+# L-4 收口（2026-11-16）：/d/flutter/bin 是 Windows Git Bash 的 D 盘路径，
+# macOS 不存在——与 kyzn_workflow.sh（M-12）同口径：优先用已在 PATH 里的
+# flutter，否则按平台补候选路径。
+if ! command -v flutter >/dev/null 2>&1; then
+  if [ "$(uname)" = "Darwin" ]; then
+    export PATH="$HOME/development/flutter/bin:$HOME/flutter/bin:$PATH"
+  else
+    export PATH="/d/flutter/bin:$PATH"
+  fi
+fi
 flutter test --coverage
 
 echo "== 覆盖率报告 =="
+# L-4 收口（2026-11-16）：分层名对齐现行 Feature-First 结构
+# （lib/core / lib/features / lib/shared / lib/app），替换早已不存在的
+# engine/models/storage/ui 旧层名（旧 awk 全部落空、门槛空转）。
 awk -F: '
   /^SF:/{file=$2}
-  /^LF:/{lf_total+=$2; if (file ~ /engine[\\/]/) lf_engine+=$2; else if (file ~ /models[\\/]/) lf_models+=$2; else if (file ~ /storage[\\/]/) lf_storage+=$2; else if (file ~ /ui[\\/]/) lf_ui+=$2}
-  /^LH:/{lh_total+=$2; if (file ~ /engine[\\/]/) lh_engine+=$2; else if (file ~ /models[\\/]/) lh_models+=$2; else if (file ~ /storage[\\/]/) lh_storage+=$2; else if (file ~ /ui[\\/]/) lh_ui+=$2}
+  /^LF:/{lf_total+=$2; if (file ~ /lib[\\/]core[\\/]/) lf_core+=$2; else if (file ~ /lib[\\/]features[\\/]/) lf_features+=$2; else if (file ~ /lib[\\/]shared[\\/]/) lf_shared+=$2; else if (file ~ /lib[\\/]app[\\/]/) lf_app+=$2}
+  /^LH:/{lh_total+=$2; if (file ~ /lib[\\/]core[\\/]/) lh_core+=$2; else if (file ~ /lib[\\/]features[\\/]/) lh_features+=$2; else if (file ~ /lib[\\/]shared[\\/]/) lh_shared+=$2; else if (file ~ /lib[\\/]app[\\/]/) lh_app+=$2}
   END {
-    pe = (lf_engine>0 ? sprintf("%.1f%%", 100*lh_engine/lf_engine) : "N/A")
-    pm = (lf_models>0 ? sprintf("%.1f%%", 100*lh_models/lf_models) : "N/A")
-    ps = (lf_storage>0 ? sprintf("%.1f%%", 100*lh_storage/lf_storage) : "N/A")
-    pu = (lf_ui>0 ? sprintf("%.1f%%", 100*lh_ui/lf_ui) : "N/A")
+    pc = (lf_core>0 ? sprintf("%.1f%%", 100*lh_core/lf_core) : "N/A")
+    pf = (lf_features>0 ? sprintf("%.1f%%", 100*lh_features/lf_features) : "N/A")
+    ps = (lf_shared>0 ? sprintf("%.1f%%", 100*lh_shared/lf_shared) : "N/A")
+    pa = (lf_app>0 ? sprintf("%.1f%%", 100*lh_app/lf_app) : "N/A")
     pt = (lf_total>0 ? sprintf("%.1f%%", 100*lh_total/lf_total) : "N/A")
-    printf "  总计   : %s (%d/%d 行)\n", pt, lh_total, lf_total
-    printf "  engine : %s (%d/%d 行)\n", pe, lh_engine, lf_engine
-    printf "  models : %s (%d/%d 行)\n", pm, lh_models, lf_models
-    printf "  storage: %s (%d/%d 行)\n", ps, lh_storage, lf_storage
-    printf "  ui     : %s (%d/%d 行)\n", pu, lh_ui, lf_ui
-    if (lf_engine > 0 && 100*lh_engine/lf_engine < 70.0) {
-      print "WARN: engine 覆盖率低于 70% 门槛"
+    printf "  总计    : %s (%d/%d 行)\n", pt, lh_total, lf_total
+    printf "  core    : %s (%d/%d 行)\n", pc, lh_core, lf_core
+    printf "  features: %s (%d/%d 行)\n", pf, lh_features, lf_features
+    printf "  shared  : %s (%d/%d 行)\n", ps, lh_shared, lf_shared
+    printf "  app     : %s (%d/%d 行)\n", pa, lh_app, lf_app
+    if (lf_core > 0 && 100*lh_core/lf_core < 70.0) {
+      print "WARN: core 覆盖率低于 70% 门槛"
       exit 1
     }
   }

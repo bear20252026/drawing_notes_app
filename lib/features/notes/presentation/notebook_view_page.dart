@@ -25,8 +25,10 @@ import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage
 // `features/doc/presentation/doc_page.dart` 两条跨 feature 依赖**已删除**——
 // 打开块文档改经组合根契约 `app/app_routes.dart`。
 import 'package:drawing_notes_app/app/app_routes.dart';
+import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
+import 'package:drawing_notes_app/core/utils/error_code.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';

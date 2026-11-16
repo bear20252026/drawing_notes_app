@@ -4,6 +4,45 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 低危批收口（L-1~L-10，2026-11-16，同版本增量，未 bump）
+
+> 全面审计残留的低危项随手清掉（H/M 已在前序批次收口）。
+
+#### 代码项
+- **L-1 VFS 媒体配额**：`storeImage` VFS 写分支补 50MB 源文件配额预检，对齐
+  DAN 分支——此前仅 DAN 分支有限制，VFS 分支可入库超大资产。
+- **L-2 KDF 安全下限**：`KdfParams.fromSlotJson` argon2id 槽位补下限
+  （m≥8MiB/t≥1/p≥1，恰容纳 testLight 与生产）——防恶意分享文件用 `m=1KiB`
+  瞬爆参数伪装合法槽位。**PBKDF2 读路径不设下限**（历史弱槽位兼容，且写入
+  路径已删 M-06，新数据不可能产生弱 PBKDF2 槽）。补下限回归（弱参拒绝 +
+  testLight 不误伤 + PBKDF2 兼容）。
+- **L-7 空 catch 补审计**：`backup_service` 暂存清理失败、`notebook_view_page_imports`
+  设密/改密失败两处空 catch 补 `AuditLogger.log` 留痕（错误码走 errorCode，
+  守 CTL-03）——安全相关操作失败不再静默。
+
+#### CI / 脚本 / 文档项
+- **L-4 覆盖率脚本**：`measure_coverage.sh` 平台分派 flutter 路径（对齐
+  kyzn_workflow.sh M-12 口径，macOS 不再硬编码 /d/flutter/bin）；awk 分层名
+  对齐现行 Feature-First 结构（core/features/shared/app），替换早已不存在的
+  engine/models/storage/ui 旧层名（旧 awk 全部落空、门槛空转）。
+- **L-5 persist-credentials**：quality_gate / sbom / code-guard（6 处）的
+  checkout 补 `persist-credentials: false`——token 不残留 runner git 配置。
+- **L-6 AGENTS 过期表述**：删 §CI 边界里「--obfuscate 防逆向构建」过期表述
+  （混淆已回滚，出货命令不再混淆）。
+- **L-10 失败产物范围**：quality_gate 失败产物 `**/*.json` 限定到
+  `**/reports/**/*.json`——原过宽会夹带 pubspec/package_config 等环境 json。
+
+#### 子包测试（L-9）
+- **notebook_domain**：三端口契约测试零的突破（fake 实现钉签名可满足 +
+  notebookId 隔离语义 + 纯 Dart）——adapter 未接线（C-07）但契约先锁。
+- **editor_core**：几何引擎补轴对齐/退化/负坐标/近退化段边界用例（既有
+  golden 只测对角线）。
+
+#### 说明项
+- **L-3**（docs/README K_NOTE 索引）已在 PR #64 修过，本批核实无残留。
+- **L-8**（editor_page 行数棘轮 7158 零余量）属「只许减不许增」纪律的设计
+  使然，非缺陷——下次改动按纪律三处交代动机即可，不擅自放宽基线。
+
 ### 残余攻击面收口：审计链后缀截断 + VFS 侧车强制（2026-11-16，同版本增量，未 bump）
 
 > 框架级收口（PR #64）后残留的两个攻击面（M-6/M-7），本批堵死。

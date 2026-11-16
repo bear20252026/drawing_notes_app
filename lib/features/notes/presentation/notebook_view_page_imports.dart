@@ -317,6 +317,13 @@ extension _NotebookPageImports on _NotebookViewPageState {
       // 在菜单「绑定重置密码盘」中补绑）。
       await _offerUsbBinding(password);
     } catch (e) {
+      // L-7 收口（2026-11-16）：设密/改密失败补审计留痕——此前仅弹提示，
+      // 安全相关操作失败无审计记录（静默）。错误码走 errorCode（CTL-03）。
+      AuditLogger.log(
+        isChange ? 'notebook.password.change' : 'notebook.password.set',
+        success: false,
+        detail: errorCode(e),
+      );
       _showSnack(
         isChange
             ? _l10nSafe?.impChangeFailed ?? '修改密码失败，请重试'

@@ -410,6 +410,11 @@ class NotebookStorage
       if (!src.existsSync()) {
         throw FileSystemException('源图片不存在', sourcePath);
       }
+      // L-1 收口（2026-11-16）：VFS 写分支与 DAN 分支同口径补源文件配额
+      // 预检——此前仅 DAN 分支有 50MB 限制，VFS 分支可入库超大资产。
+      if (await src.length() > _maxImageSourceBytes) {
+        throw FileSystemException('图片源文件过大（超过 50MB 限制）', sourcePath);
+      }
       final id = 'media/${pageId}_${DateTime.now().microsecondsSinceEpoch}';
       final bytes = await src.readAsBytes();
       // 预检在入库前（P3 修复本次）：VFS 对象同样落进应用数据目录。

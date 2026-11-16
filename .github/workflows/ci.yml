@@ -55,6 +55,14 @@ jobs:
           cd packages/editor_core
           dart pub get
 
+      # notebook_domain 同为独立 Dart 包，其 test/ 用 package:test——根
+      # flutter analyze 会扫到，需该包自己的 package_config.json（L-9 收口
+      # 2026-11-16：新增端口契约测试后暴露，与 editor_core 同口径）。
+      - name: notebook_domain dependencies
+        run: |
+          cd packages/notebook_domain
+          dart pub get
+
       - name: Static analysis
         # Flutter 3.50 起 analyze 默认 info 也致命；material_ui 迁移（271 条
         # info 级弃用）作为独立任务处理，此处 --no-fatal-infos 放行 info，
@@ -74,6 +82,11 @@ jobs:
       - name: editor_core tests
         run: |
           cd packages/editor_core
+          dart test
+
+      - name: notebook_domain tests
+        run: |
+          cd packages/notebook_domain
           dart test
 
       - name: Install dart_code_metrics
