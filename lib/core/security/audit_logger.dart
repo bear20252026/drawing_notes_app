@@ -133,6 +133,15 @@ class AuditLogger {
   /// 任一失败不断链（catchError 继续）。
   static Future<void> _writeChain = Future<void>.value();
 
+  /// 在途追加计数（M-6 判据守卫）：入队 +1、落盘完成（含失败）-1。
+  /// >0 表示内存链领先文件链属正常态，尾哈希判据跳过防误报。
+  static int _pendingAppends = 0;
+
+  /// 最近一次落盘是否成功（M-6 判据守卫）：IO 故障丢尾与截断无法区分，
+  /// 失败时跳过尾哈希判据——不把自己的 IO 失败当成篡改。初始 true（无
+  /// 落盘历史时内存链若有内容必走判据，纯内存场景 sink 为 null 不触此路）。
+  static bool _lastAppendOk = true;
+
   /// 测试注入临时落盘文件（null = 关闭落盘）。配合 [flushForTest] 等待
   /// 追加完成、[resetSinkForTest] 用例间复位。
   @visibleForTesting
@@ -155,6 +164,8 @@ class AuditLogger {
     maxFileBytesOverrideForTest = null;
     maxArchiveBytesOverrideForTest = null;
     _writeChain = Future<void>.value();
+    _pendingAppends = 0;
+    _lastAppendOk = true;
   }
 
   static Future<File> Function()? _resolveSink() {
@@ -189,48 +200,56 @@ class AuditLogger {
       if (e.gen != null) 'gen': e.gen,
       if (e.mac != null) 'mac': e.mac,
     });
+    _pendingAppends++;
     _writeChain = _writeChain.catchError((_) {}).then((_) async {
-      final File sink;
+      var ok = false;
       try {
-        sink = await resolver();
-      } catch (_) {
-        return; // 解析失败 = 本次不落盘。
-      }
-      // 缓存供 verifyIntegrity 同步回读（解析 async、校验 sync 的桥）。
-      _sinkFileCache = sink;
-      try {
-        final parent = sink.parent;
-        if (!parent.existsSync()) await parent.create(recursive: true);
-        // 轮转：超阈值 → 先归档（append-only）再 audit.log.1（覆盖上一代）。
-        final threshold = maxFileBytesOverrideForTest ?? _maxFileBytes;
-        if (sink.existsSync() && sink.lengthSync() > threshold) {
-          // 归档段：把即将被轮转覆盖的历史追加进 audit.archive（不删不覆盖），
-          // 供外部锚校验回退查找。超上限停止归档（诚实取舍，见常量注释）。
-          final archive = File('${sink.path}.archive');
-          final cap = maxArchiveBytesOverrideForTest ?? _maxArchiveBytes;
-          final archiveLen = archive.existsSync() ? archive.lengthSync() : 0;
-          if (archiveLen + sink.lengthSync() <= cap) {
-            await archive.writeAsString(
-              await sink.readAsString(),
-              mode: FileMode.append,
-              flush: false,
-            );
-            await AppDataRoot.tightenFilePermissions(archive);
-          }
-          final rotated = File('${sink.path}.1');
-          if (rotated.existsSync()) await rotated.delete();
-          await sink.rename(rotated.path);
+        final File sink;
+        try {
+          sink = await resolver();
+        } catch (_) {
+          return; // 解析失败 = 本次不落盘。
         }
-        await sink.writeAsString(
-          '$line\n',
-          mode: FileMode.append,
-          flush: false,
-        );
-        // M3 修复（2026-11-11）：审计日志含安全事件记录，落盘后收紧到
-        // 0600（仅属主可读写）。chmod 失败静默——加固不阻断业务。
-        await AppDataRoot.tightenFilePermissions(sink);
-      } catch (_) {
-        // 落盘失败静默——审计绝不阻断业务（内存链不受影响）。
+        // 缓存供 verifyIntegrity 同步回读（解析 async、校验 sync 的桥）。
+        _sinkFileCache = sink;
+        try {
+          final parent = sink.parent;
+          if (!parent.existsSync()) await parent.create(recursive: true);
+          // 轮转：超阈值 → 先归档（append-only）再 audit.log.1（覆盖上一代）。
+          final threshold = maxFileBytesOverrideForTest ?? _maxFileBytes;
+          if (sink.existsSync() && sink.lengthSync() > threshold) {
+            // 归档段：把即将被轮转覆盖的历史追加进 audit.archive（不删不覆盖），
+            // 供外部锚校验回退查找。超上限停止归档（诚实取舍，见常量注释）。
+            final archive = File('${sink.path}.archive');
+            final cap = maxArchiveBytesOverrideForTest ?? _maxArchiveBytes;
+            final archiveLen = archive.existsSync() ? archive.lengthSync() : 0;
+            if (archiveLen + sink.lengthSync() <= cap) {
+              await archive.writeAsString(
+                await sink.readAsString(),
+                mode: FileMode.append,
+                flush: false,
+              );
+              await AppDataRoot.tightenFilePermissions(archive);
+            }
+            final rotated = File('${sink.path}.1');
+            if (rotated.existsSync()) await rotated.delete();
+            await sink.rename(rotated.path);
+          }
+          await sink.writeAsString(
+            '$line\n',
+            mode: FileMode.append,
+            flush: false,
+          );
+          // M3 修复（2026-11-11）：审计日志含安全事件记录，落盘后收紧到
+          // 0600（仅属主可读写）。chmod 失败静默——加固不阻断业务。
+          await AppDataRoot.tightenFilePermissions(sink);
+          ok = true;
+        } catch (_) {
+          // 落盘失败静默——审计绝不阻断业务（内存链不受影响）。
+        }
+      } finally {
+        _pendingAppends--;
+        _lastAppendOk = ok;
       }
     });
   }
@@ -470,6 +489,13 @@ class AuditLogger {
     final found = _scanFileChainForHash(tailHash);
     if (found == null) return null; // 读失败/坏行 → 无从判定。
     // 命中 → 历史完好；未命中 → 篡改 or 轮转丢弃，落盘信息不足以区分。
+    //
+    // entryCount 不参与判定（2026-11-16 复核维持原设计）：计数下界在轮转
+    // 语义下会误判——凭据导出后条目被轮转挪进归档/超出归档上限丢弃，活跃
+    // 段计数天然减少，「计数不足」不等于「被篡改」。git 历史已记载「位置
+    // 序号/计数下界/世代号覆盖均误判」三条教训，哈希锚定是唯一可靠判据。
+    // 后缀截断的检出由 [verifyIntegrity] 的内存尾哈希判据覆盖（本进程），
+    // 跨重启窗口靠凭据哈希锚定（重算/删改后原哈希必不在链 → 不判 true）。
     return found ? true : null;
   }
 
@@ -679,6 +705,26 @@ class AuditLogger {
         lastGen = g;
       }
       prev = hash;
+    }
+    // M-6 收口（2026-11-16）：后缀截断检出——此前整删 audit.log + .1
+    // （保留归档）后归档链自洽即返回 true，锚定条目之后的历史被整段抹掉
+    // 无法检出。判据：**本进程内存链尾哈希必须在文件链**（归档 + .1 +
+    // 当前）。尾哈希是最新条目，正常态必在活跃段；整删活跃段后它哪儿都
+    // 不在（归档只有更老的前缀）→ 确定检出。
+    //
+    // 两个守卫防误报：
+    // - [_pendingAppends] > 0：有在途追加未落盘，尾哈希暂缺属正常态；
+    // - 最近一次落盘失败（[_lastAppendOk] = false）：IO 故障丢尾与截断
+    //   无法区分，不把自己的 IO 失败当成篡改（审计永不阻断业务口径）。
+    // 注意**不能用条数比较**做在途守卫：轮转把历史挪进归档后内存链条数
+    // 天然多于活跃段，条数比较恒跳过判据（实测教训）。
+    //
+    // 残余边界（如实）：①进程崩溃丢失的未落盘尾条与后缀截断在落盘侧无法
+    // 区分；②重启后内存链重置（_entries 空）→ 判据无从锚定，若攻击者在
+    // 重启前已整删活跃段且归档自洽，本判据不覆盖——该窗口靠外部锚凭据
+    // （独立介质）的哈希锚定兜底（重算/删改后原哈希必不在链）。
+    if (_entries.isNotEmpty && _pendingAppends == 0 && _lastAppendOk) {
+      if (!_hashPresent(_entries.last.hash, entries)) return false;
     }
     return true;
   }
