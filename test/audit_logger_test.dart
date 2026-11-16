@@ -492,4 +492,95 @@ void main() {
       expect(AuditLogger.verifyIntegrity(), isTrue);
     });
   });
+
+  // M-6 收口（2026-11-16）：后缀截断检出——整删活跃段（保留归档）此前
+  // 归档链自洽即返回 true；补「当前世代标记必须在链 + 内存尾哈希必须在
+  // 文件链」两条判据。外部锚 entryCount 作下界参与判定。
+  group('M-6：后缀截断检出（2026-11-16）', () {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('audit_trunc_');
+      sinkFile = File(
+        '${tempDir!.path}${Platform.pathSeparator}security'
+        '${Platform.pathSeparator}audit.log',
+      );
+      AuditLogger.sinkOverrideForTest = sinkFile;
+    });
+
+    test('整删活跃段（.1 + 当前，保留归档）→ verifyIntegrity 判红', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      // 大详情条目确保多次轮转：归档拿到含世代标记的前缀，而 .1/当前
+      // 只剩后缀（世代标记已不在活跃段）——正是 M-6 的攻击形状。
+      for (var i = 0; i < 60; i++) {
+        AuditLogger.log('op-$i', detail: 'x' * 200);
+      }
+      await AuditLogger.flushForTest();
+      final archive = File('${sinkFile!.path}.archive');
+      expect(archive.existsSync(), isTrue, reason: '归档已保留历史前缀');
+      expect(AuditLogger.verifyIntegrity(), isTrue);
+      // 攻击者整删活跃段——归档链自洽，旧版会误判通过。
+      await File('${sinkFile!.path}.1').delete();
+      await sinkFile!.delete();
+      expect(
+        AuditLogger.verifyIntegrity(),
+        isFalse,
+        reason: '当前世代标记与内存尾哈希都不在链 → 后缀截断必须检出',
+      );
+    });
+
+    test('仅删当前文件（.1 与归档仍在）→ 同样判红', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      for (var i = 0; i < 60; i++) {
+        AuditLogger.log('op-$i', detail: 'x' * 200);
+      }
+      await AuditLogger.flushForTest();
+      await sinkFile!.delete();
+      expect(AuditLogger.verifyIntegrity(), isFalse);
+    });
+
+    test('重启后正常校验不误报（新世代标记在链、内存为空）', () async {
+      AuditLogger.log('gen1.op');
+      await AuditLogger.flushForTest();
+      // 模拟重启：清内存链 + 复位锚加载态（锚文件保留）→ 世代 +1。
+      AuditLogger.clear();
+      AuditLogger.sinkOverrideForTest = sinkFile;
+      AuditLogger.log('gen2.op');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.generationForTest, 2);
+      expect(AuditLogger.verifyIntegrity(), isTrue, reason: '合法重启不得误报');
+    });
+
+    test('在途追加未落盘不误报（内存领先文件 = 正常态）', () async {
+      AuditLogger.log('a');
+      await AuditLogger.flushForTest();
+      AuditLogger.log('b'); // 不 flush——文件追加在途。
+      expect(
+        AuditLogger.verifyIntegrity(),
+        isTrue,
+        reason: '内存条数 > 文件条数视为在途，跳过尾哈希判据防误报',
+      );
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.verifyIntegrity(), isTrue);
+    });
+
+    test('外部锚：凭据哈希被删改 → 绝不判 true（哈希锚定核心保证）', () async {
+      AuditLogger.maxFileBytesOverrideForTest = 1024;
+      AuditLogger.maxArchiveBytesOverrideForTest = 1 << 20;
+      AuditLogger.log('early-op');
+      await AuditLogger.flushForTest();
+      final anchor = AuditLogger.exportExternalAnchor()!;
+      for (var i = 0; i < 60; i++) {
+        AuditLogger.log('bulk-$i', detail: 'y' * 60);
+      }
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isTrue);
+      // 攻击者把含凭据哈希的条目从所有段里抹掉（归档 + 活跃段一并清）——
+      // 原哈希不在链 → 绝不判 true（null：无从判定，不谎报）。
+      final archive = File('${sinkFile!.path}.archive');
+      if (archive.existsSync()) await archive.delete();
+      final rotated = File('${sinkFile!.path}.1');
+      if (rotated.existsSync()) await rotated.delete();
+      await sinkFile!.delete();
+      expect(AuditLogger.verifyAgainstExternalAnchor(anchor), isNot(isTrue));
+    });
+  });
 }

@@ -338,14 +338,17 @@ class EncryptedVault {
       return VaultManifest(entries: []);
     }
     final raw = await _manifestFile.readAsString();
-    // P1 修复 N-M1：有认证侧车即验签（改 version 回滚旧版在此被拦）。
-    // 无侧车=历史遗留：放行本次读取，下次写入自动补签（零破坏升级）。
-    if (_manifestMacFile.existsSync()) {
-      final expect = (await _manifestMacFile.readAsString()).trim();
-      final actual = _manifestMac(raw);
-      if (!_constantTimeEquals(actual, expect)) {
-        throw StateError('VFS 清单认证失败（被篡改或回滚）');
-      }
+    // P1 修复 N-M1 + M-7 收口（2026-11-16）：清单**必须**带认证侧车。
+    // 旧版「无侧车=历史遗留放行」是回滚攻击入口——删掉 manifest.hmac 即
+    // 免验签，可把 version 回滚指向旧版本对象（旧版 AAD 自洽）。业主已确认
+    // 无存量数据（与删旧版加密同口径）：缺侧车一律 fail-closed，不留兼容缝。
+    if (!_manifestMacFile.existsSync()) {
+      throw StateError('VFS 清单认证侧车缺失（拒绝读取未认证清单）');
+    }
+    final expect = (await _manifestMacFile.readAsString()).trim();
+    final actual = _manifestMac(raw);
+    if (!_constantTimeEquals(actual, expect)) {
+      throw StateError('VFS 清单认证失败（被篡改或回滚）');
     }
     return VaultManifest.decode(raw);
   }

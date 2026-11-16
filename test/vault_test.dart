@@ -71,11 +71,38 @@ void main() {
       wrongVault.readObject('secret'),
       throwsA(anyOf(isA<StateError>(), isA<SecretBoxAuthenticationError>())),
     );
+    // M-7 收口（2026-11-16）：删侧车不再「遗留放行」——缺侧车一律
+    // fail-closed 撞清单门（StateError），回滚攻击入口被堵死。
     await File('${tempDir.path}/manifest.hmac').delete();
     await expectLater(
       wrongVault.readObject('secret'),
-      throwsA(isA<SecretBoxAuthenticationError>()),
+      throwsA(isA<StateError>()),
     );
+  });
+
+  test('M-7：删侧车 + 回滚清单 → 正确密钥也 fail-closed（无免验签缝）', () async {
+    final vault = EncryptedVault(directory: tempDir, key: key);
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v1'.codeUnits),
+    );
+    await vault.writeObject(
+      id: 'doc',
+      type: 'note',
+      plain: Uint8List.fromList('v2'.codeUnits),
+    );
+    // 攻击者删侧车并把清单回滚到 version 1（旧对象文件仍在、AAD 自洽）——
+    // 旧版「无侧车放行」会读到 v1；收口后缺侧车即拒绝，正确密钥也读不出。
+    await File('${tempDir.path}/manifest.hmac').delete();
+    final manifestFile = File('${tempDir.path}/manifest.json');
+    final rolledBack = (await manifestFile.readAsString()).replaceAll(
+      '"version":2',
+      '"version":1',
+    );
+    await manifestFile.writeAsString(rolledBack);
+    await expectLater(vault.readObject('doc'), throwsStateError);
+    await expectLater(vault.listObjects(), throwsStateError);
   });
 
   test('VFS：对象不存在抛 StateError', () async {
