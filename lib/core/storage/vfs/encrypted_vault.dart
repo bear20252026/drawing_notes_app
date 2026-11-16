@@ -132,6 +132,35 @@ class EncryptedVault {
     return entry;
   }
 
+  /// 删除对象（框架级收口 2026-11-15，审计 M-5）：移除清单条目 +
+  /// 删除该 id 的**全部版本**密文文件 + 原子刷新清单与认证侧车。
+  ///
+  /// 用途：笔记本删除时联动清理其 VFS 媒体对象（此前只能 vacuum 旧
+  /// 版本/清孤儿，无法按 id 整对象删除 → 已删笔记密文残留磁盘）。
+  /// 对象不存在 → 幂等返回 false；id 不合法抛 StateError（同 writeObject）。
+  Future<bool> removeObject(String id) async {
+    _requireKey();
+    _safeId(id);
+    final manifest = await _loadManifest();
+    final entry = manifest.find(id);
+    if (entry == null) return false;
+    // 先删全部版本文件（1..entry.version），再提交清单——中断时清单仍
+    // 指向已删文件，读取 fail-closed（认证失败/文件缺失），不会复活明文。
+    for (var v = 1; v <= entry.version; v++) {
+      final f = _objectFile(id, v);
+      try {
+        if (f.existsSync()) await f.delete();
+      } catch (_) {
+        /* 单版本删除失败忽略（尽力而为；清单提交后成孤儿可 purge） */
+      }
+    }
+    manifest.entries.removeWhere((e) => e.id == id);
+    final manifestText = manifest.encode();
+    await _atomicWriteText(_manifestFile, manifestText);
+    await _atomicWriteText(_manifestMacFile, _manifestMac(manifestText));
+    return true;
+  }
+
   /// 读取对象（清单解析 + 解密 + AAD 验证——版本不符/篡改 → 认证失败）。
   Future<Uint8List> readObject(String id, {int? version}) async {
     _requireKey();

@@ -22,7 +22,7 @@ import 'package:notebook_domain/notebook_domain.dart';
 
 import 'package:drawing_notes_app/app/app_services.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
@@ -55,13 +55,15 @@ class CompositionRoot {
     FavoriteStore? favoriteStore,
     TagStore? tagStore,
     SyncController? syncController,
-    MediaCryptoService? mediaCrypto,
+    NotebookMediaKeys? mediaKeys,
   }) =>
       AppServices(
         blockDocStore: blockDocStore ?? NoteBlockDocStore(),
         favoriteStore: favoriteStore ?? FavoriteStore(),
         tagStore: tagStore ?? TagStore(),
         syncController: syncController ?? SyncController(),
-        mediaCrypto: mediaCrypto ?? MediaCryptoService.instance,
+        // 框架级收口（2026-11-15）：缺省编排器为未装配 fail-closed 兜底；
+        // 生产由 app.dart 以真实 NotebookStorage 信封端口装配并显式注入。
+        mediaKeys: mediaKeys ?? NotebookMediaKeys.instance,
       );
 }

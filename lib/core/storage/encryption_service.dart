@@ -413,9 +413,15 @@ class EncryptionService {
   /// 解包笔记本媒体独立密钥 K_note（K_note 接线 2026-11-16）。
   ///
   /// 密码解出 DEK → DEK 解 `slots.media` 得 K_note（AAD 绑定笔记本 ID）。
-  /// 返回 null 的情形：密码错误 / 信封非 v5 / **无 media 槽**（该笔记本尚未
-  /// 启用 K_note——调用方负责懒补槽，见 NotebookStorage.ensureNotebookMediaKey）。
-  /// 字段畸形（篡改）抛 [FormatException]。DEK 用完即焚（零化口径）。
+  ///
+  /// **三态契约（框架级收口 2026-11-15，审计 H-2）**——三种情形不可压扁：
+  /// - 返回 null：**仅「无 media 槽」**（信封非 v5 / 槽缺失——该笔记本尚未
+  ///   启用 K_note，调用方负责懒补槽，见 NotebookMediaKeys.ensure）；
+  /// - 抛 [FormatException]：**密码错误 / media 槽认证失败（损坏/篡改）/
+  ///   字段畸形**——调用方必须 fail-closed，绝不把损坏槽当「无槽」生成
+  ///   未持久化的临时密钥（那会让后续媒体跨会话永久不可解）。
+  ///
+  /// DEK 用完即焚（零化口径）。
   Future<List<int>?> unwrapNotebookMediaKey({
     required String notebookId,
     required String encryptedJson,
@@ -432,7 +438,9 @@ class EncryptionService {
       map: map,
       password: password,
     );
-    if (dek == null) return null; // 密码错误。
+    if (dek == null) {
+      throw const FormatException('密码错误或数据已损坏'); // 三态：错密码。
+    }
     try {
       final media = slots['media'] as Map<String, dynamic>;
       final wrapped = base64Decode(_requireString(media, 'w'));
@@ -444,7 +452,9 @@ class EncryptionService {
     } on FormatException {
       rethrow; // 字段畸形（篡改）保持契约。
     } catch (_) {
-      return null; // media 槽认证失败（损坏/被篡改）。
+      // 三态：槽认证失败（损坏/被篡改）——fail-closed，不得返回 null
+      // 与「无槽」混淆（H-2：临时密钥 = 静默数据丢失）。
+      throw const FormatException('媒体密钥槽损坏或已被篡改');
     } finally {
       dek.fillRange(0, dek.length, 0); // DEK 用完即焚。
     }

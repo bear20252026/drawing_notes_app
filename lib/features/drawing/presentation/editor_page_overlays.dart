@@ -409,11 +409,11 @@ extension _EditorPageOverlays on _EditorPageState {
                       : null,
                   child: item.filePath.isNotEmpty
                       ? Image(
-                          // C-06（审计 2026-09-27）：解密服务组合根传线
-                          // （widget.mediaCrypto，见 EditorPage.mediaCrypto）。
+                          // 框架级收口（2026-11-15）：取钥权威组合根传线
+                          // （widget.mediaKeys，见 EditorPage.mediaKeys）。
                           image: EncryptedFileImage.fromPath(
                             item.filePath,
-                            mediaCrypto: widget.mediaCrypto,
+                            mediaKeys: widget.mediaKeys,
                             // K_note（2026-11-16）：笔记本上下文（独立画布为 null）。
                             notebookId: widget.notebookId,
                           ),

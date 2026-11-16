@@ -177,6 +177,10 @@ class DefaultRouteServices implements AppRouteServices {
         await storage.ensureNotebookMediaKey(loaded.id);
       } on FormatException {
         return false; // 密码失效（缓存过期/重置竞态）——fail-closed
+      } catch (_) {
+        // M-8 收口（2026-11-15）：ensure 还会抛 VaultFileLockException
+        // （回锁/无会话密码）与磁盘 IO 异常——一律 fail-closed 拒绝打开。
+        return false;
       }
     }
     if (!context.mounted) return false;
@@ -188,7 +192,7 @@ class DefaultRouteServices implements AppRouteServices {
           storage: storage,
           blockDocStore: _blockDocStore,
           editorPageBuilder: _editorPageBuilder,
-          mediaCrypto: _services.mediaCrypto,
+          mediaKeys: _services.mediaKeys,
           sessionPassword: sessionPw,
         ),
       ),

@@ -198,3 +198,22 @@ UI 侧零命中（别当成已接管刷新链路）。一次只迁一个域，�
 - **每个 part 顶部**必须写 `part of` 归属 + 一句职责说明（"本文件承载 X"）。
 - **同一职责只在一个 part**：不允许快捷键逻辑散在两个 part 里。
 - 新增 part 时同步更新主文件导航目录，否则视为未完成。
+
+## 10. 会话密钥生命周期（2026-11-15 定案，强制）
+
+媒体（及一切按笔记本的密钥）取钥/注入/清理**一律经取钥权威编排器
+`NotebookMediaKeys`**（`core/security/notebook_media_keys.dart`），契约见
+`docs/SESSION_KEY_LIFECYCLE.md`。硬性约束：
+
+- **禁止用「密钥在不在内存」当「该不该加密」的判据**——业务层不得出现
+  `MediaCryptoService.hasKeyFor` 嗅探来决定加密分支。加密意图由编排器依据
+  笔记本加密声明判定；加密笔记本缺钥一律 fail-closed，**绝不回退明文**。
+- **表现层不得持有加密原语 `MediaCryptoService`**（门禁
+  `presentation_io_seam_test` H1-② 零豁免）；只允许持有/传线编排器。
+- **跨 await 的密钥操作必须捕获 `SessionEpoch.current` 并在完成时校验**——
+  回锁（`SessionSecrets.clearAll`）翻篇世代后，在途注入/落盘作废。不得靠
+  调用方各自复查锁态打补丁。
+- **解包三态不可压扁**：无槽 → null（懒补）；错密码/槽损坏 → 抛
+  `FormatException`（fail-closed）。绝不把损坏槽当无槽生成未持久化临时密钥。
+- 新增按笔记本的密钥消费点：写走 `sealMedia`、读走 `openMedia`、解锁走
+  `ensure`、清理走 `forget`/`SessionSecrets`，不得绕过编排器直触原语。

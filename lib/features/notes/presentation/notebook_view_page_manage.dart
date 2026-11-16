@@ -16,8 +16,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           shapes: page.shapes,
           // K_note（2026-11-16）：笔记本上下文传线（DAN 媒体按笔记本解密）。
           notebookId: _notebook.id,
-          // C-06（审计 2026-09-27）：媒体解密/VFS 依赖传线。
-          mediaCrypto: widget.mediaCrypto,
+          // 框架级收口（2026-11-15）：取钥权威/VFS 依赖传线。
+          mediaKeys: widget.mediaKeys,
           vaultService: widget.storage.vaultService,
         ),
       ),
@@ -51,8 +51,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           onChanged: onChanged,
           // K_note（2026-11-16）：笔记本上下文传线——媒体按笔记本密钥加解密。
           notebookId: _notebook.id,
-          // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
-          mediaCrypto: widget.mediaCrypto,
+          // 框架级收口（2026-11-15）：编辑器内嵌图片取钥权威传线。
+          mediaKeys: widget.mediaKeys,
           openPresentation: (context) => _openPresentation(context, page),
         ),
       ),
@@ -483,7 +483,7 @@ extension _NotebookPageManage on _NotebookViewPageState {
       // C-06（审计 2026-09-27）：导出器实例化——媒体解密/VFS 依赖由本页
       // 注入（同一解锁会话单例；VFS 仓库沿 NotebookStorage 注入透传）。
       final bytes = await NotebookPdfExporter(
-        mediaCrypto: widget.mediaCrypto,
+        mediaKeys: widget.mediaKeys,
         vaultService: widget.storage.vaultService,
         // R45（业主「全部推进推荐档」授权）：整本这条路径以前**没传** footer，而导出器的
         // 注释却写着「审计 #38 已接线」⇒ 整本 PDF 一直没有页脚，测试传了 footer 所以绿。

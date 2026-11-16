@@ -99,7 +99,23 @@ class MediaCryptoService implements SessionSecretsHolder {
   /// 加密媒体字节（AES-256-GCM——载荷 = [nonce(12), cipherText, tag(16)]，
   /// AAD 绑定用途 + 笔记本 ID）。
   Future<Uint8List> encryptBytes(String notebookId, Uint8List plain) async {
-    final key = _requireKey(notebookId);
+    // 密钥快照（框架级收口 2026-11-15，审计 M-3）：_requireKey 返回映射内
+    // 活缓冲——await 期间回锁/逐出 fillRange 会清零同一缓冲（use-after-zero，
+    // 可能以全零密钥产出「合法」密文）。入口复制快照，构造性消除该竞态；
+    // 快照用完即焚（零化口径）。
+    final key = Uint8List.fromList(_requireKey(notebookId));
+    try {
+      return await _encryptBytesWithKey(notebookId, plain, key);
+    } finally {
+      key.fillRange(0, key.length, 0);
+    }
+  }
+
+  Future<Uint8List> _encryptBytesWithKey(
+    String notebookId,
+    Uint8List plain,
+    Uint8List key,
+  ) async {
     final aes = AesGcm.with256bits();
     final rng = Random.secure();
     final nonce = Uint8List.fromList(
@@ -117,7 +133,20 @@ class MediaCryptoService implements SessionSecretsHolder {
   /// 解密媒体字节（EncryptedFileImage 渲染用）；密钥错误/损坏抛异常。
   /// AAD 不符即认证失败，不做第二次尝试（防 AAD 降级试探旁路）。
   Future<Uint8List> decryptBytes(String notebookId, Uint8List data) async {
-    final key = _requireKey(notebookId);
+    // 密钥快照（同 encryptBytes——M-3 use-after-zero 构造性消除）。
+    final key = Uint8List.fromList(_requireKey(notebookId));
+    try {
+      return await _decryptBytesWithKey(notebookId, data, key);
+    } finally {
+      key.fillRange(0, key.length, 0);
+    }
+  }
+
+  Future<Uint8List> _decryptBytesWithKey(
+    String notebookId,
+    Uint8List data,
+    Uint8List key,
+  ) async {
     if (data.length <= 28) throw FormatException('媒体密文长度不合法');
     final nonce = data.sublist(0, 12);
     final cipher = data.sublist(12, data.length - 16);

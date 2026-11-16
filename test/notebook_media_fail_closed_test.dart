@@ -18,9 +18,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'helpers/temp_dir_cleanup.dart';
 
@@ -38,6 +41,11 @@ const _maliciousSvg =
     '<script type="text/javascript">alert(1)</script></svg>';
 
 void main() {
+  // KDF 卫生门禁（kdf_suite_hygiene_test）：本文件 DAN 分支用例调
+  // encryptAndSave（真 Argon2id）——注入轻量参数腿（槽位格式与生产一致，
+  // 仅参数不同），避免主套件赌生产 KDF 超时。
+  KdfParams.newSlotDefault = KdfParams.testLight;
+
   late Directory tempDir;
   late Directory imagesDir;
 
@@ -127,18 +135,25 @@ void main() {
       ).readAsBytes();
       expect(VaultFileCodec.isEncrypted(dnv), isTrue);
 
-      // K_note 已装（加密笔记本解锁场景）——即便保险库锁定也走 DAN。
-      MediaCryptoService.instance.setNotebookKey(
-        'nb_fc',
-        List<int>.generate(32, (i) => i + 1),
+      // 框架级收口（2026-11-15）：DAN 分支判据是「笔记本声明加密」而非
+      // 「密钥恰好在内存」——构造真实加密笔记本 + 编排器装配（与生产同形），
+      // 即便保险库锁定（keyProvider null）也走 K_note DAN。单实例 + late
+      // 闭包端口（与 app.dart late final 同语义，避免双实例口令表分裂）。
+      late final NotebookStorage wired;
+      final keys = NotebookMediaKeys(
+        media: MediaCryptoService.instance,
+        envelopes: _LatePort(() => wired),
       );
-      final danStorage = NotebookStorage(
+      wired = NotebookStorage(
         directoryProvider: () async => tempDir,
         mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: keys,
         keyProvider: () async => null,
       );
+      const pw = 'fc-test-pw';
+      await wired.encryptAndSave(Notebook(id: 'nb_fc', title: '加密本'), pw);
       final dan = await File(
-        await danStorage.storeImage('nb_fc', pngSource().path, 'pg_dan'),
+        await wired.storeImage('nb_fc', pngSource().path, 'pg_dan'),
       ).readAsBytes();
       expect(MediaCryptoService.isEncryptedFile(dan), isTrue);
       expect(
@@ -204,4 +219,30 @@ void main() {
       expect(imagesOnDisk(), isEmpty);
     });
   });
+}
+
+/// 延迟绑定信封端口（测试装配用）：编排器先于存储构造时，经闭包引用
+/// 最终存储实例——与生产 app.dart 的 late final 初始化器同一语义。
+class _LatePort implements NotebookMediaEnvelopePort {
+  _LatePort(this._resolve);
+  final NotebookStorage Function() _resolve;
+
+  @override
+  Future<bool> isEncryptedNotebook(String notebookId) =>
+      _resolve().isEncryptedNotebook(notebookId);
+
+  @override
+  Future<String?> sessionPassword(String notebookId) =>
+      _resolve().sessionPassword(notebookId);
+
+  @override
+  Future<List<int>?> unwrapMediaKey(String notebookId, String password) =>
+      _resolve().unwrapMediaKey(notebookId, password);
+
+  @override
+  Future<void> attachMediaSlot(
+    String notebookId,
+    String password,
+    List<int> mediaKey,
+  ) => _resolve().attachMediaSlot(notebookId, password, mediaKey);
 }

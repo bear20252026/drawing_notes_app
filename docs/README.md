@@ -17,6 +17,7 @@
 | [`ACCEPTANCE_CHECKLIST.md`](ACCEPTANCE_CHECKLIST.md) | 验收清单 |
 | [`../SECURITY.md`](../SECURITY.md) | 安全能力口径与**保证边界**（对外表述须与本文一致） |
 | [`STATE_MANAGEMENT_DECISION_TREE.md`](STATE_MANAGEMENT_DECISION_TREE.md) | Riverpod ↔ 手工协作者决策树（新增状态前必读，2026-11-15） |
+| [`SESSION_KEY_LIFECYCLE.md`](SESSION_KEY_LIFECYCLE.md) | 会话密钥生命周期：取钥权威编排器契约与划界（媒体加解密前必读，2026-11-15） |
 | [`PACKAGES_BOUNDARY.md`](PACKAGES_BOUNDARY.md) | 子包职责与「如何判断空壳」判据（2026-11-15） |
 | [`AUDIT_FULL_2026-09-07.md`](AUDIT_FULL_2026-09-07.md) | 2026-09-07 全量审计台账（100+ 大类 / 259 修复 / 118 提升 + 未决清单） |
 | `CAPACITY_BUDGET_2026-08-28.md` | 容量预算（内存/性能基线，随版本更新数值） |
@@ -29,7 +30,7 @@
 | 文档 | 结论 |
 |---|---|
 | [`MATERIAL_UI_MIGRATION_ASSESSMENT.md`](MATERIAL_UI_MIGRATION_ASSESSMENT.md) | **迁移当前不做**：material_ui 是平行 Material 实现，两套 ThemeData 类型不兼容；附将来若做的前置条件与顺序 |
-| [`K_NOTE_WIRING_PLAN.md`](K_NOTE_WIRING_PLAN.md) | K_note 媒体接线**分 4 批方案**；批 4 涉不可逆全量重加密，需业主批准 |
+| [`K_NOTE_WIRING_PLAN.md`](K_NOTE_WIRING_PLAN.md) | K_note 媒体接线方案**已实施**（PR #63）；业主确认无存量用户，批 4 迁移消解，方案留档 |
 | [`SECURITY_HARDENING_GUIDE.md`](SECURITY_HARDENING_GUIDE.md) | **面向用户**的安全操作指南（外部锚怎么留存、哪些必须靠系统层全盘加密） |
 
 ## 历史快照（按日期命名，已被现行规范吸收或取代）

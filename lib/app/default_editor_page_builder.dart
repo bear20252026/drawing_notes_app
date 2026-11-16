@@ -6,7 +6,7 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page.dart';
@@ -28,7 +28,7 @@ class DefaultEditorPageBuilder {
   /// 会话单例的组装位置——features/shared 已被
   /// test/security_static_access_gate_test.dart 锁死零直取）。
   static final NotebookPdfExporter _defaultPdfExporter = NotebookPdfExporter(
-    mediaCrypto: MediaCryptoService.instance,
+    mediaKeys: NotebookMediaKeys.instance,
   );
 
   static Widget build({
@@ -44,7 +44,7 @@ class DefaultEditorPageBuilder {
     StorageService? documentStorage,
     VoidCallback? onChanged,
     String? notebookId,
-    MediaCryptoService? mediaCrypto,
+    NotebookMediaKeys? mediaKeys,
     Future<void> Function(BuildContext context)? openPresentation,
   }) {
     return EditorPage(
@@ -64,7 +64,7 @@ class DefaultEditorPageBuilder {
       docStorage: documentStorage,
       onChanged: onChanged,
       notebookId: notebookId,
-      mediaCrypto: mediaCrypto,
+      mediaKeys: mediaKeys,
       openPresentation: openPresentation,
     );
   }

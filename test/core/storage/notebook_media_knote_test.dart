@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -47,28 +48,54 @@ void main() {
       expect(k2, k1);
     });
 
-    test('错误密码 → null；跨笔记本解包 → null（AAD 绑定）', () async {
+    test('错误密码/跨笔记本解包 → FormatException（三态契约，H-2）', () async {
       final envelope = await enc.encryptWithPasswordV5(
         notebookId: 'nb-k1',
         plaintext: 'x',
         password: pw,
       );
-      expect(
-        await enc.unwrapNotebookMediaKey(
+      // 三态契约（框架级收口 2026-11-15）：错密码/槽损坏抛 FormatException，
+      // 绝不返回 null 与「无槽」混淆（防懒补生成未持久化临时密钥）。
+      await expectLater(
+        enc.unwrapNotebookMediaKey(
           notebookId: 'nb-k1',
           encryptedJson: envelope,
           password: 'wrong-pw',
         ),
-        isNull,
+        throwsA(isA<FormatException>()),
       );
-      expect(
-        await enc.unwrapNotebookMediaKey(
+      await expectLater(
+        enc.unwrapNotebookMediaKey(
           notebookId: 'nb-other',
           encryptedJson: envelope,
           password: pw,
         ),
-        isNull,
+        throwsA(isA<FormatException>()),
         reason: '槽位 AAD 绑定笔记本 ID——不可跨笔记本解包',
+      );
+    });
+
+    test('media 槽损坏（篡改密文）→ FormatException，不得当无槽（H-2）', () async {
+      final envelope = await enc.encryptWithPasswordV5(
+        notebookId: 'nb-k1',
+        plaintext: 'x',
+        password: pw,
+      );
+      final map = jsonDecode(envelope) as Map<String, dynamic>;
+      final media = (map['slots'] as Map<String, dynamic>)['media']
+          as Map<String, dynamic>;
+      // 翻转包裹密文首字节——AEAD 认证必失败（槽存在但损坏）。
+      final wrapped = base64Decode(media['w'] as String);
+      wrapped[0] ^= 0xFF;
+      media['w'] = base64Encode(wrapped);
+      await expectLater(
+        enc.unwrapNotebookMediaKey(
+          notebookId: 'nb-k1',
+          encryptedJson: jsonEncode(map),
+          password: pw,
+        ),
+        throwsA(isA<FormatException>()),
+        reason: '槽损坏必须 fail-closed——返回 null 会触发懒补临时密钥（数据丢失）',
       );
     });
 
@@ -145,18 +172,27 @@ void main() {
     });
   });
 
-  group('NotebookStorage.ensureNotebookMediaKey（存储层）', () {
+  group('NotebookStorage.ensureNotebookMediaKey（存储层——经编排器）', () {
     late Directory tempDir;
     late NotebookStorage storage;
     late MediaCryptoService media;
+    late NotebookMediaKeys keys;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('nb_knote_');
       media = MediaCryptoService.instance;
       media.clearSessionKey();
+      // 框架级收口（2026-11-15）：以真实存储为信封端口装配编排器并注入
+      // （与生产 app.dart 同一装配形状）——ensure 委托编排器。late 闭包
+      // 端口引用最终 storage（单实例，避免双构造的会话口令表分裂）。
+      keys = NotebookMediaKeys(
+        media: media,
+        envelopes: _LateEnvelopePort(() => storage),
+      );
       storage = NotebookStorage(
         directoryProvider: () async => tempDir,
         mediaCrypto: media,
+        mediaKeys: keys,
       );
     });
 
@@ -258,4 +294,30 @@ void main() {
       expect(await media.readMediaFile('nb-a', sealedA), plain);
     });
   });
+}
+
+/// 延迟绑定信封端口（测试装配用）：编排器先于存储构造时，经闭包引用
+/// 最终存储实例——与生产 app.dart 的 late final 初始化器同一语义。
+class _LateEnvelopePort implements NotebookMediaEnvelopePort {
+  _LateEnvelopePort(this._resolve);
+  final NotebookStorage Function() _resolve;
+
+  @override
+  Future<bool> isEncryptedNotebook(String notebookId) =>
+      _resolve().isEncryptedNotebook(notebookId);
+
+  @override
+  Future<String?> sessionPassword(String notebookId) =>
+      _resolve().sessionPassword(notebookId);
+
+  @override
+  Future<List<int>?> unwrapMediaKey(String notebookId, String password) =>
+      _resolve().unwrapMediaKey(notebookId, password);
+
+  @override
+  Future<void> attachMediaSlot(
+    String notebookId,
+    String password,
+    List<int> mediaKey,
+  ) => _resolve().attachMediaSlot(notebookId, password, mediaKey);
 }

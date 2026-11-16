@@ -159,8 +159,8 @@ extension _HomePageTabs on _HomePageState {
           storage: _nbStorage,
           blockDocStore: _blockDocStore,
           editorPageBuilder: widget.editorPageBuilder,
-          // C-06（审计 2026-09-27）：媒体服务同一实例传线。
-          mediaCrypto: widget.mediaCrypto,
+          // 框架级收口（2026-11-15）：编排器同一实例传线。
+          mediaKeys: widget.mediaKeys,
         ),
       ),
     );

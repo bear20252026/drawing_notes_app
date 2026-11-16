@@ -4,6 +4,51 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 会话密钥生命周期框架级收口（2026-11-15，同版本增量，未 bump）
+
+> 业主指示：**先从框架上修复，不要打补丁**。审计（K_note 接线后复审）发现的
+> H-1/H-2/H-3 + M-1~M-5 全是「缺失会话密钥生命周期权威层」的不同症状——
+> 本批补上该层，让缺陷被**结构消解**，而非逐点加守卫。
+
+#### 新增取钥权威编排器（core/security/notebook_media_keys.dart）
+- **加密意图与密钥可得性分离**：消费方只问「给我这本的媒体密钥」，由编排器
+  依据笔记本加密声明决定——加密笔记本缺钥/锁定一律 fail-closed，**绝不把
+  「明文」选项交给加密笔记本**（H-1：消灭 hasKeyFor 内存嗅探当加密判据）。
+- **会话世代令牌 SessionEpoch**：SessionSecrets.clearAll（回锁）先递增世代；
+  跨 await 的密钥操作完成时校验，过期即作废（M-3/M-4 竞态构造性消除）。
+  另有 per-id 遗忘世代（forget）防页面退出后在途 ensure 复活密钥。
+- **per-id 并发去重 + 独占队列内补槽**：同本并发 ensure 只生成一把 K_note；
+  懒补槽经存储独占写队列重读最新落盘内容、只替换 encryptedPayload 字段
+  （H-3：非整本陈旧快照回写）。
+- **三态契约**（H-2）：EncryptionService.unwrapNotebookMediaKey 改为——无 media
+  槽返回 null（懒补）；密码错误/槽损坏抛 FormatException（fail-closed，绝不
+  生成未持久化临时密钥）。
+
+#### 加密原语加固（MediaCryptoService）
+- 加解密入口复制密钥快照、用完即焚——构造性消除 use-after-zero（M-3：
+  await 期间回锁/逐出清零同一活缓冲可能以全零密钥产出「合法」密文）。
+
+#### 消费方全部收口到编排器
+- 写：storeImage/sealMediaBytesForPath → _sealIfEncrypted → sealMedia；
+  读：EncryptedFileImage/NotebookPdfExporter → openMedia（LRU 逐出自动重解包，M-2）；
+  解锁：5 处 ensureNotebookMediaKey 委托 ensure；清理：页面 dispose/会话锁 →
+  forget，删除笔记本 → forget + VFS removeObject（M-5，新增按 id 删全部版本能力）；
+- EncryptedFileImage 缓存键纳入 notebookId（M-1 跨本不命中绕过 AAD）；解锁收口
+  imageCache.clear()（跨会话明文位图不驻留）；
+- search_page/app_shell_routes/default_route_services 补捕获 ensure 抛出的
+  锁/IO 异常（M-8：不再未处理异步异常/点击无响应）；
+- 组合根 app.dart 以真实 NotebookStorage 为信封端口装配编排器，注入存储与
+  AppServices（同源）；AppServices/CompositionRoot/EditorPageBuilder 契约及
+  全部页面字段 mediaCrypto → mediaKeys。
+
+#### 门禁与文档
+- presentation_io_seam_test H1-② 收紧为**零豁免**（表现层不得持有加密原语），
+  H1-③ 钉住原 6 持有方已改持编排器（防假收口）；
+- 新增 docs/SESSION_KEY_LIFECYCLE.md（契约与划界，挂索引）+ AGENTS.md §10；
+  SECURITY.md 补取钥权威层口径；docs/README.md K_NOTE 索引改「已实施」。
+- 新增结构性回归 test/core/security/notebook_media_keys_test.dart（H-1/H-2/
+  H-3/M-2/M-4/M-5 各一条，防被结构消解的缺陷复发）。
+
 ### K_note 媒体独立密钥生产接线（2026-11-16，业主批准，同版本增量，未 bump）
 
 > 业主决策（2026-11-15）：**现在还没有用户、不存在旧格式数据**——不做迁移

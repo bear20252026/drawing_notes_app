@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
-// C-06（审计 2026-09-27）：NotebookPdfExporter 改实例类——媒体解密依赖
-// 构造注入（测试注入生产同一全局单例，语义与此前 static 直取一致）。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// 框架级收口（2026-11-15）：NotebookPdfExporter 媒体解密依赖改取钥权威
+// 编排器构造注入（测试注入生产同一缺省编排器）。
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
 import 'package:drawing_notes_app/features/notes/application/notebook_pdf_exporter.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
@@ -54,9 +54,9 @@ void main() {
     return RegExp(r'/Type\s*/Page(?![A-Za-z])').allMatches(text).length;
   }
 
-  /// C-06：导出器实例（媒体解密依赖注入生产同一全局单例）。
+  /// 框架级收口：导出器实例（取钥权威注入生产同一缺省编排器）。
   NotebookPdfExporter buildExporter() =>
-      NotebookPdfExporter(mediaCrypto: MediaCryptoService.instance);
+      NotebookPdfExporter(mediaKeys: NotebookMediaKeys.instance);
 
   test('多页导出：两个画布页 → PDF 两页', () async {
     final notebook = Notebook(id: 'nb', title: '整本测试')

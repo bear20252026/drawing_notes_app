@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
 import 'package:drawing_notes_app/core/storage/encryption_service.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/svg_preflight.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -55,12 +56,14 @@ class NotebookStorage
         NotebookRepository,
         INotebookAccessor,
         INotebookPasswordResetPort,
+        NotebookMediaEnvelopePort,
         SessionSecretsHolder {
   NotebookStorage({
     this.directoryProvider,
     this.vaultService,
     this.keyProvider,
     this.mediaCrypto,
+    this.mediaKeys,
     this.vaultConfigured,
   }) {
     // P1 修复 M-09：注册会话机密清理——切后台回锁时笔记本口令一并失效。
@@ -78,11 +81,16 @@ class NotebookStorage
   /// （AAD 绑定 `file:<basename>`）；null 时保持既有行为明文/DAN 兼容。
   final Future<Uint8List?> Function()? keyProvider;
 
-  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：组合根 app.dart
-  /// 注入解锁生命周期作用域的同一单例（与 AppServices 同源）；null 仅测试
-  /// /兜底自建场景——此时按既有「会话密钥未注入」语义降级（DAN 分支跳过，
-  /// DNV/明文分支照旧），生产恒注入、行为不变。
+  /// 媒体加密原语（C-06，审计 2026-09-27 构造注入）：LRU 密钥映射 +
+  /// AES-GCM。**业务写/读路径不再直接消费它**——一律经 [mediaKeys]
+  /// 编排器（框架级收口 2026-11-15）；本字段仅供编排器装配与测试观察。
   final MediaCryptoService? mediaCrypto;
+
+  /// 媒体密钥编排器（框架级收口 2026-11-15——取钥唯一权威）：组合根
+  /// app.dart 以本存储为信封端口装配并注入（与 AppServices 同源）。
+  /// null 仅测试/兜底自建场景——加密笔记本媒体写入 fail-closed
+  /// （[VaultFileLockException]），明文笔记本不受影响。
+  final NotebookMediaKeys? mediaKeys;
 
   /// VFS 媒体仓库（可选——解锁时注入——新媒体写 VFS 对象——双轨：
   /// s3-encryption-gateway 双读窗口模式——旧媒体 DAN 文件兼容读）。
@@ -432,12 +440,14 @@ class NotebookStorage
       if (_requiresSvgPreflight(safeExt, bytes)) {
         _rejectUnsafeSvg(bytes);
       }
+      // 框架级收口（2026-11-15，审计 H-1）：加密意图与密钥可得性分离——
+      // 先问编排器「这本声明加密吗」：加密笔记本一律经 K_note 密封
+      // （缺钥/锁定 fail-closed，**不存在明文回退**）；明文笔记本才走
+      // 既有 DNV/明文兼容分支。不再用 hasKeyFor 内存嗅探当加密判据。
       final Uint8List stored;
-      // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
-      // K_note（2026-11-16）：该笔记本密钥已驻留 → 按笔记本加密。
-      final media = mediaCrypto;
-      if (media != null && media.hasKeyFor(notebookId)) {
-        stored = await media.encryptFile(notebookId, bytes);
+      final sealed = await _sealIfEncrypted(notebookId, bytes);
+      if (sealed != null) {
+        stored = sealed;
       } else {
         final key = await _currentKey();
         stored = key == null
@@ -466,10 +476,9 @@ class NotebookStorage
   }
 
   /// S-01（审计 2026-09-27）：媒体字节写入前密封——供 PDF 导入等绕过
-  /// storeImage 的旁路写路径共用。三级分支与 storeImage 同口径：
-  /// ① 该笔记本 K_note 已驻留（加密笔记本解锁）→ DAN 文件头加密；
-  /// ② 保险库解锁 → DNV 信封（AAD 绑定目标路径）；
-  /// ③ 未启用加密（无 keyProvider）→ 明文（读取端懒迁移兼容）。
+  /// storeImage 的旁路写路径共用。与 storeImage 同口径（框架级收口
+  /// 2026-11-15）：加密笔记本一律经编排器 K_note 密封（缺钥 fail-closed，
+  /// 无明文回退）；明文笔记本走 DNV/明文兼容分支。
   ///
   /// [notebookId]：K_note 接线（2026-11-16）——按笔记本密钥加密。
   Future<Uint8List> sealMediaBytesForPath(
@@ -477,11 +486,8 @@ class NotebookStorage
     String path,
     Uint8List bytes,
   ) async {
-    // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
-    final media = mediaCrypto;
-    if (media != null && media.hasKeyFor(notebookId)) {
-      return media.encryptFile(notebookId, bytes);
-    }
+    final sealed = await _sealIfEncrypted(notebookId, bytes);
+    if (sealed != null) return sealed;
     final key = await _currentKey();
     if (key == null) return _plainMediaOrLock(bytes);
     return VaultFileCodec.encrypt(
@@ -491,40 +497,79 @@ class NotebookStorage
     );
   }
 
-  /// 确保某笔记本的媒体独立密钥 K_note 已驻留媒体服务（K_note 接线
-  /// 2026-11-16）。解锁/导入媒体前调用：
-  /// - 密钥已驻留 → 直接返回；
-  /// - 信封含 media 槽 → 密码解包注入；
-  /// - 无 media 槽（懒补）→ 生成随机 K_note，补装进信封并原子落盘，再注入；
-  /// - 无会话密码且信封无槽 → 抛 [VaultFileLockException]（fail-closed）。
+  /// 加密笔记本媒体密封收口（框架级收口 2026-11-15，审计 H-1）：
+  /// 声明加密 → 经编排器 K_note 密封（缺钥/锁定抛 [VaultFileLockException]，
+  /// 绝不回退明文）；明文笔记本 → 返回 null 由调用方走兼容分支。
+  /// 编排器未注入（测试/兜底）时加密笔记本同样 fail-closed。
+  Future<Uint8List?> _sealIfEncrypted(String notebookId, Uint8List bytes) async {
+    if (!await isEncryptedNotebook(notebookId)) return null;
+    final keys = mediaKeys;
+    if (keys == null) throw const VaultFileLockException();
+    return keys.sealMedia(notebookId, bytes);
+  }
+
+  /// 确保某笔记本的媒体独立密钥 K_note 已驻留（K_note 接线 2026-11-16）。
+  ///
+  /// 框架级收口（2026-11-15）：委托取钥权威编排器 [mediaKeys]——
+  /// per-id 并发去重、会话世代校验、三态契约（无槽懒补/错密码与损坏槽
+  /// fail-closed）均在编排器内构造性保证。编排器未注入（测试/兜底）
+  /// 时为无操作（与既有「未注入媒体服务」语义一致）。
   Future<void> ensureNotebookMediaKey(String notebookId) async {
-    final media = mediaCrypto;
-    if (media == null) return; // 未注入媒体服务 = 未启用加密路径。
-    if (media.hasKeyFor(notebookId)) return;
+    final keys = mediaKeys;
+    if (keys == null) return;
+    await keys.ensure(notebookId);
+  }
+
+  // ---- NotebookMediaEnvelopePort（编排器信封端口——存储侧实现）----
+
+  /// 该笔记本是否声明加密（读磁盘当前信封，非内存快照）。
+  /// 不存在/明文 → false；DNV 外层锁定由 load 抛 [VaultFileLockException]。
+  @override
+  Future<bool> isEncryptedNotebook(String notebookId) async {
     final nb = await load(notebookId);
-    final payload = nb?.encryptedPayload;
-    if (nb == null || !nb.encrypted || payload == null) return; // 明文笔记本。
-    final password = notebookPasswordFor(notebookId);
-    if (password == null) throw const VaultFileLockException();
-    var key = await _encryption.unwrapNotebookMediaKey(
+    return nb != null && nb.encrypted && nb.encryptedPayload != null;
+  }
+
+  @override
+  Future<String?> sessionPassword(String notebookId) async =>
+      notebookPasswordFor(notebookId);
+
+  /// 解包 K_note（三态契约：无槽 null；错密码/槽损坏抛 FormatException）。
+  @override
+  Future<List<int>?> unwrapMediaKey(String notebookId, String password) async {
+    final payload = await _encryptedPayloadOnDiskInsideExclusive(notebookId);
+    if (payload == null) return null;
+    return _encryption.unwrapNotebookMediaKey(
       notebookId: notebookId,
       encryptedJson: payload,
       password: password,
     );
-    if (key == null) {
-      // 懒补槽：生成 K_note → 补装信封 → 原子落盘（改密/重置保留 media 槽）。
-      key = MediaCryptoService.generateNotebookKey();
+  }
+
+  /// 懒补 media 槽并持久化（H-3 收口）：整体在 per-id 独占写队列内，
+  /// 队列内重读最新落盘信封 → 补装 → 只替换 encryptedPayload 字段写回
+  /// （[_patchEncryptedPayloadInsideExclusive]，非整本陈旧快照）。
+  /// 已有槽幂等（attachNotebookMediaKey 原样返回 → 仍走补丁写回同值，
+  /// 无副作用）；写回失败抛出——编排器不注入未持久化密钥。
+  @override
+  Future<void> attachMediaSlot(
+    String notebookId,
+    String password,
+    List<int> mediaKey,
+  ) {
+    return _runExclusive(notebookId, () async {
+      final payload = await _encryptedPayloadOnDiskInsideExclusive(notebookId);
+      if (payload == null) {
+        throw const FormatException('笔记本信封不存在（无法补装媒体密钥槽）');
+      }
       final updated = await _encryption.attachNotebookMediaKey(
         notebookId: notebookId,
         encryptedJson: payload,
         password: password,
-        mediaKey: key,
+        mediaKey: mediaKey,
       );
-      nb.encryptedPayload = updated;
-      await _writeNotebook(nb);
-    }
-    media.setNotebookKey(notebookId, key);
-    key.fillRange(0, key.length, 0); // 注入后源副本零化（服务内已复制）。
+      await _patchEncryptedPayloadInsideExclusive(notebookId, updated);
+    });
   }
 
   /// 媒体密封的「无密钥」分支收口（P1 修复；P0 修正 2026-10-06）。

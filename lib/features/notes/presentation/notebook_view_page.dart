@@ -28,7 +28,7 @@ import 'package:drawing_notes_app/app/app_routes.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/security/session_guard.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/pdf_import_service.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 // 批次②：笔记本设密 ≠开屏密码强制（verify 探测法检测同码）。
@@ -81,7 +81,7 @@ class NotebookViewPage extends StatefulWidget {
     super.key,
     required this.notebook,
     required this.storage,
-    required this.mediaCrypto,
+    required this.mediaKeys,
     this.onChanged,
     this.editorPageBuilder,
     this.blockDocStore,
@@ -95,10 +95,10 @@ class NotebookViewPage extends StatefulWidget {
   final NotebookStorage storage;
   final VoidCallback? onChanged;
 
-  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：锁定清理/重派生
-  /// 媒体密钥、页面图片解密与整本 PDF 导出共用——组合根传线同一解锁
-  /// 会话单例，本页不再直取 `.instance`。
-  final MediaCryptoService mediaCrypto;
+  /// 媒体密钥编排器（框架级收口 2026-11-15 构造注入）：锁定遗忘/再认证
+  /// 取钥、页面图片解密与整本 PDF 导出共用——组合根传线同一取钥权威，
+  /// 本页不再直取 `.instance`，也不嗅探密钥内存存在性。
+  final NotebookMediaKeys mediaKeys;
 
   /// 编辑器页面由应用组合根注入，避免 notes 直接依赖 drawing UI。
   final EditorPageBuilder? editorPageBuilder;
@@ -173,9 +173,10 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
       _saveIfChanged();
-      // K_note（2026-11-16）：只清本笔记本密钥——其他已打开笔记本不受影响
-      // （LRU 映射按笔记本隔离；全局回锁仍经 SessionSecrets 清全部）。
-      widget.mediaCrypto.clearNotebookKey(_notebook.id);
+      // 框架级收口（2026-11-15）：经编排器遗忘本笔记本密钥——清驻留 +
+      // 递增遗忘世代作废在途 ensure（其他已打开笔记本不受影响；全局回锁
+      // 仍经 SessionSecrets 清全部）。
+      widget.mediaKeys.forget(_notebook.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -261,9 +262,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   void dispose() {
     _sessionPassword = null;
     _sessionGuard.dispose();
-    // K_note 密钥清理时机（2026-11-16）：页面退出只清本笔记本 K_note
-    // （D-2 内存清理；其他已打开笔记本的密钥不受影响）。
-    widget.mediaCrypto.clearNotebookKey(_notebook.id);
+    // 框架级收口（2026-11-15）：页面退出经编排器遗忘本笔记本 K_note
+    // （D-2 内存清理 + 在途 ensure 作废；其他已打开笔记本不受影响）。
+    widget.mediaKeys.forget(_notebook.id);
     _tagFilterDebouncer.dispose();
     _lifecycleListener?.dispose();
     super.dispose();
@@ -399,8 +400,8 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
                 builder: (_) => NotebookReaderPage(
                   notebook: _notebook,
                   onEditPage: _openPage,
-                  // C-06（审计 2026-09-27）：媒体解密/VFS 依赖传线。
-                  mediaCrypto: widget.mediaCrypto,
+                  // 框架级收口（2026-11-15）：取钥权威/VFS 依赖传线。
+                  mediaKeys: widget.mediaKeys,
                   vaultService: widget.storage.vaultService,
                 ),
               ),

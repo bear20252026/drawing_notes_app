@@ -95,6 +95,10 @@ class VaultService implements SessionSecretsHolder {
   /// 读取对象（key 标识——自动解密 + AAD 验证——篡改/错上下文认证失败）。
   Future<Uint8List> getObject(String key) => _vault.readObject(key);
 
+  /// 删除对象（key 标识——全部版本 + 清单条目 + 认证侧车刷新；
+  /// 笔记本删除联动清理媒体用，M-5 收口 2026-11-15）。不存在幂等 false。
+  Future<bool> removeObject(String key) => _vault.removeObject(key);
+
   /// 对象清单（当前版本/大小/AAD 上下文）。
   Future<List<VaultManifestEntry>> listObjects() => _vault.listObjects();
 

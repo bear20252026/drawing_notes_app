@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart' show Stroke;
 import 'package:drawing_notes_app/core/rendering/notebook_print_page_data.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/core/rendering/pdf_hybrid_exporter.dart';
@@ -33,10 +33,11 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 /// default_editor_page_builder（编辑器多页路径）与 notebook_view_page
 /// （整本导出路径）。
 class NotebookPdfExporter {
-  NotebookPdfExporter({required this.mediaCrypto, this.vaultService});
+  NotebookPdfExporter({required this.mediaKeys, this.vaultService});
 
-  /// 媒体会话解密服务（DAN 密文读回——组合根注入同一解锁会话单例）。
-  final MediaCryptoService mediaCrypto;
+  /// 媒体密钥编排器（DAN 密文读回——组合根注入同一取钥权威；
+  /// LRU 逐出自动重解包、回锁 fail-closed，框架级收口 2026-11-15）。
+  final NotebookMediaKeys mediaKeys;
 
   /// VFS 媒体仓库（可选——'vfs:' 对象读回；null 时保持既有「未配置」
   /// 语义：抛 StateError，由单图 catch 吞掉退化为占位块）。
@@ -195,7 +196,7 @@ class NotebookPdfExporter {
   /// VFS 对象 → VaultService；DNV 信封 → 保险库解密；DAN/明文 → 媒体解密。
   /// 单图失败不阻断整本导出（该图退化为渲染器内置占位块）。
   ///
-  /// C-06：解密/VFS 依赖为构造注入（[mediaCrypto] / [vaultService]），
+  /// C-06：解密/VFS 依赖为构造注入（[mediaKeys] / [vaultService]），
   /// 分支语义与注入前逐条一致。
   ///
   /// 返回 path → 位图映射，调用方收集 values 在 finally 统一 dispose。
@@ -222,14 +223,11 @@ class NotebookPdfExporter {
           final bytes = await File(path).readAsBytes();
           if (VaultFileCodec.isEncrypted(bytes)) {
             clear = await VaultFileCodec.readImageBytes(File(path));
-          } else if (MediaCryptoService.isEncryptedFile(bytes)) {
-            // K_note（2026-11-16）：DAN 密文必须有笔记本上下文才能解密。
-            if (notebookId == null) {
-              throw StateError('DAN 媒体密文缺少笔记本上下文（无法解密）');
-            }
-            clear = await mediaCrypto.readMediaFile(notebookId, bytes);
           } else {
-            clear = bytes; // 明文媒体（未加密笔记本）。
+            // 框架级收口（2026-11-15）：DAN 嗅探/笔记本上下文校验/
+            // LRU 逐出重解包一律经取钥权威编排器（openMedia 内部判定；
+            // 明文原样返回，DAN 缺笔记本上下文 fail-closed）。
+            clear = await mediaKeys.openMedia(notebookId, bytes);
           }
         }
         if (clear.isEmpty) continue;
