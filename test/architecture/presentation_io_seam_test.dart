@@ -1,19 +1,23 @@
-// H1 架构门禁（2026-11）：表现层（features/*/presentation/**）不得触碰
-// 文件系统 IO（dart:io）与加密服务实现（MediaCryptoService）。
+// H1 架构门禁（2026-11；框架级收口 2026-11-15 收紧）：表现层
+// （features/*/presentation/**）不得触碰文件系统 IO（dart:io）与
+// **媒体加密原语实现（MediaCryptoService）**。
 //
 // 背景：表现层承担了本应属于 infrastructure 的文件读写与解密职责
 // （readAsString/writeAsBytes/File 构造、EncryptedFileImage 直传 File、
 // 直接持有 MediaCryptoService 字段）。本门禁把「下沉到 infrastructure /
 // core 例接口」钉成机器事实，新增违规即红。
 //
+// 框架级收口（2026-11-15）：媒体取钥已收敛到唯一权威编排器
+// NotebookMediaKeys——表现层只允许持有/传线**编排器**，不再持有加密
+// 原语。原 6 文件「登记豁免」就此**清零**：MediaCryptoService 引用在
+// 表现层一律红（无豁免）；编排器引用是合法形状，不在本判据内。
+//
 // 两条判据：
 //   ① `dart:io` —— **零豁免**：表现层任何文件都不得 import 'dart:io'
 //      （含双引号写法）。dart:io 是 Web 平台不可用的库，表现层引用它
 //      会破坏 Web 构建（本门禁同时充当 Web 平台可用性前置闸门）。
-//   ② `MediaCryptoService` —— **登记豁免**：既有 6 个文件（历史注入链）
-//      登记在 [_mediaCryptoAllowlist] 里，新增引用一律红。豁免只针对
-//      「持有该类型字段并沿构造链传线」，加密/解密调用与 File 构造已在
-//      本轮下沉到 infrastructure（NotebookStorage / EncryptedFileImage）。
+//   ② `MediaCryptoService` —— **零豁免**（收口后）：表现层任何文件都不得
+//      import 加密原语；取钥/加解密一律经编排器或 infrastructure。
 //
 // 突变自证：判据抽成 RegExp 常量 + `_importsOf`，正反两控见文件末用例。
 import 'dart:io';
@@ -30,20 +34,6 @@ final RegExp _dartIoImportRe = RegExp(
 final RegExp _mediaCryptoImportRe = RegExp(
   r'''^\s*(?:import|export)\s+["'][^"']*media_crypto_service\.dart["']''',
 );
-
-/// 已登记的 MediaCryptoService 持有文件（2026-11 实测 6 个）。
-///
-/// 这些文件是历史构造注入链的一部分（组合根 → 页面 → EncryptedFileImage/
-/// NotebookPdfExporter），本轮下沉只收 File 构造与文件读写，未动注入链。
-/// 新增文件引用该类型 ⇒ 红；从登记文件移除引用 ⇒ 也应红（防登记过期）。
-const List<String> _mediaCryptoAllowlist = [
-  'lib/features/drawing/presentation/editor_page.dart',
-  'lib/features/notes/presentation/home_page.dart',
-  'lib/features/notes/presentation/notebook_reader_page.dart',
-  'lib/features/notes/presentation/notebook_view_page.dart',
-  'lib/features/notes/presentation/presentation_page.dart',
-  'lib/features/notes/presentation/search_page.dart',
-];
 
 /// presentation 扫描根（feature-first 分层）。
 const List<String> _presentationRoots = [
@@ -79,10 +69,9 @@ void main() {
     }
   });
 
-  test('H1-②：features/*/presentation/** 新增 MediaCryptoService 引用即红（登记豁免）', () {
+  test('H1-②：features/*/presentation/** 引用 MediaCryptoService 即红（零豁免）', () {
     final offenders = <String>[];
     for (final f in presentationFiles) {
-      if (_mediaCryptoAllowlist.contains(f)) continue;
       for (final line in _importsOf(f)) {
         if (_mediaCryptoImportRe.hasMatch(line)) offenders.add('$f: $line');
       }
@@ -90,28 +79,35 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'H1-② 新增 presentation 文件直接引用 MediaCryptoService：\n'
+      reason: 'H1-② presentation 文件直接引用 MediaCryptoService：\n'
           '${offenders.join('\n')}\n'
-          '加密服务须由组合根注入抽象/回调，或下沉到 infrastructure；'
-          '确需新增持有方时，先把它登记进 _mediaCryptoAllowlist 并说明理由。',
+          '框架级收口（2026-11-15）后表现层只允许持有/传线取钥权威编排器'
+          '（NotebookMediaKeys）；加密原语不得进表现层。',
     );
   });
 
-  test('H1-③：登记豁免台账——登记文件必须真的引用，未引用的登记即过期', () {
-    for (final f in _mediaCryptoAllowlist) {
-      final exists = File(f).existsSync();
+  test('H1-③：收口自证——原 6 个登记持有方已全部改持编排器（防回退）', () {
+    // 框架级收口前的 6 个 MediaCryptoService 持有方（历史登记台账）。
+    // 收口后它们必须改持 NotebookMediaKeys——若任一文件又引回加密原语，
+    // H1-② 会红；本用例额外钉住「确实改持了编排器」，防「删引用但没接线」
+    // 的假收口（删了 import 却仍嗅探密钥内存存在性的退化形状）。
+    const formerHolders = [
+      'lib/features/drawing/presentation/editor_page.dart',
+      'lib/features/notes/presentation/home_page.dart',
+      'lib/features/notes/presentation/notebook_reader_page.dart',
+      'lib/features/notes/presentation/notebook_view_page.dart',
+      'lib/features/notes/presentation/presentation_page.dart',
+      'lib/features/notes/presentation/search_page.dart',
+    ];
+    final orchestratorRe = RegExp(
+      r'''^\s*(?:import|export)\s+["'][^"']*notebook_media_keys\.dart["']''',
+    );
+    for (final f in formerHolders) {
+      expect(File(f).existsSync(), isTrue, reason: '持有方 $f 不存在 ⇒ 台账过期');
       expect(
-        exists,
+        _importsOf(f).any(orchestratorRe.hasMatch),
         isTrue,
-        reason: '登记文件 $f 不存在 ⇒ 登记过期（文件改名/删除后未同步台账）。',
-      );
-      final imports = _importsOf(f);
-      final hasRef = imports.any(_mediaCryptoImportRe.hasMatch);
-      expect(
-        hasRef,
-        isTrue,
-        reason: '登记文件 $f 已不引用 MediaCryptoService ⇒ 应从台账移除'
-            '（登记只应包含「确有需要且已评审」的持有方）。',
+        reason: '$f 应改持取钥权威编排器 NotebookMediaKeys（框架级收口）',
       );
     }
   });
@@ -187,10 +183,9 @@ void main() {
 /// Windows 上 `Directory.listSync()` 给出的 `entity.path` 用反斜杠，且根目录
 /// 保留调用时写的写法、子级用 `\` 拼接（形如
 /// `lib/features/drawing/presentation\editor_page.dart`），而本门禁的
-/// `_mediaCryptoAllowlist` / `_presentationRoots` 都是正斜杠常量——不归一化
-/// 会让 `_mediaCryptoAllowlist.contains(f)` 在 Windows 上全部失配，6 个已登记
-/// 文件被误报成「新增引用」（2026-11-11 CI `e6509815` 实测踩中，macOS/Linux
-/// 不复现）。口径与 `architecture_boundary_ratchet_test.dart`、
+/// `_presentationRoots` 与 H1-③ 的 `formerHolders` 都是正斜杠常量——不归一化
+/// 会让路径比对在 Windows 上全部失配（2026-11-11 CI `e6509815` 实测踩中，
+/// macOS/Linux 不复现）。口径与 `architecture_boundary_ratchet_test.dart`、
 /// `architecture_layering_test.dart` 一致。
 List<String> _dartFiles(String dir) {
   if (!Directory(dir).existsSync()) return const [];

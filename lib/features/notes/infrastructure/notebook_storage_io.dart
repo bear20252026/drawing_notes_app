@@ -102,9 +102,22 @@ extension _NotebookStorageIo on NotebookStorage {
       }
     }
     forgetNotebookPassword(id); // 会话密码随文档删除一并清理
+    // 框架级收口（2026-11-15，审计 M-5）：K_note 随文档删除一并遗忘
+    // （清驻留密钥 + 递增遗忘世代作废在途 ensure）——已删笔记的密钥
+    // 不再驻留内存。
+    mediaKeys?.forget(id);
     // 清理该笔记本所有页面引用的图片副本（尽力而为）。
     for (final p in imagePaths) {
       try {
+        // VFS 媒体对象（'vfs:' 标记）：按对象 id 删除全部版本（M-5：
+        // 此前受管目录校验只认图片目录，vfs 路径恒跳过 → 密文残留）。
+        if (p.startsWith('vfs:')) {
+          final vfs = vaultService;
+          if (vfs != null && vfs.hasKey) {
+            await vfs.removeObject(p.substring(4));
+          }
+          continue;
+        }
         // C-01 修复（专家审计 2026-08-15）：图片路径来自笔记 JSON（不可信
         // 数据）——删除前验证受管目录 + 非符号链接（CVE-2026-55667 同源：
         // 符号链接跟随可删除越界文件）。仅删除受管目录内的普通文件。

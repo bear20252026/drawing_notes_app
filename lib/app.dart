@@ -13,6 +13,7 @@ import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_contrast.dart';
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/theme/app_locale_controller.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 
@@ -107,8 +108,11 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       final vault = _vaultKeyService;
       return vault.isUnlocked ? vault.masterKey : null;
     },
-    // C-06（审计 2026-09-27）：媒体会话加密服务组合根注入（同一解锁单例）。
+    // C-06（审计 2026-09-27）：媒体加密原语组合根注入（同一解锁单例）。
     mediaCrypto: _mediaCrypto,
+    // 框架级收口（2026-11-15）：取钥唯一权威编排器——以本存储为信封
+    // 端口装配（加密意图/会话密码/解包/补槽），与 AppServices 同源注入。
+    mediaKeys: _mediaKeys,
     // 与 _documentStorage 同一条 P0 修复：笔记本页面图片写入也要区分
     // 「未建库 → 明文」与「已建库锁定 → fail-closed」，否则无 PIN 用户
     // 往页面插图会静默失败。
@@ -137,6 +141,14 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
   // 组合根装配——注入 NotebookStorage（媒体 DAN 加密封支）并与 AppServices
   // 缺省同源（同一实例），页面与 shared 层不再直取 `.instance`。
   final MediaCryptoService _mediaCrypto = MediaCryptoService.instance;
+  // 媒体密钥编排器（框架级收口 2026-11-15）：取钥唯一权威——以
+  // _notebookStorage 为信封端口（late final 初始化器允许引用实例成员，
+  // 与 keyProvider 闭包同模式）。回锁经 SessionSecrets 联动清零；
+  // 在途密钥操作经 SessionEpoch 世代令牌构造性作废。
+  late final NotebookMediaKeys _mediaKeys = NotebookMediaKeys(
+    media: _mediaCrypto,
+    envelopes: _notebookStorage,
+  );
   // 保险库密钥文件迁入统一根目录 security/（原 AppData 支持目录）。
   late final VaultKeyService _vaultKeyService = VaultKeyService(
     vaultFileResolver: () => _appDataRoot.securityFile('vault.key.json'),
@@ -165,6 +177,15 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
     }
   }
 
+  /// 解锁收口（框架级收口 2026-11-15，审计 M-1）：先清全局图片缓存——
+  /// 上一会话已解密的明文位图不得跨会话驻留 imageCache（回锁清零密钥
+  /// 却留明文位图是隐私缺口）；再执行既有 VFS 装配。缓存键已含
+  /// notebookId（跨本不命中），此处清的是「跨会话」维度。
+  Future<void> _onLockGateUnlocked() async {
+    PaintingBinding.instance.imageCache.clear();
+    await _wireVaultServiceOnUnlock();
+  }
+
   // ── 跨 feature 路由服务（2026-10-10 解耦） ─────────────────────────────
   //
   // notes 侧的三个入口（home_page / search_page / notebook_view_page）
@@ -177,7 +198,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
       blockDocStore: _blockDocStore,
       favoriteStore: _favoriteStore,
       tagStore: _tagStore,
-      mediaCrypto: _mediaCrypto,
+      mediaKeys: _mediaKeys,
     ),
     editorPageBuilderProvider: () => _editorPageBuilder,
     notebookStorageProvider: () => _notebookStorage,
@@ -291,7 +312,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
             service: _appLockService,
             vault: _vaultKeyService,
             quickUnlock: _quickUnlockService,
-            onUnlocked: _wireVaultServiceOnUnlock,
+            onUnlocked: _onLockGateUnlocked,
             child: CloudSyncNoticeHost(
               appDataRoot: _appDataRoot,
               appLockService: _appLockService,

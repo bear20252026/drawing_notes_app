@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/layer.dart';
 import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
-// C-06（审计 2026-09-27）：NotebookReaderPage 构造注入媒体服务。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// 框架级收口（2026-11-15）：NotebookReaderPage 构造注入取钥权威编排器。
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/presentation/notebook_reader_page.dart';
 
@@ -21,7 +21,7 @@ void main() {
         home: NotebookReaderPage(
           notebook: notebook,
           onEditPage: (_) {},
-          mediaCrypto: MediaCryptoService.instance,
+          mediaKeys: NotebookMediaKeys.instance,
         ),
       ),
     );
@@ -48,7 +48,7 @@ void main() {
         home: NotebookReaderPage(
           notebook: notebook,
           onEditPage: (page) => edited = page,
-          mediaCrypto: MediaCryptoService.instance,
+          mediaKeys: NotebookMediaKeys.instance,
         ),
       ),
     );
@@ -69,7 +69,7 @@ void main() {
         home: NotebookReaderPage(
           notebook: notebook,
           onEditPage: (_) {},
-          mediaCrypto: MediaCryptoService.instance,
+          mediaKeys: NotebookMediaKeys.instance,
         ),
       ),
     );

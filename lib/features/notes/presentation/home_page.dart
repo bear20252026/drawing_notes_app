@@ -16,8 +16,8 @@ import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 // 批次②：单文件密码需与开屏密码比对（matchesAppLockPin 静态探测）。
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
-// C-06（审计 2026-09-27）：媒体会话加密服务构造注入（组合根传线）。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// 框架级收口（2026-11-15）：媒体密钥编排器构造注入（组合根传线）。
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/features/notes/application/search_service.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
@@ -100,7 +100,7 @@ const double _kTabSlotHeight = 56;
 class HomePage extends StatefulWidget {
   const HomePage({
     required this.blockDocAccessor,
-    required this.mediaCrypto,
+    required this.mediaKeys,
     this.refreshSignal,
     super.key,
     this.notebookStorage,
@@ -116,10 +116,10 @@ class HomePage extends StatefulWidget {
   final NotebookStorage? notebookStorage;
   final StorageService? docStorage;
 
-  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：搜索页解锁
-  /// 加密分页画布后注入媒体密钥 + 传线给 NotebookViewPage/编辑器——
-  /// 不再直取全局单例。
-  final MediaCryptoService mediaCrypto;
+  /// 媒体密钥编排器（框架级收口 2026-11-15 构造注入）：搜索页解锁
+  /// 加密分页画布后经其取钥 + 传线给 NotebookViewPage/编辑器——
+  /// 不再直取全局单例，也不嗅探密钥内存存在性。
+  final NotebookMediaKeys mediaKeys;
 
   /// 编辑器页面由应用组合根注入，notes 模块不直接依赖 drawing 的 UI。
   final EditorPageBuilder? editorPageBuilder;
@@ -319,8 +319,8 @@ class _HomePageState extends State<HomePage> with AppRefreshRouteAware {
                       docStorage: _docStorage,
                       blockDocAccessor: widget.blockDocAccessor,
                     ),
-                    // C-06（审计 2026-09-27）：媒体服务同一实例传线。
-                    mediaCrypto: widget.mediaCrypto,
+                    // 框架级收口（2026-11-15）：编排器同一实例传线。
+                    mediaKeys: widget.mediaKeys,
                     notebookStorage: _nbStorage,
                     documentStorage: _docStorage,
                     editorPageBuilder: widget.editorPageBuilder,

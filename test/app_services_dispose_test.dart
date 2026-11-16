@@ -18,7 +18,7 @@ import 'package:drawing_notes_app/app/app_services.dart';
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc_store.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
@@ -65,7 +65,7 @@ void main() {
       favoriteStore: FavoriteStore(directoryProvider: tempDir),
       tagStore: TagStore(directoryProvider: tempDir),
       syncController: SyncController(),
-      mediaCrypto: MediaCryptoService.instance,
+      mediaKeys: NotebookMediaKeys.instance,
     );
     final notifier = services.dataVersion;
     var notified = 0;

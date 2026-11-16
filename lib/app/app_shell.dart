@@ -51,8 +51,8 @@ import 'package:drawing_notes_app/features/security/presentation/file_password_r
 // N4 批 3：分页画布解锁弹窗「忘记密码？」→ 重置密码盘重置流。
 import 'package:drawing_notes_app/features/security/presentation/notebook_password_reset_flow.dart';
 import 'package:drawing_notes_app/features/security/presentation/block_doc_password_reset_flow.dart';
-// C-06（审计 2026-09-27）：媒体会话加密服务由组合根 AppServices 持有，
-// shell 自身经 _services.mediaCrypto 使用，不再 import 全局单例。
+// 框架级收口（2026-11-15）：媒体密钥编排器由组合根 AppServices 持有，
+// shell 自身经 _services.mediaKeys 使用，不再 import 全局单例。
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/core/utils/single_instance.dart';
 // STO-004 乙（2026-10-16）：收藏集合读不出来时，覆盖前已抢救出的那份原件要说给用户。
@@ -225,8 +225,8 @@ class _AppShellState extends State<AppShell> {
       notebookStorage: widget.notebookStorage,
       docStorage: widget.docStorage,
       editorPageBuilder: widget.editorPageBuilder,
-      // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
-      mediaCrypto: _services.mediaCrypto,
+      // 框架级收口（2026-11-15）：编排器组合根传线。
+      mediaKeys: _services.mediaKeys,
       refreshSignal: _services.dataVersion,
       // 审计 2026-09-26 #17：搜索访问器由组合根注入（同一 store 实例，
       // 与 home_page 自建 Impl 的旧行为等价）。

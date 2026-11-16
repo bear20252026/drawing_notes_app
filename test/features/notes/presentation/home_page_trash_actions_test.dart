@@ -31,7 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/audit_logger.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/security/policy_engine.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
@@ -132,7 +132,7 @@ void main() {
           supportedLocales: const [Locale('zh'), Locale('en')],
           home: HomePage(
             blockDocAccessor: const FakeBlockDocAccessor(),
-            mediaCrypto: MediaCryptoService.instance,
+            mediaKeys: NotebookMediaKeys.instance,
             docStorage: storage,
             notebookStorage: NotebookStorage(directoryProvider: () async => root),
           ),
@@ -277,7 +277,7 @@ void main() {
           supportedLocales: const [Locale('zh'), Locale('en')],
           home: HomePage(
             blockDocAccessor: const FakeBlockDocAccessor(),
-            mediaCrypto: MediaCryptoService.instance,
+            mediaKeys: NotebookMediaKeys.instance,
             docStorage: storage,
             notebookStorage: NotebookStorage(directoryProvider: () async => root),
           ),

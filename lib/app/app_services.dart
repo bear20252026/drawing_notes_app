@@ -12,7 +12,7 @@
 
 import 'package:flutter/foundation.dart';
 
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/tag_store.dart';
 import 'package:drawing_notes_app/features/all_docs/infrastructure/favorite_store.dart';
 import 'package:drawing_notes_app/core/documents/note_block_doc.dart';
@@ -26,7 +26,7 @@ class AppServices {
     required this.favoriteStore,
     required this.tagStore,
     required this.syncController,
-    required this.mediaCrypto,
+    required this.mediaKeys,
   });
 
   /// 块文档存储（打字笔记）。
@@ -42,10 +42,11 @@ class AppServices {
   /// 层，设置页经组合根注入，不再自行 new 基础设施）。
   final SyncController syncController;
 
-  /// 媒体会话加密服务（C-06，审计 2026-09-27）：组合根持有解锁生命周期
-  /// 作用域的同一单例并向下传线——页面与 shared 渲染管线不再直取
-  /// `.instance`（test/security_static_access_gate_test.dart 门禁锁死）。
-  final MediaCryptoService mediaCrypto;
+  /// 媒体密钥编排器（框架级收口 2026-11-15——取钥唯一权威）：组合根
+  /// 持有解锁生命周期作用域的同一实例并向下传线——页面与 shared 渲染
+  /// 管线不再直取 `.instance`，也不再嗅探密钥内存存在性
+  /// （test/security_static_access_gate_test.dart 门禁锁死）。
+  final NotebookMediaKeys mediaKeys;
 
   /// 数据版本通知器：任何文档写盘后自增，驱动首页/AllDocs 刷新。
   final ValueNotifier<int> dataVersion = ValueNotifier(0);

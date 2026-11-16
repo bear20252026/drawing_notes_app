@@ -16,7 +16,8 @@ import 'package:drawing_notes_app/core/storage/storage_service.dart';
 // `app/app_routes.dart` 注入。
 import 'package:drawing_notes_app/app/app_routes.dart';
 // N4 批 3：加密分页画布解锁拦截（与 app_shell 同口径）。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// 框架级收口（2026-11-15）：媒体密钥编排器构造注入（组合根传线）。
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/shared/widgets/skeleton.dart';
 import 'package:drawing_notes_app/shared/widgets/unlock_sheets.dart'
     show UnlockFlow;
@@ -29,7 +30,7 @@ class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.searchService,
-    required this.mediaCrypto,
+    required this.mediaKeys,
     this.notebookStorage,
     this.documentStorage,
     this.editorPageBuilder,
@@ -38,9 +39,9 @@ class SearchPage extends StatefulWidget {
 
   final SearchService searchService;
 
-  /// 媒体会话加密服务（C-06，审计 2026-09-27 构造注入）：解锁加密分页
-  /// 画布后注入媒体密钥 + 传线给 NotebookViewPage——不再直取全局单例。
-  final MediaCryptoService mediaCrypto;
+  /// 媒体密钥编排器（框架级收口 2026-11-15 构造注入）：解锁加密分页
+  /// 画布后经其取钥 + 传线给 NotebookViewPage——不再直取全局单例。
+  final NotebookMediaKeys mediaKeys;
 
   final NotebookStorage? notebookStorage;
   final StorageService? documentStorage;
@@ -103,8 +104,8 @@ class _SearchPageState extends State<SearchPage> {
           builder: (_) => builder(
             document: doc,
             documentStorage: storage,
-            // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
-            mediaCrypto: widget.mediaCrypto,
+            // 框架级收口（2026-11-15）：编辑器内嵌图片取钥权威传线。
+            mediaKeys: widget.mediaKeys,
           ),
         ),
       );
@@ -169,6 +170,11 @@ class _SearchPageState extends State<SearchPage> {
         await nbStorage.ensureNotebookMediaKey(nbId);
       } on FormatException {
         return; // 密码失效——fail-closed
+      } catch (_) {
+        // M-8 收口（2026-11-15）：ensure 还会抛 VaultFileLockException
+        // （回锁/无会话密码）与磁盘 IO 异常——一律 fail-closed 拒绝打开，
+        // 不留未处理异步异常（表现层零 dart:io，不具名捕获 IO 类型）。
+        return;
       }
     }
     if (!mounted) return;

@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
@@ -12,24 +12,25 @@ import 'package:drawing_notes_app/shared/utils/image_decode_cap.dart';
 /// 加密媒体图片渲染（H-03 双端接入 2026-08-15）。
 ///
 /// ImageProvider.loadBuffer 官方 API（PR #103496）：读取媒体文件字节 →
-/// [MediaCryptoService.readMediaFile]（DAN 密文解密 / 明文兼容——旧数据
-/// 与未加密笔记本）→ 解码渲染。与 storeImage 加密写入成对（双端同步）。
+/// [NotebookMediaKeys.openMedia]（DAN 密文按笔记本 K_note 解密 / 明文
+/// 兼容——未加密笔记本）→ 解码渲染。与 storeImage 加密写入成对（双端同步）。
 ///
-/// C-06（审计 2026-09-27）：解密依赖改构造注入——shared 层不再直取
-/// `MediaCryptoService.instance` / `VaultService.instance`（生产由组合根
+/// 框架级收口（2026-11-15）：解密依赖从「媒体原语服务」改为**取钥权威
+/// 编排器**——LRU 逐出后自动经 ensure 重解包（不再渲染空白），回锁/
+/// 无会话密码 fail-closed。shared 层不直取任何 `.instance`（生产由组合根
 /// 沿页面构造链传线）。可空字段为测试直构保留既有 fail-closed 语义：
-/// - [mediaCrypto] 为 null：DAN 密文抛「会话密钥未注入」StateError（与
-///   全局单例密钥未注入时逐字一致）、明文原样返回；
+/// - [mediaKeys] 为 null：DAN 密文抛「会话密钥未注入」StateError、
+///   明文原样返回；
 /// - [vaultService] 为 null：'vfs:' 对象抛「VaultService 未初始化」
 ///   StateError（与全局单例未 configure 时逐字一致）。
-/// 两字段均**不参与** ==/hashCode：图片缓存键 = 路径 + scale（执行细节
-/// 不分叉缓存；一次会话内注入恒为同一单例实例）。
+/// 缓存键 = 路径 + scale + notebookId（M-1：跨本引用不得命中同一缓存
+/// 绕过 AAD 校验）；服务实例不参与键（一次会话内恒为同一单例）。
 @immutable
 class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
   const EncryptedFileImage(
     this.file, {
     this.scale = 1.0,
-    this.mediaCrypto,
+    this.mediaKeys,
     this.vaultService,
     this.notebookId,
   }) : _path = null;
@@ -44,7 +45,7 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
   const EncryptedFileImage.fromPath(
     String path, {
     this.scale = 1.0,
-    this.mediaCrypto,
+    this.mediaKeys,
     this.vaultService,
     this.notebookId,
   }) : file = null,
@@ -62,15 +63,16 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
 
   final double scale;
 
-  /// 媒体会话解密服务（C-06 构造注入——组合根沿页面构造链传线）。
-  final MediaCryptoService? mediaCrypto;
+  /// 媒体密钥编排器（框架级收口 2026-11-15 构造注入——组合根沿页面
+  /// 构造链传线）：DAN 解密唯一入口，LRU 逐出自动重解包、回锁 fail-closed。
+  final NotebookMediaKeys? mediaKeys;
 
   /// VFS 媒体仓库（可选——'vfs:' 前缀对象读回用；媒体读取双轨）。
   final VaultService? vaultService;
 
   /// 所属笔记本 ID（K_note 接线 2026-11-16）：DAN 密文按笔记本密钥解密、
   /// AAD 绑定笔记本。null 时 DAN 密文 fail-closed（明文/VFS/DNV 不受影响）。
-  /// 不参与 ==/hashCode（缓存键仍为路径 + scale）。
+  /// **参与 ==/hashCode**（M-1：缓存键含笔记本维度，防跨本命中绕过 AAD）。
   final String? notebookId;
 
   @override
@@ -139,28 +141,32 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     if (VaultFileCodec.isEncrypted(bytes)) {
       return VaultFileCodec.readImageBytes(file);
     }
-    // C-06：解密服务构造注入；null（测试直构未注入）时 DAN 抛 StateError，
-    // 明文放行。K_note（2026-11-16）：DAN 密文还需笔记本上下文（notebookId）。
-    final crypto = key.mediaCrypto;
-    final isDan = MediaCryptoService.isEncryptedFile(bytes);
-    if (crypto == null) {
-      if (isDan) throw StateError('会话密钥未注入（请先解锁）');
+    // 框架级收口（2026-11-15）：DAN 解密经取钥权威编排器——LRU 逐出
+    // 自动重解包（M-2）、回锁 fail-closed；null（测试直构未注入）时 DAN
+    // 抛 StateError、明文放行（既有语义）。
+    final keys = key.mediaKeys;
+    if (keys == null) {
+      // DAN 嗅探不依赖编排器实例（静态魔数检测）。
+      if (bytes.length >= 4 &&
+          bytes[0] == 0x44 &&
+          bytes[1] == 0x41 &&
+          bytes[2] == 0x4E) {
+        throw StateError('会话密钥未注入（请先解锁）');
+      }
       return bytes;
     }
-    if (isDan && key.notebookId == null) {
-      throw StateError('DAN 媒体密文缺少笔记本上下文（无法解密）');
-    }
-    return crypto.readMediaFile(key.notebookId ?? '', bytes);
+    return keys.openMedia(key.notebookId, bytes);
   }
 
   @override
   bool operator ==(Object other) =>
       other is EncryptedFileImage &&
       other.filePath == filePath &&
-      other.scale == scale;
+      other.scale == scale &&
+      other.notebookId == notebookId;
 
   @override
-  int get hashCode => Object.hash(filePath, scale);
+  int get hashCode => Object.hash(filePath, scale, notebookId);
 
   @override
   String toString() => 'EncryptedFileImage("$filePath", scale: $scale)';

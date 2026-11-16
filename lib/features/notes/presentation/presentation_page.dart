@@ -5,7 +5,7 @@ import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:flutter/services.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/vfs/vault_service.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/shared/widgets/encrypted_file_image.dart';
@@ -20,7 +20,7 @@ class PresentationPage extends StatefulWidget {
     required this.textItems,
     required this.imageItems,
     required this.shapes,
-    required this.mediaCrypto,
+    required this.mediaKeys,
     this.vaultService,
     this.notebookId,
   });
@@ -32,10 +32,10 @@ class PresentationPage extends StatefulWidget {
   /// 所属笔记本 ID（K_note 接线 2026-11-16）：DAN 媒体按笔记本密钥解密。
   final String? notebookId;
 
-  /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入）：页面图片
-  /// （EncryptedFileImage）解密依赖由 NotebookViewPage 传线——不再直取
+  /// 媒体密钥编排器（框架级收口 2026-11-15 构造注入）：页面图片
+  /// （EncryptedFileImage）取钥权威由 NotebookViewPage 传线——不再直取
   /// 全局单例。
-  final MediaCryptoService mediaCrypto;
+  final NotebookMediaKeys mediaKeys;
 
   /// VFS 媒体仓库（可选——'vfs:' 对象读回；沿 NotebookStorage 透传）。
   final VaultService? vaultService;
@@ -71,10 +71,10 @@ class _PresentationPageState extends State<PresentationPage> {
           // 解密渲染；保险库锁定/损坏显示占位色块（fail-closed）。
           child: i.filePath.isNotEmpty
               ? Image(
-                  // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
+                  // 框架级收口（2026-11-15）：取钥权威/VFS 依赖传线。
                   image: EncryptedFileImage.fromPath(
                     i.filePath,
-                    mediaCrypto: widget.mediaCrypto,
+                    mediaKeys: widget.mediaKeys,
                     vaultService: widget.vaultService,
                     notebookId: widget.notebookId,
                   ),

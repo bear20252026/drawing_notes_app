@@ -308,8 +308,8 @@ extension _AppShellRoutes on _AppShellState {
                 ? builder(
                     document: drawing,
                     documentStorage: storage,
-                    // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
-                    mediaCrypto: _services.mediaCrypto,
+                    // 框架级收口（2026-11-15）：编辑器内嵌图片取钥权威传线。
+                    mediaKeys: _services.mediaKeys,
                   )
                 : Scaffold(
                     body: Center(
@@ -375,10 +375,14 @@ extension _AppShellRoutes on _AppShellState {
             if (!ok) return;
             nb = fresh;
             // K_note 媒体密钥注入（2026-11-16——页面图片解密用）：解包/懒补
-            // 该笔记本 K_note（替代全局盐派生）。媒体服务经组合根持有。
+            // 该笔记本 K_note（替代全局盐派生）。编排器经组合根持有。
             await nbStorage.ensureNotebookMediaKey(nbId);
           } on FormatException {
             return; // 密码失效（缓存过期/重置竞态）——fail-closed
+          } catch (_) {
+            // M-8 收口（2026-11-15）：ensure 还会抛 VaultFileLockException
+            // （回锁/无会话密码）与磁盘 IO 异常——一律 fail-closed 拒绝打开。
+            return;
           }
         }
         if (!mounted) return;
@@ -389,8 +393,8 @@ extension _AppShellRoutes on _AppShellState {
               storage: nbStorage,
               blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
-              // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
-              mediaCrypto: _services.mediaCrypto,
+              // 框架级收口（2026-11-15）：编排器组合根传线。
+              mediaKeys: _services.mediaKeys,
               sessionPassword: sessionPw,
             ),
           ),
@@ -477,8 +481,8 @@ extension _AppShellRoutes on _AppShellState {
                 ? builder(
                     document: draft,
                     documentStorage: storage,
-                    // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
-                    mediaCrypto: _services.mediaCrypto,
+                    // 框架级收口（2026-11-15）：编辑器内嵌图片取钥权威传线。
+                    mediaKeys: _services.mediaKeys,
                   )
                 : Scaffold(
                     body: Center(
@@ -507,8 +511,8 @@ extension _AppShellRoutes on _AppShellState {
               storage: nbStorage,
               blockDocStore: _services.blockDocStore,
               editorPageBuilder: widget.editorPageBuilder,
-              // C-06（审计 2026-09-27）：媒体会话加密服务组合根传线。
-              mediaCrypto: _services.mediaCrypto,
+              // 框架级收口（2026-11-15）：编排器组合根传线。
+              mediaKeys: _services.mediaKeys,
             ),
           ),
         );

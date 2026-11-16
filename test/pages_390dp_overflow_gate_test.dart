@@ -14,9 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
-// C-06（审计 2026-09-27）：SearchPage/NotebookViewPage 构造注入媒体服务
-// （测试直取全局单例与生产组合根装配同一实例）。
-import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+// 框架级收口（2026-11-15）：SearchPage/NotebookViewPage 构造注入取钥
+// 权威编排器（测试直取缺省编排器与生产组合根装配同一实例）。
+import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/app_theme_controller.dart';
 import 'package:drawing_notes_app/core/all_doc.dart';
@@ -141,7 +141,7 @@ void main() {
       tester,
       SearchPage(
         searchService: SearchService(),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
     );
     expect(tester.takeException(), isNull, reason: '搜索页 390dp 溢出');
@@ -179,7 +179,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
     );
     expect(tester.takeException(), isNull, reason: '分页画布页 390dp 溢出');
@@ -211,7 +211,7 @@ void main() {
       tester,
       SearchPage(
         searchService: SearchService(),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
       theme: AppDesign.darkTheme(),
     );
@@ -259,7 +259,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
       theme: AppDesign.darkTheme(),
     );
@@ -290,7 +290,7 @@ void main() {
       tester,
       SearchPage(
         searchService: SearchService(),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
       textScale: 1.5,
     );
@@ -330,7 +330,7 @@ void main() {
       NotebookViewPage(
         notebook: notebook,
         storage: NotebookStorage(directoryProvider: () async => tempDir),
-        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: NotebookMediaKeys.instance,
       ),
       textScale: 1.5,
     );
