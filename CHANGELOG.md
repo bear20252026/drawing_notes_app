@@ -4,6 +4,37 @@
 
 ## [1.17.68] - 2026-11-05
 
+### CI 口径收口（M-9）+ 发版说明补记（M-10，2026-11-16，同版本增量，未 bump）
+
+**M-9 CI 四处**：
+- weekly-evidence 依赖过期检查补 `--threshold 7`（此前走脚本默认 10，
+  劣化 8~10 项时周证据漏检，与 pr-security 口径分叉）。
+- pr-platform Windows 证据构建移除 `--obfuscate --split-debug-info`——
+  出货命令已回滚混淆（release-build.yml），证据必须与出货**逐字同形**。
+- code-guard 六个 Python 工具钉版（ruff==0.17.5 / ty==0.0.14 /
+  bandit==1.9.4 / vulture==2.16 / radon==6.0.1 / interrogate==1.7.0，
+  PyPI 实查当日最新稳定版）——同段 pyscn/py-cq 已钉，此前六工具未钉
+  即规则漂移面（P3-7）。
+- code-guard 涉密预检：`github.event.before` 改经 env 收口（消脚本注入
+  面）；回退基线从 HEAD~1（只扫最后一笔）升级为与 origin/master 的
+  merge-base（首推分支多提交整段覆盖），仅 merge-base=HEAD 时退 HEAD~1
+  并显式告警。
+
+**M-10 发版说明补记**（以下改动已在 master，此前 1.17.68 段漏记）：
+- **冲突中心（SYNC-003）**（1d66915f + c3ba7296，2026-11-11）：持久冲突
+  台账 + 改判入口 + 下一轮生效——冲突不再「弹窗一关就永久消失」；
+  resolvedResolution 记实际生效裁决。配套过 CTL-03 落盘枚举门禁
+  （ConflictResolution 补 WireEnum，wireName 与 .name 逐字同 ⇒ 磁盘零迁移）。
+- **app_data_root 拆分**（2f9352bf，2026-11-11）：1099→717+542 行
+  （恢复/暂存职责域拆 part），34 个公开静态成员全保留转发，调用点零改动。
+- **10 万笔剔除标定 + 首份性能基线报告**（54c55c23，2026-11-11）：B-4
+  补 10 万笔档（纯内存口径 100 万点；codec 单文档预算 ≤5 万笔按设计
+  不可落盘），补齐 EXPERT_REVIEW §八 验收物 performance_report.md。
+- **死代码清理四项**（17194617，2026-11-12，业主点名同意）：零生产
+  消费者常量/方法删除（含 AppDesign.navyInk/navyAccent），运行时行为不变。
+- **S-002 PIN 下限收至 6 位**（3545dfbe，2026-11-13）：4 位纯数字可离线
+  爆破——下限 4→6（此前仅 1.4.0 旧段有记录，本段补记现行口径）。
+
 ### 主题适配层：内部主题模型与 Material 实现解耦（2026-11-16，迁移评估步骤 2，业主批准先行）
 
 > material_ui 迁移评估（docs/MATERIAL_UI_MIGRATION_ASSESSMENT.md）第五节
