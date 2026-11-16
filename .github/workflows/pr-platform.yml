@@ -28,8 +28,11 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter config --enable-windows-desktop
-      - name: Windows Release（防逆向混淆——R-08 证据）
-        run: flutter build windows --release --obfuscate --split-debug-info=build/symbols
+      # M-9 收口（2026-11-16）：移除 --obfuscate/--split-debug-info——
+      # 出货命令已回滚混淆（release-build.yml:337），证据构建必须与出货
+      # **逐字同形**（R-08 纪律：证据形状 ≠ 出货形状 = 证据无效）。
+      - name: Windows Release（与出货命令逐字同形）
+        run: flutter build windows --release
   android-build:
     name: Android Build Evidence
     runs-on: ubuntu-latest

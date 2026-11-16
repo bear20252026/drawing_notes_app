@@ -238,21 +238,36 @@ jobs:
         # 或将来有人在本步与 review 之间插入步骤），diff 就会**直接上传**给外部
         # LLM 端点。现在把口径写死为：**本步不过 ⇒ 绝不允许执行 review**。
         # review 步骤显式依赖 `success()`，且本步失败时 job 立即终止。
+        # M-9 收口（2026-11-16）：① github.event.before 改经 env 收口
+        # （本仓其余表达式均走 env，直接插值进 run 是脚本注入面）；
+        # ② 回退基线从 HEAD~1（只扫最后一笔）升级为「与 origin/master 的
+        # merge-base」——首推分支的多提交推送整段覆盖；仅当 merge-base
+        # 就是 HEAD（直推 master 且历史被改写）才退 HEAD~1 并显式告警。
+        env:
+          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           ZERO_SHA="0000000000000000000000000000000000000000"
           if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
             BASE="origin/master"
           else
-            BEFORE='${{ github.event.before }}'
+            BEFORE="${EVENT_BEFORE:-}"
             if [ -n "$BEFORE" ] && [ "$BEFORE" != "$ZERO_SHA" ] \
                && git merge-base --is-ancestor "$BEFORE" HEAD 2>/dev/null; then
+              # before 是本次推送前的远端位置 ⇒ 三点 diff 覆盖整段推送。
               BASE="$BEFORE"
             else
-              # 首推分支 / force push 改写历史：退回上一个提交。
-              # 这比原来扫 0 个文件好，但**多提交推送时只覆盖最后一笔**——
-              # 深扫描由 Secret Scan（Gitleaks 全量）兜底，本步只是评审前的粗筛。
-              BASE="HEAD~1"
+              # 首推分支 / force push 改写历史：先试与 origin/master 的
+              # merge-base（分支点）——多提交推送整段覆盖，不再只扫最后一笔。
+              MB=$(git merge-base origin/master HEAD 2>/dev/null || true)
+              if [ -n "$MB" ] && [ "$MB" != "$(git rev-parse HEAD)" ]; then
+                BASE="$MB"
+              else
+                # 直推 master 且历史被改写：无可靠整段基线，退上一笔并告警。
+                # 深扫描由 Secret Scan（Gitleaks 全量）兜底，本步只是粗筛。
+                echo "::warning::before 不可用且 merge-base=HEAD，回退 HEAD~1（仅覆盖最后一笔）"
+                BASE="HEAD~1"
+              fi
             fi
           fi
           echo "diff 基线：$BASE（事件：${GITHUB_EVENT_NAME:-unknown}）"
@@ -346,14 +361,17 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: 安装 pyscn 等（P3-7 钉版 pyscn + py-cq 钉版 tag）
+      - name: 安装 pyscn 等（P3-7 钉版 pyscn + py-cq 钉版 tag + 六工具钉版）
         # 审计 2026-11（未钉版）：原 `pip install git+https://github.com/rhiza-fr/py-cq.git`
         # 拉默认分支 HEAD —— 上游一次 force push 或仓库失陷就会让门禁静默换规则
         # （本仓 W3 同款教训：未锁版即规则漂移）。现钉到 tag v0.3.1。
-        # 升级流程：本地评估新版 → 改 tag → 单独提交写明动机。
+        # M-9 收口（2026-11-16）：ruff/ty/bandit/vulture/radon/interrogate
+        # 六工具此前未钉版（同段 pyscn/py-cq 已钉，规则漂移风险同款）。
+        # 版本为 PyPI 实查当日最新稳定版（非凭记忆），升级流程同上：
+        # 本地评估新版 → 改版本号 → 单独提交写明动机。
         run: |
           pip install "git+https://github.com/rhiza-fr/py-cq.git@v0.3.1"
-          pip install pyscn==1.29.0 ruff ty bandit vulture radon interrogate
+          pip install pyscn==1.29.0 ruff==0.17.5 ty==0.0.14 bandit==1.9.4 vulture==2.16 radon==6.0.1 interrogate==1.7.0
 
       - name: py-cq 聚合门禁（tools/ Python 辅助脚本）
         # 聚合 11 工具评分。

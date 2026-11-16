@@ -56,7 +56,9 @@ jobs:
         run: python tools/generate_sbom.py
 
       - name: 依赖清单与过期检查
-        run: bash tools/check_deps.sh
+        # M-9 收口（2026-11-16）：阈值与 pr-security.yml 对齐（7）——
+        # 此前未传参走脚本默认 10，依赖劣化 8~10 项时周证据漏检。
+        run: bash tools/check_deps.sh --threshold 7
 
       - name: 失败时开一条待办 issue（不重复开）
         if: failure()
