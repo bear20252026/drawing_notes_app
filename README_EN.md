@@ -8,8 +8,8 @@ A cross-platform **drawing and note-taking** application for **Windows desktop +
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
 
 > **Security posture**: government-grade security — encrypted notes (v5 dual-protector
-> only: Argon2id + AAD; legacy v2/v3/v4 removed, per-note keys; media K_note injection
-> implemented, production currently on session-level keys), policy engine (default-deny),
+> only: Argon2id + AAD; legacy v2/v3/v4 removed, per-note keys; media K_note fully wired
+> into production — per-notebook media keys, AAD bound to notebook ID), policy engine (default-deny),
 > session guard (auto-lock), VFS encrypted object vault (versioned / atomic commits;
 > wired into production — new media writes VFS, legacy media read-compatible),
 > tamper-evident audit (keyed HMAC-SHA256 anchor + generation counter; file-chain
@@ -83,7 +83,7 @@ pushes run seven); PR Platform / PR Quality / PR Security run on pull_request on
 | Component | Description |
 | --- | --- |
 | Encrypted notes | AES-256-GCM + AAD context binding (NIST SP 800-38D) — content/media/trash encrypted, per-encryption random nonce |
-| Per-note keys | Independent data key + AAD bound to note ID — one leaked note key never affects others (Knovya pattern). Live for note content; media K_note injection implemented but production currently uses session-level keys (2026-11-13 audit alignment) |
+| Per-note keys | Independent data key + AAD bound to note ID — one leaked note key never affects others (Knovya pattern). Live for content **and media**: media K_note sealed in the v5 envelope media slot, LRU key map capped at 32 notebooks with zeroization on eviction (wired into production 2026-11-16) |
 | App-lock PIN / vault | Argon2id derivation + constant-time comparison + persistent exponential backoff; versioned envelope encryption + atomic commits |
 | Quick unlock | Windows Hello / Android BiometricPrompt (local_auth), DPAPI/Keystore-bound |
 | USB reset disk | "Forgot password" reset for notebook/file passwords (LUKS-style: disk key unwraps DEK → re-wrap password slot with new salt) |

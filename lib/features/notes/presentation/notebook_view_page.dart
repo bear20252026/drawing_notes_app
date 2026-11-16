@@ -173,8 +173,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   late final SessionGuard _sessionGuard = SessionGuard(
     onLock: () {
       _saveIfChanged();
-      // C-06（审计 2026-09-27）：媒体服务构造注入（清理语义不变）。
-      widget.mediaCrypto.clearSessionKey();
+      // K_note（2026-11-16）：只清本笔记本密钥——其他已打开笔记本不受影响
+      // （LRU 映射按笔记本隔离；全局回锁仍经 SessionSecrets 清全部）。
+      widget.mediaCrypto.clearNotebookKey(_notebook.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -206,9 +207,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
         return;
       }
       try {
-        final mediaSalt = await widget.storage.ensureMediaSalt();
-        // C-06（审计 2026-09-27）：媒体服务构造注入（重派生语义不变）。
-        await widget.mediaCrypto.setSessionPassword(pw, mediaSalt);
+        // K_note（2026-11-16）：再认证后从信封解包该笔记本媒体密钥注入
+        // （替代全局盐重派生——密钥随信封持久，跨会话一致）。
+        await widget.storage.ensureNotebookMediaKey(_notebook.id);
       } catch (_) {
         _notifySessionNeedsReopen();
         return;
@@ -260,9 +261,9 @@ class _NotebookViewPageState extends State<NotebookViewPage> {
   void dispose() {
     _sessionPassword = null;
     _sessionGuard.dispose();
-    // H-03 密钥清理时机：页面退出清除媒体加密会话密钥（D-2 内存清理）。
-    // C-06（审计 2026-09-27）：媒体服务构造注入（清理语义不变）。
-    widget.mediaCrypto.clearSessionKey();
+    // K_note 密钥清理时机（2026-11-16）：页面退出只清本笔记本 K_note
+    // （D-2 内存清理；其他已打开笔记本的密钥不受影响）。
+    widget.mediaCrypto.clearNotebookKey(_notebook.id);
     _tagFilterDebouncer.dispose();
     _lifecycleListener?.dispose();
     super.dispose();

@@ -49,6 +49,7 @@
 | 「审计链是无密钥 SHA-256」 | 已升级带密钥 HMAC-SHA256 锚 + 世代号 + 外部锚 | SECURITY.md / M-05 |
 | 「notebook_domain 是空壳，建议合并」 | 是承重的端口契约，受 2 条架构门禁保护 | PACKAGES_BOUNDARY.md |
 | 「旧版 v2/v3/v4 密文兼容读」 | 已删除旧版支持，一律 fail-closed 拒绝 | CHANGELOG M-06 |
+| 「媒体走全局会话密钥，K_note 未接线」 | K_note 已全量接入生产（v5 media 槽 + LRU 映射 32 本）；全局会话派生路径已删除 | SECURITY.md / CHANGELOG 2026-11-16 |
 
 ## 新增文档的纪律
 

@@ -37,6 +37,10 @@ typedef EditorPageBuilder =
       StorageService? documentStorage,
       VoidCallback? onChanged,
 
+      /// 所属笔记本 ID（K_note 接线 2026-11-16）：笔记页模式传笔记本 ID
+      /// （媒体按笔记本密钥加解密）；独立画布模式为 null（走文档存储口径）。
+      String? notebookId,
+
       /// 媒体会话解密服务（C-06，审计 2026-09-27）：编辑器内嵌图片
       /// （EncryptedFileImage）的解密依赖由组合根传线——编辑器不再直取
       /// 全局单例；可空（测试直构 EditorPage 未注入时按既有「会话密钥

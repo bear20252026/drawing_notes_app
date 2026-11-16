@@ -37,7 +37,7 @@ VFS 加密对象仓库 / 篡改可检测审计哈希链 / 导入隔离）。我�
 | 特性 | 说明 |
 | --- | --- |
 | 加密笔记 | AES-256-GCM + AAD 上下文绑定（NIST SP 800-38D）——正文/媒体/回收站加密。**仅 v5 双保护器格式（M-06 收口 2026-11-14，删除旧版）**：Argon2id 密码槽 + 可选重置盘槽 + AAD 绑定文档 ID。旧版 v2/v3（PBKDF2 无 AAD）、v4（PBKDF2+AAD）与 PBKDF2 旧槽一律 fail-closed 拒绝——存量旧数据须先升级 v5 |
-| K_note 每笔记密钥 | 独立数据密钥 + AAD 绑定笔记 ID——防跨笔记密文交换。**生效范围（2026-11-14 对齐）**：正文/文档加密已生效；媒体生产路径当前走会话级密钥（应用级 AAD `drawing-notes\|media\|v1`，不含 notebookId），`setNotebookKey` 注入点已实现、生产接线需每笔记 DEK 派生+存储+媒体重加密迁移（数据迁移专项，留待专项设计） |
+| K_note 每笔记密钥 | 独立数据密钥 + AAD 绑定笔记 ID——防跨笔记密文交换。**全量生效（2026-11-16 生产接线）**：正文/文档 + 媒体均按笔记本独立密钥。媒体 K_note（32B CSPRNG）封存于 v5 信封 `slots.media`（payload DEK 包裹，AAD 绑定笔记本 ID）；改密/重置只重绕 pw 槽、K_note 不动（LUKS 语义）。媒体服务 LRU 映射上限 32 本（逐出即零化）；AAD 恒为 `drawing-notes\|media\|v1\|<notebookId>`，**无全局密钥回退**。旧「全局会话密码派生」路径已删除（业主确认无存量用户，不兼容旧格式） |
 | 策略引擎 | 操作白名单**默认拒绝**（fail-closed）+ 审计（PolicyEngine） |
 | 会话守卫 | 失焦/切后台即置锁 + 再认证；宽限期内回前台免验证。**密钥清零时机**：hidden 即清 KEK/会话机密；主密钥在超宽限落锁时 fillRange 清零——宽限期内主密钥仍驻留内存（有意设计，非失焦即清）。**M-04（2026-11-14）**：VFS 会话密钥（主密钥副本）注册进 SessionSecrets 统一清理，回锁随 clearAll 一并清零 |
 | VFS 加密对象仓库 | 对象清单 + 版本回溯 + AAD 绑定 + 原子提交（崩溃安全）。**M-01 生产接线（2026-11-14）**：组合根解锁收口 configure + setKey（主密钥作仓库密钥）+ 注入 NotebookStorage——新媒体写 VFS 对象、旧媒体 DAN/DNV 文件兼容读（双轨）；回锁经 SessionSecrets 清零 |

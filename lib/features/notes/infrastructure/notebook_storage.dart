@@ -363,9 +363,15 @@ class NotebookStorage
 
   /// 保存页面图片副本，返回副本的绝对路径。
   ///
+  /// [notebookId] 用于 K_note 媒体加密（2026-11-16）：DAN 密文按笔记本密钥
+  /// 加密、AAD 绑定笔记本；未加密笔记本忽略（明文落盘）。
   /// [sourcePath] 为用户选择的图片原路径；[pageId] 用于文件名分组。
   @override
-  Future<String> storeImage(String sourcePath, String pageId) async {
+  Future<String> storeImage(
+    String notebookId,
+    String sourcePath,
+    String pageId,
+  ) async {
     if (!isValidId(pageId)) {
       throw ArgumentError('非法 pageId: $pageId');
     }
@@ -428,9 +434,10 @@ class NotebookStorage
       }
       final Uint8List stored;
       // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
+      // K_note（2026-11-16）：该笔记本密钥已驻留 → 按笔记本加密。
       final media = mediaCrypto;
-      if (media != null && media.isActive) {
-        stored = await media.encryptFile(bytes);
+      if (media != null && media.hasKeyFor(notebookId)) {
+        stored = await media.encryptFile(notebookId, bytes);
       } else {
         final key = await _currentKey();
         stored = key == null
@@ -460,14 +467,20 @@ class NotebookStorage
 
   /// S-01（审计 2026-09-27）：媒体字节写入前密封——供 PDF 导入等绕过
   /// storeImage 的旁路写路径共用。三级分支与 storeImage 同口径：
-  /// ① 会话密钥已注入（加密笔记本解锁）→ DAN 文件头加密；
+  /// ① 该笔记本 K_note 已驻留（加密笔记本解锁）→ DAN 文件头加密；
   /// ② 保险库解锁 → DNV 信封（AAD 绑定目标路径）；
   /// ③ 未启用加密（无 keyProvider）→ 明文（读取端懒迁移兼容）。
-  Future<Uint8List> sealMediaBytesForPath(String path, Uint8List bytes) async {
+  ///
+  /// [notebookId]：K_note 接线（2026-11-16）——按笔记本密钥加密。
+  Future<Uint8List> sealMediaBytesForPath(
+    String notebookId,
+    String path,
+    Uint8List bytes,
+  ) async {
     // C-06：媒体服务构造注入（null 降级 = 既有「未注入」语义）。
     final media = mediaCrypto;
-    if (media != null && media.isActive) {
-      return media.encryptFile(bytes);
+    if (media != null && media.hasKeyFor(notebookId)) {
+      return media.encryptFile(notebookId, bytes);
     }
     final key = await _currentKey();
     if (key == null) return _plainMediaOrLock(bytes);
@@ -476,6 +489,42 @@ class NotebookStorage
       key,
       aadContext: VaultFileCodec.contextForPath(path),
     );
+  }
+
+  /// 确保某笔记本的媒体独立密钥 K_note 已驻留媒体服务（K_note 接线
+  /// 2026-11-16）。解锁/导入媒体前调用：
+  /// - 密钥已驻留 → 直接返回；
+  /// - 信封含 media 槽 → 密码解包注入；
+  /// - 无 media 槽（懒补）→ 生成随机 K_note，补装进信封并原子落盘，再注入；
+  /// - 无会话密码且信封无槽 → 抛 [VaultFileLockException]（fail-closed）。
+  Future<void> ensureNotebookMediaKey(String notebookId) async {
+    final media = mediaCrypto;
+    if (media == null) return; // 未注入媒体服务 = 未启用加密路径。
+    if (media.hasKeyFor(notebookId)) return;
+    final nb = await load(notebookId);
+    final payload = nb?.encryptedPayload;
+    if (nb == null || !nb.encrypted || payload == null) return; // 明文笔记本。
+    final password = notebookPasswordFor(notebookId);
+    if (password == null) throw const VaultFileLockException();
+    var key = await _encryption.unwrapNotebookMediaKey(
+      notebookId: notebookId,
+      encryptedJson: payload,
+      password: password,
+    );
+    if (key == null) {
+      // 懒补槽：生成 K_note → 补装信封 → 原子落盘（改密/重置保留 media 槽）。
+      key = MediaCryptoService.generateNotebookKey();
+      final updated = await _encryption.attachNotebookMediaKey(
+        notebookId: notebookId,
+        encryptedJson: payload,
+        password: password,
+        mediaKey: key,
+      );
+      nb.encryptedPayload = updated;
+      await _writeNotebook(nb);
+    }
+    media.setNotebookKey(notebookId, key);
+    key.fillRange(0, key.length, 0); // 注入后源副本零化（服务内已复制）。
   }
 
   /// 媒体密封的「无密钥」分支收口（P1 修复；P0 修正 2026-10-06）。
@@ -515,44 +564,9 @@ class NotebookStorage
     throw const FormatException('SVG 预检未通过，已拒绝导入');
   }
 
-  /// 全局媒体加密盐 + KDF 版本（H-03 方案 B 2026-08-15；M-06 收口 2026-11-14）。
-  ///
-  /// 仅支持版本 2 盐（[MediaSalt.encode]：1B 版本 + 16B 盐，Argon2id）。
-  /// 旧版版本 1（纯 16B 盐，PBKDF2-600k）在 [MediaSalt.parse] fail-closed
-  /// 拒绝——存量旧盐派生的媒体须先升级。盐明文持久（盐无需保密），
-  /// 跨会话一致（解密媒体重派生同 key）。
-  Future<MediaSalt> ensureMediaSalt() async {
-    final base = await _baseDir();
-    final file = File('${base.path}${Platform.pathSeparator}media_crypto_salt');
-    if (file.existsSync()) {
-      final bytes = await file.readAsBytes();
-      // R-07（审计 2026-09-27）：短于 16 字节 = 部分写入，它仍对应已加密
-      // 媒体的真实盐——静默换盐会让旧盐派生的媒体全部不可解密。显式失败
-      // （fail-closed）交由调用方提示，保住恢复可能。
-      if (bytes.length < MediaSalt.saltLength) {
-        throw StateError('媒体加密盐文件损坏（不足 16 字节），已拒绝重新生成以保护已加密媒体');
-      }
-      // 版本前缀判定在 MediaSalt.parse 内（fail-closed：无法识别的格式
-      // 或旧版 PBKDF2 盐抛 ArgumentError，绝不猜 KDF）。
-      return MediaSalt.parse(bytes);
-    }
-    final salt = MediaCryptoService.generateSalt();
-    final mediaSalt = MediaSalt(bytes: salt, kdf: MediaSalt.argon2idKdf);
-    // 同批次 R-05：盐写入走 tmp + rename（部分写入不再产生半截盐文件）。
-    final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
-    try {
-      await tmp.writeAsBytes(mediaSalt.encode(), flush: true);
-      await tmp.rename(file.path);
-    } catch (_) {
-      try {
-        if (tmp.existsSync()) await tmp.delete();
-      } catch (_) {
-        // 清理失败不覆盖原始异常。
-      }
-      rethrow;
-    }
-    return mediaSalt;
-  }
+  // 全局媒体盐（ensureMediaSalt）已删除（K_note 接线 2026-11-16）：媒体
+  // 加密不再走「全局会话密码 + 持久盐」派生，改用每笔记本 K_note（v5 信封
+  // slots.media 封存）——见 ensureNotebookMediaKey。
 
   /// 启用密码保护并保存：把页面内容 AES-GCM 加密为载荷，明文不落盘。
   ///

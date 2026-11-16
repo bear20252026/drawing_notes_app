@@ -38,7 +38,7 @@ void main() {
 
     final src = File('${tempDir.path}/src.png');
     await src.writeAsBytes(utf8.encode('PNG 媒体字节'));
-    final stored = await storage.storeImage(src.path, 'page-1');
+    final stored = await storage.storeImage('nb_v', src.path, 'page-1');
 
     // 'vfs:' 前缀标记（新媒体走 VFS 对象——不是文件路径）。
     expect(stored, startsWith('vfs:media/'));
@@ -51,7 +51,7 @@ void main() {
     final storage = await buildStorage(); // 无 vaultService。
     final src = File('${tempDir.path}/legacy.png');
     await src.writeAsBytes([1, 2, 3, 4]);
-    final stored = await storage.storeImage(src.path, 'page-2');
+    final stored = await storage.storeImage('nb_v', src.path, 'page-2');
     // 非 vfs 标记——现有文件路径（DAN 文件/明文——旧路径保持）。
     expect(stored.startsWith('vfs:'), isFalse);
     expect(File(stored).existsSync(), isTrue);
@@ -63,7 +63,7 @@ void main() {
     final storage = await buildStorage(vfs: vfs);
     final src = File('${tempDir.path}/no-key.png');
     await src.writeAsBytes([9, 9, 9]);
-    final stored = await storage.storeImage(src.path, 'page-3');
+    final stored = await storage.storeImage('nb_v', src.path, 'page-3');
     expect(stored.startsWith('vfs:'), isFalse);
   });
 

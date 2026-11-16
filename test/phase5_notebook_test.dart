@@ -243,7 +243,7 @@ void main() {
       final src = File('${tempDir.path}/source.png');
       await src.writeAsBytes([1, 2, 3, 4]);
 
-      final target = await storage.storeImage(src.path, 'pg_1');
+      final target = await storage.storeImage('nb_p5', src.path, 'pg_1');
       expect(File(target).existsSync(), isTrue);
       expect(target, contains('pg_1'), reason: '文件名包含页面分组前缀');
     });

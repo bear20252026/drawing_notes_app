@@ -165,7 +165,7 @@ void main() {
     final src = File('${tempDir.path}${Platform.pathSeparator}src.png')
       ..writeAsBytesSync(png);
 
-    final storedPath = await storage.storeImage(src.path, 'pg1');
+    final storedPath = await storage.storeImage('nb_enc', src.path, 'pg1');
     final stored = await File(storedPath).readAsBytes();
     expect(
       VaultFileCodec.isEncrypted(stored),
@@ -188,7 +188,7 @@ void main() {
     final src = File('${tempDir.path}${Platform.pathSeparator}src.png')
       ..writeAsBytesSync(png);
 
-    final storedPath = await storage.storeImage(src.path, 'pg1');
+    final storedPath = await storage.storeImage('nb_enc', src.path, 'pg1');
     final stored = await File(storedPath).readAsBytes();
     expect(VaultFileCodec.isEncrypted(stored), isFalse);
     expect(stored, png);

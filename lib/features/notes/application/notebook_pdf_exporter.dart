@@ -69,15 +69,18 @@ class NotebookPdfExporter {
         imageItems: page.imageItems,
         shapes: page.shapes,
       ),
-  ], jpegQuality: jpegQuality, footer: footer);
+  ], notebookId: notebook.id, jpegQuality: jpegQuality, footer: footer);
 
   /// 导出给定页数据为多页 PDF 字节（[jpegQuality] 透传 hybrid 引擎）。
   ///
   /// [footer]（审计 #38 接线）：开启后每页页脚 =「页标题 · n / m」，CJK
   /// 字体主题与画布分页导出同源（pdf 包默认 Type1 字体编不了中文标题，
   /// 见 PdfHybridExporter.exportMultiPage 的 cjkFontData）。
+  /// [notebookId]（K_note 接线 2026-11-16）：DAN 媒体密文按笔记本密钥解密；
+  /// null = 无笔记本上下文（仅明文/VFS/DNV 媒体可读，DAN 密文 fail-closed）。
   Future<Uint8List> exportPages(
     List<NotebookPrintPageData> pages, {
+    String? notebookId,
     int? jpegQuality,
     bool footer = false,
   }) async {
@@ -108,7 +111,7 @@ class NotebookPdfExporter {
             imageItems: page.imageItems,
             shapes: page.shapes,
           );
-          final images = await _decodePageImages(page.imageItems);
+          final images = await _decodePageImages(page.imageItems, notebookId);
           decodedImages.addAll(images.values);
           final painter = NotebookPageCanvasPainter(
             page: paintPage,
@@ -200,6 +203,7 @@ class NotebookPdfExporter {
   /// 高像素照片单张可达数百 MB（审计修复 2026-09-06）。Codec 用后即释放。
   Future<Map<String, ui.Image>> _decodePageImages(
     List<PageImageItem> items,
+    String? notebookId,
   ) async {
     final images = <String, ui.Image>{};
     for (final item in items) {
@@ -216,9 +220,17 @@ class NotebookPdfExporter {
           clear = await vault.getObject(path.substring(4));
         } else {
           final bytes = await File(path).readAsBytes();
-          clear = VaultFileCodec.isEncrypted(bytes)
-              ? await VaultFileCodec.readImageBytes(File(path))
-              : await mediaCrypto.readMediaFile(bytes);
+          if (VaultFileCodec.isEncrypted(bytes)) {
+            clear = await VaultFileCodec.readImageBytes(File(path));
+          } else if (MediaCryptoService.isEncryptedFile(bytes)) {
+            // K_note（2026-11-16）：DAN 密文必须有笔记本上下文才能解密。
+            if (notebookId == null) {
+              throw StateError('DAN 媒体密文缺少笔记本上下文（无法解密）');
+            }
+            clear = await mediaCrypto.readMediaFile(notebookId, bytes);
+          } else {
+            clear = bytes; // 明文媒体（未加密笔记本）。
+          }
         }
         if (clear.isEmpty) continue;
         final buffer = await ui.ImmutableBuffer.fromUint8List(clear);

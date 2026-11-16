@@ -165,9 +165,8 @@ class _SearchPageState extends State<SearchPage> {
         final ok = await nbStorage.decryptNotebook(fresh, sessionPw);
         if (!ok || !mounted) return;
         nb = fresh;
-        final mediaSalt = await nbStorage.ensureMediaSalt();
-        // C-06（审计 2026-09-27）：媒体服务构造注入（不再直取全局单例）。
-        await widget.mediaCrypto.setSessionPassword(sessionPw, mediaSalt);
+        // K_note（2026-11-16）：解包/懒补该笔记本媒体密钥并注入。
+        await nbStorage.ensureNotebookMediaKey(nbId);
       } on FormatException {
         return; // 密码失效——fail-closed
       }

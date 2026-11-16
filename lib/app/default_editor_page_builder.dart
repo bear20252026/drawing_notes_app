@@ -43,6 +43,7 @@ class DefaultEditorPageBuilder {
     INotebookAccessor? notebookAccessor,
     StorageService? documentStorage,
     VoidCallback? onChanged,
+    String? notebookId,
     MediaCryptoService? mediaCrypto,
     Future<void> Function(BuildContext context)? openPresentation,
   }) {
@@ -50,11 +51,19 @@ class DefaultEditorPageBuilder {
       document: document,
       session: session,
       allSessionsProvider: allSessions,
+      // K_note（2026-11-16）：缺省导出器绑定笔记本上下文——DAN 媒体按
+      // 笔记本密钥解密（独立画布 notebookId=null，无 DAN 媒体）。
       multipagePdfComposer:
-          multipageComposer ?? _defaultPdfExporter.exportPages,
+          multipageComposer ??
+          (pages, {jpegQuality}) => _defaultPdfExporter.exportPages(
+            pages,
+            notebookId: notebookId,
+            jpegQuality: jpegQuality,
+          ),
       storage: notebookAccessor,
       docStorage: documentStorage,
       onChanged: onChanged,
+      notebookId: notebookId,
       mediaCrypto: mediaCrypto,
       openPresentation: openPresentation,
     );

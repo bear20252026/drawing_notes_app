@@ -14,6 +14,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           textItems: page.textItems,
           imageItems: page.imageItems,
           shapes: page.shapes,
+          // K_note（2026-11-16）：笔记本上下文传线（DAN 媒体按笔记本解密）。
+          notebookId: _notebook.id,
           // C-06（审计 2026-09-27）：媒体解密/VFS 依赖传线。
           mediaCrypto: widget.mediaCrypto,
           vaultService: widget.storage.vaultService,
@@ -47,6 +49,8 @@ extension _NotebookPageManage on _NotebookViewPageState {
           ],
           notebookAccessor: widget.storage,
           onChanged: onChanged,
+          // K_note（2026-11-16）：笔记本上下文传线——媒体按笔记本密钥加解密。
+          notebookId: _notebook.id,
           // C-06（审计 2026-09-27）：编辑器内嵌图片解密服务传线。
           mediaCrypto: widget.mediaCrypto,
           openPresentation: (context) => _openPresentation(context, page),

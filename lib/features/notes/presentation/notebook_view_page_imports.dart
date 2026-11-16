@@ -130,7 +130,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
         importId: importId,
         // S-01（审计 2026-09-27）：页面 PNG 落盘前走与 storeImage 同款三级
         // 密封分支——保险库/加密笔记本开启时不再明文残留磁盘。
-        sealBytes: widget.storage.sealMediaBytesForPath,
+        // K_note（2026-11-16）：绑定笔记本上下文（按笔记本密钥密封）。
+        sealBytes: (path, bytes) =>
+            widget.storage.sealMediaBytesForPath(_notebook.id, path, bytes),
       );
       if (rendered.isEmpty) {
         _showSnack(_l10nSafe?.impPdfNoPages ?? 'PDF 没有可导入的页面');
@@ -295,11 +297,9 @@ extension _NotebookPageImports on _NotebookViewPageState {
       }
       // 记录会话密码：设置后本页内编辑可重加密保存（修复"无法保存"问题）。
       _sessionPassword = password;
-      // H-03 密码模式媒体加密（方案 B）：全局盐派生注入（storeImage 加密
-      // 写入 + EncryptedFileImage 渲染解密用——跨会话同盐重派生 key 一致）。
-      // C-06（审计 2026-09-27）：媒体服务构造注入（注入语义不变）。
-      final mediaSalt = await widget.storage.ensureMediaSalt();
-      await widget.mediaCrypto.setSessionPassword(password, mediaSalt);
+      // K_note 媒体密钥（2026-11-16）：设密/改密后解包/懒补该笔记本 K_note
+      // 并注入（storeImage 加密写入 + EncryptedFileImage 渲染解密用）。
+      await widget.storage.ensureNotebookMediaKey(_notebook.id);
       if (mounted) {
         _applyState(() {});
         ScaffoldMessenger.of(context).showSnackBar(

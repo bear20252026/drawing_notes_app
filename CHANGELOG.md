@@ -4,6 +4,51 @@
 
 ## [1.17.68] - 2026-11-05
 
+### K_note 媒体独立密钥生产接线（2026-11-16，业主批准，同版本增量，未 bump）
+
+> 业主决策（2026-11-15）：**现在还没有用户、不存在旧格式数据**——不做迁移
+> 向导/双轨兼容/回滚，K_note 直接作为唯一媒体加密口径；LRU 上限 32 本。
+> 原 K_NOTE_WIRING_PLAN 四批方案中的批 4（存量迁移）因此消解。
+
+#### 信封层：v5 新增 media 槽（K_note 封存）
+- `encryptWithPasswordV5`（笔记本 scope）自动生成随机 32B K_note，用 payload
+  DEK 包裹封入 `slots.media`（AAD 绑定笔记本 ID——槽位密文不可跨本移植）。
+- 新增 `unwrapNotebookMediaKey`（密码→DEK→K_note，DEK 用完即焚）、
+  `attachNotebookMediaKey`（懒补槽，幂等）、`hasMediaSlotV5`。
+- **改密/重置盘重置保留 media 槽**（LUKS 语义：只重绕 pw 槽，K_note 不动）。
+
+#### 媒体服务：LRU 密钥映射（替换全局会话密钥）
+- `MediaCryptoService` 改按 notebookId 的密钥映射（**上限 32，逐出即零化**，
+  命中刷新 LRU 序）；加解密一律 `encryptFile(notebookId,…)` /
+  `readMediaFile(notebookId,…)`，AAD 恒含 notebookId（**无全局回退**）。
+- **删除全局会话密码派生路径**（setSessionPassword/setSessionKey/MediaSalt/
+  ensureMediaSalt/media_crypto_salt 盐文件）——无旧格式兼容（业主确认无存量）。
+- 页面锁定/销毁只清本笔记本密钥（其他已打开笔记本不受影响）；全局回锁仍经
+  SessionSecrets 清全部。
+
+#### 生产接线（写/读/渲染全链路）
+- `NotebookStorage.ensureNotebookMediaKey`：解锁时解包注入；无 media 槽懒补
+  （生成 K_note→补装信封→原子落盘）；无会话密码 fail-closed。
+- 5 处解锁/设密/重认证注入点改走 ensureNotebookMediaKey；storeImage /
+  sealMediaBytesForPath / INotebookMediaStore 接口加 notebookId；PDF 导入
+  密封回调绑定笔记本上下文。
+- 渲染链：EncryptedFileImage / 阅读页 / 放映页 / 编辑器浮层 / PDF 导出器
+  全部穿线 notebookId（EditorPageBuilder 契约 + DefaultEditorPageBuilder
+  绑定笔记本上下文导出）。DAN 密文无笔记本上下文一律 fail-closed。
+- 独立画布（无笔记本）走文档存储 DNV 主密钥路径，不受影响。
+
+#### 测试
+- 重写 media_crypto_service_test（K_note 口径：跨本隔离/LRU 逐出与刷新/
+  覆盖不占名额/SessionSecrets 联动/DAN 封装）。
+- 新增 notebook_media_knote_test（9 项：信封往返/错密码/跨本解包拒绝/改密
+  保留 K_note/懒补槽持久化/无密码 fail-closed/明文无操作/跨本媒体隔离）。
+- 同步更新 storeImage 签名涉及的 6 个测试文件。
+
+#### 门禁基线调整（按 P3-3 纪律显式交代）
+- `editor_page` 库级行数棘轮 **7144 → 7158（+14）**：K_note 安全接线的必要
+  穿线成本（notebookId 字段/构造 +7、图片入库笔记本上下文守卫 +6、图片
+  provider 传参 +1），非展示件增长；part 数与边界不动。
+
 ### 外部锚补强 + 同步密钥清零 + 迁移可行性定案（2026-11-15 第二批，同版本增量，未 bump）
 
 #### 审计链外部追加锚（M-05 残余边界补强）

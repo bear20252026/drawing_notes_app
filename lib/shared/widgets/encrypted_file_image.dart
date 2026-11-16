@@ -31,6 +31,7 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     this.scale = 1.0,
     this.mediaCrypto,
     this.vaultService,
+    this.notebookId,
   }) : _path = null;
 
   /// 路径构造（H1 架构修复 2026-11）：表现层不再直接 `import 'dart:io'`
@@ -45,6 +46,7 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     this.scale = 1.0,
     this.mediaCrypto,
     this.vaultService,
+    this.notebookId,
   }) : file = null,
        _path = path;
 
@@ -65,6 +67,11 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
 
   /// VFS 媒体仓库（可选——'vfs:' 前缀对象读回用；媒体读取双轨）。
   final VaultService? vaultService;
+
+  /// 所属笔记本 ID（K_note 接线 2026-11-16）：DAN 密文按笔记本密钥解密、
+  /// AAD 绑定笔记本。null 时 DAN 密文 fail-closed（明文/VFS/DNV 不受影响）。
+  /// 不参与 ==/hashCode（缓存键仍为路径 + scale）。
+  final String? notebookId;
 
   @override
   Future<EncryptedFileImage> obtainKey(ImageConfiguration configuration) {
@@ -132,16 +139,18 @@ class EncryptedFileImage extends ImageProvider<EncryptedFileImage> {
     if (VaultFileCodec.isEncrypted(bytes)) {
       return VaultFileCodec.readImageBytes(file);
     }
-    // C-06：解密服务构造注入；null（测试直构未注入）时与全局单例
-    // 「会话密钥未注入」状态逐字同语义——DAN 抛 StateError，明文放行。
+    // C-06：解密服务构造注入；null（测试直构未注入）时 DAN 抛 StateError，
+    // 明文放行。K_note（2026-11-16）：DAN 密文还需笔记本上下文（notebookId）。
     final crypto = key.mediaCrypto;
+    final isDan = MediaCryptoService.isEncryptedFile(bytes);
     if (crypto == null) {
-      if (MediaCryptoService.isEncryptedFile(bytes)) {
-        throw StateError('会话密钥未注入（请先解锁）');
-      }
+      if (isDan) throw StateError('会话密钥未注入（请先解锁）');
       return bytes;
     }
-    return crypto.readMediaFile(bytes);
+    if (isDan && key.notebookId == null) {
+      throw StateError('DAN 媒体密文缺少笔记本上下文（无法解密）');
+    }
+    return crypto.readMediaFile(key.notebookId ?? '', bytes);
   }
 
   @override

@@ -146,6 +146,7 @@ class EditorPage extends ConsumerStatefulWidget {
     this.storage,
     this.docStorage,
     this.onChanged,
+    this.notebookId,
     this.mediaCrypto,
     this.openPresentation,
   }) : _initialDocument = document;
@@ -172,6 +173,11 @@ class EditorPage extends ConsumerStatefulWidget {
 
   /// 独立画作存储（Phase 6 自动保存用）。
   final StorageService? docStorage;
+
+  /// 所属笔记本 ID（K_note 接线 2026-11-16）：笔记页模式由 notes 传入——
+  /// 媒体按笔记本密钥加解密（storeImage / EncryptedFileImage）；独立画布
+  /// 模式为 null（走文档存储口径，无笔记本媒体）。
+  final String? notebookId;
 
   /// 打开放映页的回调（跨 feature 页面跳转契约，S4b 接口化）：
   /// 由笔记侧注入实现（跳转 PresentationPage），drawing 不直接依赖
