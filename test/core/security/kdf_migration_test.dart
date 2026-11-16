@@ -114,6 +114,41 @@ void main() {
       );
     });
 
+    test('fromSlotJson：argon2id 低于安全下限 fail-closed（L-2 收口）', () {
+      // 弱内存（m=1KiB 瞬爆参数）/弱时间/弱并行——低于 testLight 档一律拒绝。
+      for (final weak in [
+        {'kdf': 'argon2id', 'm': 1, 't': 2, 'p': 2},
+        {'kdf': 'argon2id', 'm': 4096, 't': 2, 'p': 2},
+        {'kdf': 'argon2id', 'm': 65536, 't': 0, 'p': 2},
+        {'kdf': 'argon2id', 'm': 65536, 't': 2, 'p': 0},
+      ]) {
+        expect(
+          () => KdfParams.fromSlotJson(
+            weak,
+            legacyDefault: const KdfParams.pbkdf2(1),
+          ),
+          throwsArgumentError,
+          reason: '$weak 低于安全下限应拒绝',
+        );
+      }
+      // testLight（8MiB/t1/p1）恰在下限上——合法，不误伤测试轻量腿。
+      expect(
+        KdfParams.fromSlotJson(
+          KdfParams.testLight.toSlotJson(),
+          legacyDefault: const KdfParams.pbkdf2(1),
+        ),
+        KdfParams.testLight,
+      );
+      // PBKDF2 读路径不设下限（历史弱槽位兼容，写入路径已删）。
+      expect(
+        KdfParams.fromSlotJson(
+          const KdfParams.pbkdf2(1).toSlotJson(),
+          legacyDefault: const KdfParams.pbkdf2(1),
+        ),
+        const KdfParams.pbkdf2(1),
+      );
+    });
+
     test('相等性：同参数相等；不同 KDF/参数不等', () {
       expect(KdfParams.argon2idProduction, KdfParams.argon2idProduction);
       expect(KdfParams.argon2idProduction, isNot(equals(KdfParams.testLight)));

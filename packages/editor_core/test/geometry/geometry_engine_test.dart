@@ -40,4 +40,41 @@ void main() {
     final point = GeometryEngine.line(x1: 0, y1: 0, x2: 0, y2: 0);
     expect(point.distanceTo(3, 4), closeTo(5, 1e-9));
   });
+
+  // L-9 收口（2026-11-16）：轴对齐与退化边界——既有 golden 只测对角线，
+  // 水平/垂直/零长/负坐标的包围盒与象限边界此前无覆盖。
+  test('轴对齐：水平/垂直线包围盒（含退化零面积）', () {
+    // 水平线（dy=0）——包围盒零高度。
+    final h = GeometryEngine.line(x1: 2, y1: 5, x2: 8, y2: 5).bounds;
+    expect((h.left, h.top, h.right, h.bottom), (2, 5, 8, 5));
+    // 垂直线（dx=0）——包围盒零宽度。
+    final v = GeometryEngine.line(x1: 3, y1: 1, x2: 3, y2: 9).bounds;
+    expect((v.left, v.top, v.right, v.bottom), (3, 1, 3, 9));
+    // 退化点——包围盒零面积。
+    final p = GeometryEngine.line(x1: 4, y1: 4, x2: 4, y2: 4).bounds;
+    expect((p.left, p.top, p.right, p.bottom), (4, 4, 4, 4));
+  });
+
+  test('轴对齐象限边界：dx=0/dy=0 归入确定象限（不抛错）', () {
+    // 垂直向下（dx=0,dy>0）→ 象限 2（dx>=0 && dy>=0）。
+    expect(GeometryEngine.line(x1: 0, y1: 0, x2: 0, y2: 5).quadrant, 2);
+    // 水平向右（dx>0,dy=0）→ 象限 2。
+    expect(GeometryEngine.line(x1: 0, y1: 0, x2: 5, y2: 0).quadrant, 2);
+    // 退化点（dx=0,dy=0）→ 象限 2（确定值，非异常）。
+    expect(GeometryEngine.line(x1: 1, y1: 1, x2: 1, y2: 1).quadrant, 2);
+  });
+
+  test('负坐标：包围盒与距离正确（画布平移后坐标可为负）', () {
+    final line = GeometryEngine.line(x1: -10, y1: -5, x2: -2, y2: -5);
+    final b = line.bounds;
+    expect((b.left, b.top, b.right, b.bottom), (-10, -5, -2, -5));
+    // 垂足在线段内（x=-6 在 [-10,-2]）——距离 = 3。
+    expect(line.distanceTo(-6, -2), closeTo(3, 1e-9));
+  });
+
+  test('近退化段（lengthSquared≤1e-8）：退化为点到端点距离', () {
+    // 端点差 1e-5 → lengthSquared=1e-10 ≤ 1e-8 → 走退化分支。
+    final tiny = GeometryEngine.line(x1: 0, y1: 0, x2: 1e-5, y2: 0);
+    expect(tiny.distanceTo(0, 3), closeTo(3, 1e-9));
+  });
 }

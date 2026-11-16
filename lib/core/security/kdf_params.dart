@@ -57,6 +57,16 @@ class KdfParams {
   static const int maxParallelism = 8; // 生产 p2 的 4 倍
   static const int maxPbkdf2Iterations = 1200000; // 生产 600k 的 2 倍（覆盖 100k 旧产线）
 
+  /// 读路径下限（L-2 收口 2026-11-16，纵深防御）：argon2id 槽位参数低于
+  /// 此值视为弱槽位 fail-closed 拒绝——防恶意分享文件用 `m=1KiB/t=1/p=1`
+  /// 这类瞬爆参数伪装合法槽位。下限取 [testLight]（8MiB/t1/p1）：生产
+  /// （64MiB/t2/p2）与测试轻量档均在其上，不误伤；低于测试档的参数无合法
+  /// 来源。**PBKDF2 不设下限**：读路径兼容历史弱槽位（见 [maxPbkdf2Iterations]
+  /// 注释），且 PBKDF2 写入路径已删除（M-06），新数据不可能产生弱 PBKDF2 槽。
+  static const int minMemoryKiB = 8192; // 8 MiB（= testLight，RFC 9106 低内存档下限）
+  static const int minTimeCost = 1;
+  static const int minParallelism = 1;
+
   /// 新槽位 KDF 默认值（生产恒为 [argon2idProduction]）。
   ///
   /// P0 收口：对外只读；测试注入走 [@visibleForTesting] setter——生产
@@ -101,17 +111,17 @@ class KdfParams {
       final t = json['t'];
       final p = json['p'];
       if (m is int &&
-          m > 0 &&
+          m >= minMemoryKiB &&
           m <= maxMemoryKiB &&
           t is int &&
-          t > 0 &&
+          t >= minTimeCost &&
           t <= maxTimeCost &&
           p is int &&
-          p > 0 &&
+          p >= minParallelism &&
           p <= maxParallelism) {
         return KdfParams.argon2id(memoryKiB: m, timeCost: t, parallelism: p);
       }
-      throw ArgumentError('Argon2id 槽位参数畸形或超限');
+      throw ArgumentError('Argon2id 槽位参数畸形、超限或低于安全下限');
     }
     if (k == kdfPbkdf2) {
       final it = json['iter'];

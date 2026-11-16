@@ -113,7 +113,9 @@ flutter test             # 必须全绿
 1. `软件质量工程门禁`（`quality_gate.yml`）带 `paths:` 过滤 ⇒ **纯文档提交不触发它**，那一轮只有 7 条。
    别把「7 条」读成「少跑了一条 = 有东西没过」，先按 event/paths 核对预期集合。
 2. `PR Platform` / `PR Quality` / `PR Security` **只在 `pull_request` 触发**，直推流程从不执行
-   （含 `tools/check_deps.sh` 与 `--obfuscate` 防逆向构建）⇒ 不能说它们已经验证过。
+   （含 `tools/check_deps.sh` 依赖过期门禁）⇒ 不能说它们已经验证过。
+   （注：`--obfuscate` 防逆向构建已回滚——出货命令不再混淆，见 release-build.yml；
+   L-6 收口 2026-11-16 删除此处过期表述。）
 3. `ci.yml` 是 `concurrency.cancel-in-progress: true` ⇒ 连推会让前一个 SHA 的 `CI` 判成
    `cancelled`（既不是失败也不是通过）。全量结论只能报在**最新 SHA** 上，被掐掉的旧 run
    要么等最新覆盖，要么 `gh run rerun <id>` 单独补跑。
