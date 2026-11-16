@@ -95,6 +95,20 @@ class AuditLogger {
   /// 落盘文件大小上限：超过即轮转为 audit.log.1（保留一代，再轮转即覆盖）。
   static const int _maxFileBytes = 1 << 20;
 
+  /// 归档段（append-only，2026-11-15）：轮转时把当前文件内容**追加**进
+  /// `audit.archive`（不删不覆盖），再执行 `.1` 轮转。外部锚校验在 `.1` +
+  /// 当前文件找不到凭据哈希时回退查归档——把「前缀被轮转丢弃」的 null
+  /// （无从判定）变回确定的 true（历史仍在归档且未被改写）。
+  ///
+  /// **磁盘上限**：归档只增不删会无界增长，故设 [_maxArchiveBytes] 上限；
+  /// 超限即**停止归档**（保留已有归档，新轮转不再追加）——宁可让更老的凭据
+  /// 回到 null，也不无界吃磁盘。上限是诚实的工程取舍，文档如实声明。
+  static const int _maxArchiveBytes = 8 << 20; // 8 MiB
+
+  /// 测试注入口：归档上限（生产恒 null 走 [_maxArchiveBytes]）。
+  @visibleForTesting
+  static int? maxArchiveBytesOverrideForTest;
+
   /// 测试注入口：轮转阈值（生产恒 null 走 [_maxFileBytes]；与
   /// `AppLockService.testPinKdfOverride`、`LockExemption.ttlOverrideForTest`
   /// 同一先例——测试需要把物理量级压进假时钟/短用例可达范围）。
@@ -139,6 +153,7 @@ class AuditLogger {
     _sinkFileCache = null;
     _resolverChecked = true;
     maxFileBytesOverrideForTest = null;
+    maxArchiveBytesOverrideForTest = null;
     _writeChain = Future<void>.value();
   }
 
@@ -186,9 +201,22 @@ class AuditLogger {
       try {
         final parent = sink.parent;
         if (!parent.existsSync()) await parent.create(recursive: true);
-        // 轮转：超阈值 → audit.log.1（覆盖上一代）。best-effort。
+        // 轮转：超阈值 → 先归档（append-only）再 audit.log.1（覆盖上一代）。
         final threshold = maxFileBytesOverrideForTest ?? _maxFileBytes;
         if (sink.existsSync() && sink.lengthSync() > threshold) {
+          // 归档段：把即将被轮转覆盖的历史追加进 audit.archive（不删不覆盖），
+          // 供外部锚校验回退查找。超上限停止归档（诚实取舍，见常量注释）。
+          final archive = File('${sink.path}.archive');
+          final cap = maxArchiveBytesOverrideForTest ?? _maxArchiveBytes;
+          final archiveLen = archive.existsSync() ? archive.lengthSync() : 0;
+          if (archiveLen + sink.lengthSync() <= cap) {
+            await archive.writeAsString(
+              await sink.readAsString(),
+              mode: FileMode.append,
+              flush: false,
+            );
+            await AppDataRoot.tightenFilePermissions(archive);
+          }
           final rotated = File('${sink.path}.1');
           if (rotated.existsSync()) await rotated.delete();
           await sink.rename(rotated.path);
@@ -414,27 +442,22 @@ class AuditLogger {
 
   /// 用外部锚凭据校验当前落盘链是否仍包含导出时那一条历史。
   ///
-  /// **判据（哈希锚定，2026-11-15 实测定案）**：
-  /// - 链上存在**哈希等于凭据尾哈希**的条目 → `true`：该条历史仍在且未被改写
-  ///   （HMAC 输入含全部前缀载荷，重算者无法伪造这个值）。**这是本机制的核心
-  ///   价值**：整链重算后必然找不到原哈希。
-  /// - 找不到 → `null`：**无从判定**。因为「找不到」有两种可能且落盘信息不足
-  ///   以区分：①该历史被改写/删除（真篡改）；②该历史已被日志轮转丢弃（正常
-  ///   业务）。**宁可报「无从判定」也不谎报 false 或 true。**
-  /// - 凭据格式非法 → `false`（这是确定的无效输入，不是判定歧义）。
-  /// - 未落盘 / 锚未加载 / 读失败 / 坏行 → `null`。
+  /// **判据（哈希锚定 + 归档回退，2026-11-15 实测定案）**：
+  /// - 活跃链（`.1` + 当前）或**归档段**存在哈希等于凭据尾哈希的条目 →
+  ///   `true`：该条历史仍在且未被改写（HMAC 输入含全部前缀载荷，重算者无法
+  ///   伪造这个值）。**这是本机制的核心价值**：整链重算后必然找不到原哈希。
+  /// - 都找不到 → `null`：**无从判定**（①被改写/删除；②历史已超出归档上限被
+  ///   丢弃；③攻击者连归档一并删改）。**宁可报无从判定也不谎报。**
+  /// - 凭据格式非法 → `false`；未落盘/锚未加载/读失败/坏行 → `null`。
   ///
-  /// **三条实测教训（勿再走回头路，均已验证失败）**：
-  /// 1. **按位置序号定位**：轮转是整文件搬移（`sink.rename(.1)`），`.1` 会被
-  ///    新一代覆盖，「第 N 条」轮转后已是另一条记录 → 误判。
-  /// 2. **条目计数下界**：轮转后剩余总数可能仍**大于**凭据计数（实测凭据 2
-  ///    条、轮转后剩 4 条）→ 误判。
-  /// 3. **世代号覆盖**：同一世代内也会多次轮转，世代号无法标识「这段历史是否
-  ///    还在盘上」→ 误判。
+  /// **归档段（append-only）**：轮转时先把当前文件追加进 `audit.archive`
+  /// （不删不覆盖，上限 [_maxArchiveBytes]，超限停止归档）。由此「前缀被轮转
+  /// 丢弃」不再返回 null——历史在归档里仍可命中 true。null 窗口收窄到
+  /// 「超出归档上限」或「归档也被攻击者破坏」。
   ///
-  /// **消费方必须如实转达**：`null` 不等于「通过」，也不等于「被篡改」——它
-  /// 意味着「凭据已过期或历史异常，请重新导出凭据」。要缩小这个歧义窗口，
-  /// 需要**不轮转的归档段**或**外部存档**，属下一步能力。
+  /// **残余边界（如实）**：归档与日志同盘——同时取得锚密钥+文件写权限的攻击者
+  /// 可连归档一并删改，此时凭据校验 null（不谎报）。外部锚凭据存独立介质才是
+  /// 最后一道。三条历史教训（位置序号/计数下界/世代号覆盖均误判）见 git 历史。
   static bool? verifyAgainstExternalAnchor(Map<String, Object?> anchor) {
     final sink = _sinkFileCache;
     if (sink == null || _anchorKey == null) return null;
@@ -451,12 +474,18 @@ class AuditLogger {
   }
 
   /// 扫描落盘链查找 [target] 哈希是否命中。
+  /// 顺序：`.1` + 当前文件（活跃链）→ 归档段（append-only 历史）。
+  /// 归档命中同样判 true：归档只增不删，哈希在归档里即「历史仍在且未被改写」。
   /// 读失败或坏行返回 null（无从判定，不谎报）。
   static bool? _scanFileChainForHash(String target) {
     final sink = _sinkFileCache;
     if (sink == null) return null;
     var found = false;
-    for (final file in [File('${sink.path}.1'), sink]) {
+    for (final file in [
+      File('${sink.path}.1'),
+      sink,
+      File('${sink.path}.archive'),
+    ]) {
       if (!file.existsSync()) continue;
       final List<String> lines;
       try {
@@ -557,20 +586,32 @@ class AuditLogger {
     );
   }
 
-  /// 文件侧回读重放：读 `audit.log.1`（轮转前代）+ `audit.log`（当前），
+  /// 文件侧回读重放：读 **归档段 + `audit.log.1` + `audit.log`**（时间序），
   /// 逐行按条目模式重算哈希（HMAC/SHA-256）并核对 prevHash 链接。
   ///
-  /// M-05：带 `gen`+`mac` 的条目走 HMAC 校验，且**世代号单调不减**——每进程
-  /// 启动落一条 `audit.genesis` 世代标记（世代 +1）。整段删除/跨段拼接会使
-  /// 世代序列出现缺口或回退而被检出（无锚密钥无法伪造合法 HMAC 世代标记）。
-  /// 旧无密钥条目（无 mac）按 SHA-256 校验、不参与世代约束（升级前历史）。
+  /// **归档补全前缀（2026-11-15）**：多次轮转后 `.1` 的起点是 mid-chain，其
+  /// prevHash 指向已被覆盖的历史——旧版「prev==prev 或 genesis」判据会误报
+  /// 断链。归档段（append-only）保留了被轮转丢的前缀，把它纳入重放即可让
+  /// `.1` 首条的 prevHash 在归档里找到前驱，链恢复连续。
+  ///
+  /// **链接判据**：每条 prevHash 必须等于「上一条 hash」或 genesis（新进程段
+  /// 首）。用哈希→世代映射校验，归档/`.1`/当前三段拼接后必须自洽。
+  /// **世代单调**：带 mac 条目世代号不得回退（整段删除/拼接会破坏单调）。
+  /// 旧无密钥条目（无 mac）按 SHA-256 校验、不参与世代约束。
   /// sink 未解析时跳过。坏行/读失败一律 fail-closed 判为不完整。
   static bool _verifyFileChain() {
     final sink = _sinkFileCache;
     if (sink == null) return true;
-    var prev = _genesisHash;
-    var lastGen = 0; // 已见最大世代号（单调约束）。
-    for (final file in [File('${sink.path}.1'), sink]) {
+    // 收集三段全部有效条目（时间序：归档→.1→当前），并标记每条是否其所在
+    // 文件的首条（用于容忍「轮转边界缺口」——归档不保证覆盖所有轮转代）。
+    final entries = <Map<String, dynamic>>[];
+    final isFileFirst = <bool>[];
+    final seen = <String>{};
+    for (final file in [
+      File('${sink.path}.archive'),
+      File('${sink.path}.1'),
+      sink,
+    ]) {
       if (!file.existsSync()) continue;
       final List<String> lines;
       try {
@@ -578,8 +619,9 @@ class AuditLogger {
       } catch (_) {
         return false; // 读失败 = 无法确认完整性（fail-closed）。
       }
+      var first = true;
       for (final line in lines) {
-        if (line.trim().isEmpty) continue; // 容忍尾部空行。
+        if (line.trim().isEmpty) continue;
         final Map<String, dynamic> map;
         try {
           final decoded = jsonDecode(line);
@@ -588,43 +630,65 @@ class AuditLogger {
         } catch (_) {
           return false; // 坏行 = 篡改/损坏。
         }
-        final time = map['time'];
-        final operation = map['operation'];
-        final success = map['success'];
-        final detail = map['detail'];
-        final prevHash = map['prevHash'];
-        final hash = map['hash'];
-        final mac = map['mac'];
-        final gen = map['gen'];
-        if (time is! String ||
-            operation is! String ||
-            success is! bool ||
-            (detail != null && detail is! String) ||
-            prevHash is! String ||
-            hash is! String ||
-            (mac != null && mac is! String) ||
-            (gen != null && gen is! int)) {
+        if (map['time'] is! String ||
+            map['operation'] is! String ||
+            map['success'] is! bool ||
+            (map['detail'] != null && map['detail'] is! String) ||
+            map['prevHash'] is! String ||
+            map['hash'] is! String ||
+            (map['mac'] != null && map['mac'] is! String) ||
+            (map['gen'] != null && map['gen'] is! int)) {
           return false;
         }
-        // 段中断链（删除/插入）——哈希是秘密值，走恒定时间比较。
-        if (!ct.constantTimeEquals(prevHash, prev) &&
-            !ct.constantTimeEquals(prevHash, _genesisHash)) {
-          return false;
-        }
-        if (!_entryHashMatches(mac as String?, gen as int?, time, operation,
-            success, detail as String?, prevHash, hash)) {
-          return false; // 哈希不符（字段被篡改）。
-        }
-        // 世代单调：带 mac 的条目世代号不得回退（整段删除/拼接会破坏单调）。
-        if (mac != null) {
-          final g = gen as int;
-          if (g < lastGen) return false; // 世代回退 = 删段/拼段。
-          lastGen = g;
-        }
-        prev = hash;
+        // 归档与 .1/当前可能重叠（同一条目两处都有）——按哈希去重，保留首次
+        // （归档）出现，避免重复条目造成假断链。
+        final h = map['hash'] as String;
+        if (seen.contains(h)) continue;
+        seen.add(h);
+        entries.add(map);
+        isFileFirst.add(first);
+        first = false;
       }
     }
+    var prev = _genesisHash;
+    var lastGen = 0;
+    for (var i = 0; i < entries.length; i++) {
+      final m = entries[i];
+      final prevHash = m['prevHash'] as String;
+      final hash = m['hash'] as String;
+      final mac = m['mac'] as String?;
+      final gen = m['gen'] as int?;
+      // 哈希自洽（HMAC/SHA-256 重算）——任何字段被篡改都检出，与链接无关。
+      if (!_entryHashMatches(mac, gen, m['time'] as String,
+          m['operation'] as String, m['success'] as bool, m['detail'] as String?,
+          prevHash, hash)) {
+        return false;
+      }
+      // 链接：prevHash 必须是上一条 hash 或 genesis（新进程段首）。
+      final linked = ct.constantTimeEquals(prevHash, prev) ||
+          ct.constantTimeEquals(prevHash, _genesisHash);
+      if (!linked) {
+        // 仅容忍「文件边界的轮转缺口」：该条是其文件首条且前驱已被轮转丢弃
+        // （不在任何段里）。段内删除/插入（非首条断链）仍判 false。
+        final boundaryGap = isFileFirst[i] && !_hashPresent(prevHash, entries);
+        if (!boundaryGap) return false;
+      }
+      if (mac != null) {
+        final g = gen!;
+        if (g < lastGen) return false; // 世代回退 = 删段/拼段。
+        lastGen = g;
+      }
+      prev = hash;
+    }
     return true;
+  }
+
+  /// [target] 哈希是否存在于已收集条目中（供轮转边界缺口判定）。
+  static bool _hashPresent(String target, List<Map<String, dynamic>> entries) {
+    for (final m in entries) {
+      if (ct.constantTimeEquals(m['hash'] as String, target)) return true;
+    }
+    return false;
   }
 
   static String _payload(
