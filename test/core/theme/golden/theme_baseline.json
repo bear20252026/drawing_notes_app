@@ -1,0 +1,806 @@
+{
+  "light_normal": {
+    "useMaterial3": true,
+    "brightness": "light",
+    "colorScheme": {
+      "brightness": "light",
+      "primary": 4278216396,
+      "onPrimary": 4294967295,
+      "primaryContainer": 4292667903,
+      "onPrimaryContainer": 4278854976,
+      "secondary": 4285427315,
+      "onSecondary": 4294967295,
+      "secondaryContainer": 4293519851,
+      "onSecondaryContainer": 4281084974,
+      "tertiary": 4281389400,
+      "onTertiary": 4278926622,
+      "tertiaryContainer": 4292277726,
+      "onTertiaryContainer": 4278926622,
+      "error": 4294916912,
+      "onError": 4294967295,
+      "errorContainer": 4294957782,
+      "onErrorContainer": 4285209364,
+      "surface": 4294967295,
+      "onSurface": 4280098079,
+      "surfaceContainerHighest": 4293783023,
+      "onSurfaceVariant": 4285427315,
+      "outline": 4287006347,
+      "outlineVariant": 4292006615,
+      "shadow": 4278190080,
+      "scrim": 4278190080,
+      "inverseSurface": 4281084974,
+      "onInverseSurface": 4294309367,
+      "inversePrimary": 4278216396,
+      "surfaceTint": 4278216396
+    },
+    "scaffoldBackgroundColor": 4294309367,
+    "focusColor": 4278219235,
+    "visualDensity": "0.0,0.0",
+    "tapTarget": "padded",
+    "splashFactory": "Instance of '_InkSparkleFactory'",
+    "appBar": {
+      "bg": 4294309367,
+      "fg": 4280098079,
+      "elev": 0.0,
+      "scrolled": 0.0,
+      "tint": 0,
+      "titleSpacing": 20.0,
+      "toolbarHeight": 60.0,
+      "titleStyle": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": -0.25,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "card": {
+      "color": 4294967295,
+      "elev": 0.0,
+      "margin": "EdgeInsets.zero",
+      "tint": 0,
+      "shape": "RoundedRectangleBorder(BorderSide(color: Color(alpha: 0.0800, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB)), BorderRadius.circular(18.0))",
+      "clip": "antiAlias"
+    },
+    "divider": {
+      "color": 335544320,
+      "thickness": 1.0,
+      "space": 1.0
+    },
+    "input": {
+      "filled": true,
+      "fillColor": 4294111991,
+      "padding": "EdgeInsets(14.0, 12.0, 14.0, 12.0)",
+      "border": "OutlineInputBorder()",
+      "enabled": "OutlineInputBorder()",
+      "focused": "OutlineInputBorder()"
+    },
+    "tabBar": {
+      "indicatorSize": "tab",
+      "dividerColor": 0,
+      "labelColor": 4278854976,
+      "unselected": 4285427315,
+      "labelStyle": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "unselectedStyle": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "indicator": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.8627, green: 0.9137, blue: 1.0000, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(11.0))"
+    },
+    "snackBar": {
+      "behavior": "floating",
+      "elev": 0.0,
+      "bg": 4281084974,
+      "contentStyle": {
+        "color": 4294309367,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(11.0))"
+    },
+    "dialog": {
+      "elev": 24.0,
+      "shadow": 939524096,
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(18.0))",
+      "titleStyle": {
+        "color": 4280098079,
+        "fontSize": 17.0,
+        "fontWeight": 5,
+        "letterSpacing": -0.35,
+        "height": null,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "contentStyle": {
+        "color": 4285427315,
+        "fontSize": 15.0,
+        "fontWeight": 3,
+        "letterSpacing": -0.374,
+        "height": 1.47,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "actionsPadding": "EdgeInsets(24.0, 0.0, 24.0, 16.0)"
+    },
+    "tooltip": {
+      "wait": 450,
+      "decoration": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.1725, green: 0.1725, blue: 0.1804, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(8.0))",
+      "textStyle": {
+        "color": 4294309367,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "textTheme": {
+      "titleLarge": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "labelLarge": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodyMedium": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodySmall": {
+        "color": 4280098079,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "transitions": {
+      "android": "Instance of 'ZoomPageTransitionsBuilder'",
+      "windows": "Instance of 'ZoomPageTransitionsBuilder'",
+      "linux": "Instance of 'ZoomPageTransitionsBuilder'",
+      "macOS": "Instance of 'ZoomPageTransitionsBuilder'",
+      "iOS": "Instance of 'ZoomPageTransitionsBuilder'"
+    }
+  },
+  "dark_normal": {
+    "useMaterial3": true,
+    "brightness": "dark",
+    "colorScheme": {
+      "brightness": "dark",
+      "primary": 4280915967,
+      "onPrimary": 4279247428,
+      "primaryContainer": 4280894841,
+      "onPrimaryContainer": 4292667647,
+      "secondary": 4290758620,
+      "onSecondary": 4280625978,
+      "secondaryContainer": 4282008405,
+      "onSecondaryContainer": 4293060854,
+      "tertiary": 4287879620,
+      "onTertiary": 4278466606,
+      "tertiaryContainer": 4280176965,
+      "onTertiaryContainer": 4291098086,
+      "error": 4294948011,
+      "onError": 4285071365,
+      "errorContainer": 4287823882,
+      "onErrorContainer": 4294957782,
+      "surface": 4279770926,
+      "onSurface": 4293060852,
+      "surfaceContainerHighest": 4281613648,
+      "onSurfaceVariant": 4291021789,
+      "outline": 4287469482,
+      "outlineVariant": 4282337371,
+      "shadow": 4278190080,
+      "scrim": 4278190080,
+      "inverseSurface": 4293060852,
+      "onInverseSurface": 4281087045,
+      "inversePrimary": 4282738857,
+      "surfaceTint": 4280915967
+    },
+    "scaffoldBackgroundColor": 4279244065,
+    "focusColor": 4280915967,
+    "visualDensity": "0.0,0.0",
+    "tapTarget": "padded",
+    "splashFactory": "Instance of '_InkSparkleFactory'",
+    "appBar": {
+      "bg": 4279244065,
+      "fg": 4293060852,
+      "elev": 0.0,
+      "scrolled": 0.0,
+      "tint": 0,
+      "titleSpacing": 20.0,
+      "toolbarHeight": 60.0,
+      "titleStyle": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": -0.25,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "card": {
+      "color": 4279770926,
+      "elev": 0.0,
+      "margin": "EdgeInsets.zero",
+      "tint": 0,
+      "shape": "RoundedRectangleBorder(BorderSide(color: Color(alpha: 0.1200, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: ColorSpace.sRGB)), BorderRadius.circular(18.0))",
+      "clip": "antiAlias"
+    },
+    "divider": {
+      "color": 536870911,
+      "thickness": 1.0,
+      "space": 1.0
+    },
+    "input": {
+      "filled": true,
+      "fillColor": 4280429373,
+      "padding": "EdgeInsets(14.0, 12.0, 14.0, 12.0)",
+      "border": "OutlineInputBorder()",
+      "enabled": "OutlineInputBorder()",
+      "focused": "OutlineInputBorder()"
+    },
+    "tabBar": {
+      "indicatorSize": "tab",
+      "dividerColor": 0,
+      "labelColor": 4292667647,
+      "unselected": 4291021789,
+      "labelStyle": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "unselectedStyle": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "indicator": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.1608, green: 0.2706, blue: 0.4745, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(11.0))"
+    },
+    "snackBar": {
+      "behavior": "floating",
+      "elev": 0.0,
+      "bg": 4293060852,
+      "contentStyle": {
+        "color": 4281087045,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(11.0))"
+    },
+    "dialog": {
+      "elev": 24.0,
+      "shadow": 939524096,
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(18.0))",
+      "titleStyle": {
+        "color": 4293060852,
+        "fontSize": 17.0,
+        "fontWeight": 5,
+        "letterSpacing": -0.35,
+        "height": null,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "contentStyle": {
+        "color": 4291021789,
+        "fontSize": 15.0,
+        "fontWeight": 3,
+        "letterSpacing": -0.374,
+        "height": 1.47,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "actionsPadding": "EdgeInsets(24.0, 0.0, 24.0, 16.0)"
+    },
+    "tooltip": {
+      "wait": 450,
+      "decoration": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.8863, green: 0.9098, blue: 0.9569, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(8.0))",
+      "textStyle": {
+        "color": 4281087045,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "textTheme": {
+      "titleLarge": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "labelLarge": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodyMedium": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodySmall": {
+        "color": 4293060852,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "transitions": {
+      "android": "Instance of 'ZoomPageTransitionsBuilder'",
+      "windows": "Instance of 'ZoomPageTransitionsBuilder'",
+      "linux": "Instance of 'ZoomPageTransitionsBuilder'",
+      "macOS": "Instance of 'ZoomPageTransitionsBuilder'",
+      "iOS": "Instance of 'ZoomPageTransitionsBuilder'"
+    }
+  },
+  "light_high": {
+    "useMaterial3": true,
+    "brightness": "light",
+    "colorScheme": {
+      "brightness": "light",
+      "primary": 4278205849,
+      "onPrimary": 4294967295,
+      "primaryContainer": 4278205849,
+      "onPrimaryContainer": 4294967295,
+      "secondary": 4279900698,
+      "onSecondary": 4294967295,
+      "secondaryContainer": 4293322470,
+      "onSecondaryContainer": 4278190080,
+      "tertiary": 4278209843,
+      "onTertiary": 4294967295,
+      "tertiaryContainer": 4278209843,
+      "onTertiaryContainer": 4294967295,
+      "error": 4289724448,
+      "onError": 4294967295,
+      "errorContainer": 4289724448,
+      "onErrorContainer": 4294967295,
+      "surface": 4294967295,
+      "onSurface": 4278190080,
+      "surfaceContainerHighest": 4293322470,
+      "onSurfaceVariant": 4278190080,
+      "outline": 4278190080,
+      "outlineVariant": 4278190080,
+      "shadow": 4278190080,
+      "scrim": 4278190080,
+      "inverseSurface": 4278190080,
+      "onInverseSurface": 4294967295,
+      "inversePrimary": 4288269567,
+      "surfaceTint": 4278205849
+    },
+    "scaffoldBackgroundColor": 4294309367,
+    "focusColor": 4278205849,
+    "visualDensity": "0.0,0.0",
+    "tapTarget": "padded",
+    "splashFactory": "Instance of '_InkSparkleFactory'",
+    "appBar": {
+      "bg": 4294309367,
+      "fg": 4278190080,
+      "elev": 0.0,
+      "scrolled": 0.0,
+      "tint": 0,
+      "titleSpacing": 20.0,
+      "toolbarHeight": 60.0,
+      "titleStyle": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": -0.25,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "card": {
+      "color": 4294967295,
+      "elev": 0.0,
+      "margin": "EdgeInsets.zero",
+      "tint": 0,
+      "shape": "RoundedRectangleBorder(BorderSide, BorderRadius.circular(18.0))",
+      "clip": "antiAlias"
+    },
+    "divider": {
+      "color": 4278190080,
+      "thickness": 1.0,
+      "space": 1.0
+    },
+    "input": {
+      "filled": true,
+      "fillColor": 4294111991,
+      "padding": "EdgeInsets(14.0, 12.0, 14.0, 12.0)",
+      "border": "OutlineInputBorder()",
+      "enabled": "OutlineInputBorder()",
+      "focused": "OutlineInputBorder()"
+    },
+    "tabBar": {
+      "indicatorSize": "tab",
+      "dividerColor": 0,
+      "labelColor": 4294967295,
+      "unselected": 4278190080,
+      "labelStyle": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "unselectedStyle": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "indicator": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.0000, green: 0.2392, blue: 0.6000, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(11.0))"
+    },
+    "snackBar": {
+      "behavior": "floating",
+      "elev": 0.0,
+      "bg": 4278190080,
+      "contentStyle": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(11.0))"
+    },
+    "dialog": {
+      "elev": 24.0,
+      "shadow": 939524096,
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(18.0))",
+      "titleStyle": {
+        "color": 4278190080,
+        "fontSize": 17.0,
+        "fontWeight": 5,
+        "letterSpacing": -0.35,
+        "height": null,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "contentStyle": {
+        "color": 4278190080,
+        "fontSize": 15.0,
+        "fontWeight": 3,
+        "letterSpacing": -0.374,
+        "height": 1.47,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "actionsPadding": "EdgeInsets(24.0, 0.0, 24.0, 16.0)"
+    },
+    "tooltip": {
+      "wait": 450,
+      "decoration": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(8.0))",
+      "textStyle": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "textTheme": {
+      "titleLarge": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "labelLarge": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodyMedium": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodySmall": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "transitions": {
+      "android": "Instance of 'ZoomPageTransitionsBuilder'",
+      "windows": "Instance of 'ZoomPageTransitionsBuilder'",
+      "linux": "Instance of 'ZoomPageTransitionsBuilder'",
+      "macOS": "Instance of 'ZoomPageTransitionsBuilder'",
+      "iOS": "Instance of 'ZoomPageTransitionsBuilder'"
+    }
+  },
+  "dark_high": {
+    "useMaterial3": true,
+    "brightness": "dark",
+    "colorScheme": {
+      "brightness": "dark",
+      "primary": 4288269567,
+      "onPrimary": 4278190080,
+      "primaryContainer": 4288269567,
+      "onPrimaryContainer": 4278190080,
+      "secondary": 4294967295,
+      "onSecondary": 4278190080,
+      "secondaryContainer": 4279900698,
+      "onSecondaryContainer": 4294967295,
+      "tertiary": 4286578644,
+      "onTertiary": 4278190080,
+      "tertiaryContainer": 4278209843,
+      "onTertiaryContainer": 4294967295,
+      "error": 4294929259,
+      "onError": 4278190080,
+      "errorContainer": 4287823882,
+      "onErrorContainer": 4294967295,
+      "surface": 4278190080,
+      "onSurface": 4294967295,
+      "surfaceContainerHighest": 4279900698,
+      "onSurfaceVariant": 4294967295,
+      "outline": 4294967295,
+      "outlineVariant": 4294967295,
+      "shadow": 4278190080,
+      "scrim": 4278190080,
+      "inverseSurface": 4294967295,
+      "onInverseSurface": 4278190080,
+      "inversePrimary": 4278205849,
+      "surfaceTint": 4288269567
+    },
+    "scaffoldBackgroundColor": 4279244065,
+    "focusColor": 4288269567,
+    "visualDensity": "0.0,0.0",
+    "tapTarget": "padded",
+    "splashFactory": "Instance of '_InkSparkleFactory'",
+    "appBar": {
+      "bg": 4279244065,
+      "fg": 4294967295,
+      "elev": 0.0,
+      "scrolled": 0.0,
+      "tint": 0,
+      "titleSpacing": 20.0,
+      "toolbarHeight": 60.0,
+      "titleStyle": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": -0.25,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "card": {
+      "color": 4278190080,
+      "elev": 0.0,
+      "margin": "EdgeInsets.zero",
+      "tint": 0,
+      "shape": "RoundedRectangleBorder(BorderSide(color: Color(alpha: 1.0000, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: ColorSpace.sRGB)), BorderRadius.circular(18.0))",
+      "clip": "antiAlias"
+    },
+    "divider": {
+      "color": 4294967295,
+      "thickness": 1.0,
+      "space": 1.0
+    },
+    "input": {
+      "filled": true,
+      "fillColor": 4280429373,
+      "padding": "EdgeInsets(14.0, 12.0, 14.0, 12.0)",
+      "border": "OutlineInputBorder()",
+      "enabled": "OutlineInputBorder()",
+      "focused": "OutlineInputBorder()"
+    },
+    "tabBar": {
+      "indicatorSize": "tab",
+      "dividerColor": 0,
+      "labelColor": 4278190080,
+      "unselected": 4294967295,
+      "labelStyle": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": 5,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "unselectedStyle": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "indicator": "BoxDecoration(color: Color(alpha: 1.0000, red: 0.6000, green: 0.8000, blue: 1.0000, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(11.0))"
+    },
+    "snackBar": {
+      "behavior": "floating",
+      "elev": 0.0,
+      "bg": 4294967295,
+      "contentStyle": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(11.0))"
+    },
+    "dialog": {
+      "elev": 24.0,
+      "shadow": 939524096,
+      "shape": "RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.circular(18.0))",
+      "titleStyle": {
+        "color": 4294967295,
+        "fontSize": 17.0,
+        "fontWeight": 5,
+        "letterSpacing": -0.35,
+        "height": null,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "contentStyle": {
+        "color": 4294967295,
+        "fontSize": 15.0,
+        "fontWeight": 3,
+        "letterSpacing": -0.374,
+        "height": 1.47,
+        "fontFamily": null,
+        "inherit": true
+      },
+      "actionsPadding": "EdgeInsets(24.0, 0.0, 24.0, 16.0)"
+    },
+    "tooltip": {
+      "wait": 450,
+      "decoration": "BoxDecoration(color: Color(alpha: 1.0000, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: ColorSpace.sRGB), borderRadius: BorderRadius.circular(8.0))",
+      "textStyle": {
+        "color": 4278190080,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "textTheme": {
+      "titleLarge": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "labelLarge": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodyMedium": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      },
+      "bodySmall": {
+        "color": 4294967295,
+        "fontSize": null,
+        "fontWeight": null,
+        "letterSpacing": null,
+        "height": null,
+        "fontFamily": "Roboto",
+        "inherit": true
+      }
+    },
+    "transitions": {
+      "android": "Instance of 'ZoomPageTransitionsBuilder'",
+      "windows": "Instance of 'ZoomPageTransitionsBuilder'",
+      "linux": "Instance of 'ZoomPageTransitionsBuilder'",
+      "macOS": "Instance of 'ZoomPageTransitionsBuilder'",
+      "iOS": "Instance of 'ZoomPageTransitionsBuilder'"
+    }
+  }
+}

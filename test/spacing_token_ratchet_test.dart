@@ -101,7 +101,11 @@ const Map<String, int> _baseline = {
   'lib/features/notes/presentation/search_page.dart': 3,
   'lib/features/drawing/presentation/selection_bar.dart': 3,
   'lib/features/drawing/presentation/shape_library.dart': 3,
-  'lib/core/theme/app_design.dart': 2,
+  // 主题适配层（2026-11-16）：原 app_design 的 2 处裸间距（输入框
+  // contentPadding 14/12、描边按钮 padding 16/12——Material 装配语法，
+  // 非 AppleSpacing 刻度值）随 ThemeData 装配**原样搬移**到适配器；
+  // app_design 归零删行，适配器登记同值 2。总量不变，非新增裸间距。
+  'lib/core/theme/material_theme_adapter.dart': 2,
   'lib/features/doc/presentation/doc_editor_selection.dart': 2,
   'lib/features/doc/presentation/doc_editor_toolbar.dart': 2,
   'lib/core/theme/apple_design.dart': 2,

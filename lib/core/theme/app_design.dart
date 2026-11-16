@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'app_theme_spec.dart';
 import 'apple_contrast.dart';
 import 'apple_design.dart';
-import 'apple_elevation.dart';
-import 'apple_focus.dart';
-// 同域（core/theme）令牌引用：TooltipThemeData.waitDuration 走
-// AppleMotion.tooltipDelay（M-10），不在此处自造数值。
-import 'apple_motion.dart';
+import 'material_theme_adapter.dart';
 
 // `ThemeMode` 的落盘 wire 名适配（CTL-03 ②）——做成 part 而不是独立库，
 // 是为了让 `core/di/providers.dart` 不必为它新增一条 import 边
@@ -43,7 +40,9 @@ abstract final class AppDesign {
   static const Color lightSubtleSurface = Color(0xFFF2F2F7);
 
   // ---- Apple 结构风格（两种模式一致）----
-  static const double pagePadding = 20;
+  // 主题适配层（2026-11-16）：pagePadding 权威已收编进 AppThemeSpec
+  //（斩断适配器→本文件的循环边）；此处保留别名，80+ 消费文件零改动。
+  static const double pagePadding = AppThemeSpec.pagePadding;
   static const double compactPagePadding = 12;
 
   /// 卡片圆角 = `AppleRadius.lg`（DESIGN.md:425「Store utility cards」18px）。
@@ -78,252 +77,21 @@ abstract final class AppDesign {
     contrast: highContrast ? AppleContrast.high : AppleContrast.normal,
   );
 
-  static ThemeData _theme(Brightness brightness, AppleContrast contrast) {
-    final isDark = brightness == Brightness.dark;
-    final highContrast = contrast == AppleContrast.high;
-
-    // 颜色随模式切换：明亮=Apple，黑暗=深蓝；高对比度档另走一套配色
-    //（无障碍优先于风格——见 AppleContrast 的说明）。
-    final colorScheme = highContrast
-        ? (isDark ? _highContrastDarkScheme() : _highContrastLightScheme())
-        : (isDark ? _navyScheme() : _appleLightScheme());
-
-    final base = ThemeData(
-      useMaterial3: true,
-      brightness: brightness,
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: isDark ? darkCanvas : lightCanvas,
-      splashFactory: InkSparkle.splashFactory,
-      visualDensity: VisualDensity.standard,
-      materialTapTargetSize: MaterialTapTargetSize.padded,
-      // 焦点环底色：与 AppleFocus 的 2px 描边共存（底色 12% + 描边 2px）。
-      // DESIGN.md:8 `primary-focus: "#0071e3"`、:300「focus ring on buttons
-      // (`outline: 2px solid`)」。此前主题层完全没有焦点态。
-      focusColor: AppleFocus.colorFor(brightness, highContrast: highContrast),
-    );
-
-    return base.copyWith(
-      appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? darkCanvas : lightCanvas,
-        foregroundColor: colorScheme.onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        titleSpacing: pagePadding,
-        toolbarHeight: 60,
-        titleTextStyle: base.textTheme.titleLarge?.copyWith(
-          color: colorScheme.onSurface,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.25,
+  /// 主题装配薄委托（主题适配层 2026-11-16）：决策在 [AppThemeSpec]
+  /// （零 Material 依赖的内部模型），Material 装配语法在
+  /// [MaterialThemeAdapter]（唯一转换点）。本方法只做枚举→布尔映射。
+  /// 产出与重构前逐字段等价（黄金基线回归钉死，四档全覆盖）。
+  static ThemeData _theme(Brightness brightness, AppleContrast contrast) =>
+      MaterialThemeAdapter.themeOf(
+        AppThemeSpec.resolve(
+          brightness: brightness,
+          highContrast: contrast == AppleContrast.high,
         ),
-      ),
-      cardTheme: CardThemeData(
-        color: colorScheme.surface,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-          // 发丝线（DESIGN.md:395「1px rgba(0,0,0,0.08)」）。此前用
-          // outlineVariant（≈18% 灰），卡片看起来像描边盒子而非苹果的轻分层。
-          side: BorderSide(
-            color: AppleHairline.colorFor(
-              brightness,
-              highContrast: highContrast,
-            ),
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-      ),
-      dividerTheme: DividerThemeData(
-        // 同一条发丝线：列表/侧栏分隔与卡片边界共用一套语言。
-        color: AppleHairline.colorFor(brightness, highContrast: highContrast),
-        thickness: AppleHairline.width,
-        space: 1,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: isDark ? darkSubtleSurface : lightSubtleSurface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(controlRadius),
-          // 2px Focus Blue（DESIGN.md:300）。此前是 1.5px primary，
-          // 与「焦点 = 2px 描边」的明文规定不符。
-          borderSide: BorderSide(
-            color: AppleFocus.colorFor(brightness, highContrast: highContrast),
-            width: AppleFocus.width,
-          ),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style:
-            FilledButton.styleFrom(
-              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
-              textStyle: base.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ).copyWith(
-              // C8：M3 状态层（hover 8% / focus 12% / pressed 12%），叠 onSurface
-              // 的中性半透明——不引入第二强调色。
-              // 注：styleFrom 的 overlayColor 只收单一 Color（全状态同色），
-              // 要按状态区分必须走 copyWith 的 WidgetStateProperty 重载。
-              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
-            ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style:
-            OutlinedButton.styleFrom(
-              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              side: BorderSide(color: colorScheme.outlineVariant),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(controlRadius),
-              ),
-            ).copyWith(
-              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
-            ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style:
-            IconButton.styleFrom(
-              minimumSize: const Size(AppleTouch.minTarget, AppleTouch.minTarget),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
-              ),
-            ).copyWith(
-              overlayColor: AppleStateLayer.overlay(colorScheme.onSurface),
-            ),
-      ),
-      tabBarTheme: TabBarThemeData(
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: colorScheme.onPrimaryContainer,
-        unselectedLabelColor: colorScheme.onSurfaceVariant,
-        labelStyle: base.textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: base.textTheme.labelLarge,
-        indicator: BoxDecoration(
-          color: colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(AppleRadius.md),
-        ),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        elevation: 0,
-        backgroundColor: colorScheme.inverseSurface,
-        contentTextStyle: base.textTheme.bodyMedium?.copyWith(
-          color: colorScheme.onInverseSurface,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppleRadius.md),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        // 唯一那条真阴影：DESIGN.md:395 `rgba(0,0,0,0.22) 3px 5px 30px 0`。
-        // 只给模态用——卡片/按钮一律 flat（:502 明文禁止）。
-        elevation: AppleElevation.overlayLevel,
-        shadowColor: AppleElevation.overlayColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(cardRadius),
-        ),
-        // 对话框排版此前完全交给 M3 默认（title 22px / content 14px /
-        // 默认字距）。按 DESIGN.md 的排版梯子重排：
-        // - 标题 17px / w600 / -0.35（DESIGN.md 的 `title` 档）；
-        // - 正文 15px / w400 / 行高 1.47（:506 明令行高不得低于 1.47）。
-        //   取 15 而非 :504 的 17：17px 是**营销正文**（长文阅读）档，
-        //   对话框是短交互文案，17px 会把确认弹窗撑成半屏；1.47 的行高
-        //   规矩照办，只把字号收到 UI 尺度。
-        //   字号来源 = [AppleType.dialogBody]（本次收编，此前是裸 `15`）。
-        // - 内容用 onSurfaceVariant，与标题形成层级差（shadcn 的信息层级
-        //   做法：主信息用强色，说明性信息降一档）。
-        titleTextStyle: AppleType.titleStyle(colorScheme.onSurface),
-        contentTextStyle: AppleType.bodyStyle(
-          colorScheme.onSurfaceVariant,
-        ).copyWith(fontSize: AppleType.dialogBody),
-        actionsPadding: const EdgeInsets.fromLTRB(
-          AppleSpacing.lg,
-          0,
-          AppleSpacing.lg,
-          AppleSpacing.md,
-        ),
-      ),
-      tooltipTheme: TooltipThemeData(
-        // M-10（审计 2026-09-27）：450ms 裸值 → AppleMotion.tooltipDelay 令牌。
-        waitDuration: AppleMotion.tooltipDelay,
-        decoration: BoxDecoration(
-          color: colorScheme.inverseSurface,
-          borderRadius: BorderRadius.circular(AppleRadius.sm),
-        ),
-        textStyle: base.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onInverseSurface,
-        ),
-      ),
-      // M-06（审计 2026-09-27）豁免裁决：**维持双轨制，不统一**。
-      // 路由转场是平台惯例域——Material 各平台默认即 M3 zoom，改走
-      // AppleMotion 曲线会与系统级返回手势/任务切换器打架（OS 层转场与
-      // App 内不一致更显廉价）。故全 App MaterialPageRoute 一律走平台默认
-      //（下方 Zoom 显式钉住，防 Flutter 版本变更时回落到各平台各异的默认
-      // 值），AppleSheetFadeRoute 只用于抽屉式底部面板这一种自定义几何转场
-      //（notebook_view_page_manage），不在其列。将来若出现第三种自定义几何
-      // 转场，再评估是否收编进 AppleMotion。
-      pageTransitionsTheme: const PageTransitionsTheme(
-        builders: {
-          TargetPlatform.android: ZoomPageTransitionsBuilder(),
-          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
-          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
-          TargetPlatform.macOS: ZoomPageTransitionsBuilder(),
-          TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
-        },
-      ),
-    );
-  }
+      );
 
   /// Apple 明亮模式 ColorScheme。
-  static ColorScheme _appleLightScheme() {
-    return const ColorScheme(
-      brightness: Brightness.light,
-      primary: Color(0xFF0066CC), // Action Blue
-      onPrimary: Colors.white,
-      primaryContainer: Color(0xFFDCE9FF),
-      onPrimaryContainer: Color(0xFF0A2540),
-      secondary: Color(0xFF6E6E73),
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFFE9E9EB),
-      onSecondaryContainer: Color(0xFF2C2C2E),
-      tertiary: Color(0xFF30D158),
-      onTertiary: Color(0xFF0B3D1E),
-      tertiaryContainer: Color(0xFFD6F5DE),
-      onTertiaryContainer: Color(0xFF0B3D1E),
-      error: Color(0xFFFF3B30),
-      onError: Colors.white,
-      errorContainer: Color(0xFFFFDAD6),
-      onErrorContainer: Color(0xFF6B1B14),
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF1D1D1F),
-      surfaceContainerHighest: Color(0xFFEDEDEF),
-      onSurfaceVariant: Color(0xFF6E6E73),
-      outline: Color(0xFF86868B),
-      outlineVariant: Color(0xFFD2D2D7),
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: Color(0xFF2C2C2E),
-      onInverseSurface: Color(0xFFF5F5F7),
-      inversePrimary: Color(0xFF0066CC),
-      surfaceTint: Color(0xFF0066CC),
-    );
-  }
+  static ColorScheme _appleLightScheme() =>
+      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.appleLightColors);
 
   /// 明亮模式 ColorScheme 的公开只读入口（**本次新增，不改动现有私有名**）。
   ///
@@ -352,39 +120,8 @@ abstract final class AppDesign {
   /// 称 `#0066CC` 为「唯一品牌级交互色」，深色档的同族高亮版即
   /// `actionBlueOnDark`（`apple_focus.dart` 已用同一档做深底焦点环）。
   /// `onPrimary` 保持 `#102244`：对 `#2997FF` 约 5.6:1，稳过 AA。
-  static ColorScheme _navyScheme() {
-    return const ColorScheme(
-      brightness: Brightness.dark,
-      primary: AppleColor.actionBlueOnDark,
-      onPrimary: Color(0xFF102244),
-      primaryContainer: Color(0xFF294579),
-      onPrimaryContainer: Color(0xFFDCE8FF),
-      secondary: Color(0xFFBFC7DC),
-      onSecondary: Color(0xFF252B3A),
-      secondaryContainer: Color(0xFF3A4355),
-      onSecondaryContainer: Color(0xFFE2E8F6),
-      tertiary: Color(0xFF93D9C4),
-      onTertiary: Color(0xFF04382E),
-      tertiaryContainer: Color(0xFF1E5145),
-      onTertiaryContainer: Color(0xFFC4F5E6),
-      error: Color(0xFFFFB4AB),
-      onError: Color(0xFF690005),
-      errorContainer: Color(0xFF93000A),
-      onErrorContainer: Color(0xFFFFDAD6),
-      surface: Color(0xFF181F2E),
-      onSurface: Color(0xFFE2E8F4),
-      surfaceContainerHighest: Color(0xFF343D50),
-      onSurfaceVariant: Color(0xFFC3CBDD),
-      outline: Color(0xFF8D97AA),
-      outlineVariant: Color(0xFF3F485B),
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: Color(0xFFE2E8F4),
-      onInverseSurface: Color(0xFF2C3445),
-      inversePrimary: Color(0xFF4568A9),
-      surfaceTint: AppleColor.actionBlueOnDark,
-    );
-  }
+  static ColorScheme _navyScheme() =>
+      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.navyColors);
 
   /// Windows 高对比度（亮）：纯白底 / 纯黑字 / 边框 100% 不透明。
   ///
@@ -394,75 +131,13 @@ abstract final class AppDesign {
   ///
   /// 强调色仍留在 Action Blue 色族（`#003D99`，对白 8.6:1）——
   /// 不引入第二种强调色，守住 DESIGN.md:491 的铁律。
-  static ColorScheme _highContrastLightScheme() {
-    return const ColorScheme(
-      brightness: Brightness.light,
-      primary: Color(0xFF003D99),
-      onPrimary: Colors.white,
-      primaryContainer: Color(0xFF003D99),
-      onPrimaryContainer: Colors.white,
-      secondary: Color(0xFF1A1A1A),
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFFE6E6E6),
-      onSecondaryContainer: Color(0xFF000000),
-      tertiary: Color(0xFF004D33),
-      onTertiary: Colors.white,
-      tertiaryContainer: Color(0xFF004D33),
-      onTertiaryContainer: Colors.white,
-      error: Color(0xFFB00020),
-      onError: Colors.white,
-      errorContainer: Color(0xFFB00020),
-      onErrorContainer: Colors.white,
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF000000),
-      surfaceContainerHighest: Color(0xFFE6E6E6),
-      onSurfaceVariant: Color(0xFF000000),
-      outline: Color(0xFF000000),
-      outlineVariant: Color(0xFF000000),
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: Color(0xFF000000),
-      onInverseSurface: Color(0xFFFFFFFF),
-      inversePrimary: Color(0xFF99CCFF),
-      surfaceTint: Color(0xFF003D99),
-    );
-  }
+  static ColorScheme _highContrastLightScheme() =>
+      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.highContrastLightColors);
 
   /// Windows 高对比度（暗）：纯黑底 / 纯白字 / 边框 100% 不透明。
   ///
   /// 常规深色档是深蓝（保留应用身份），但高对比度档下可读性优先，
   /// 因此退回纯黑——深蓝底上的白字对比度不足 7:1。
-  static ColorScheme _highContrastDarkScheme() {
-    return const ColorScheme(
-      brightness: Brightness.dark,
-      primary: Color(0xFF99CCFF),
-      onPrimary: Color(0xFF000000),
-      primaryContainer: Color(0xFF99CCFF),
-      onPrimaryContainer: Color(0xFF000000),
-      secondary: Color(0xFFFFFFFF),
-      onSecondary: Color(0xFF000000),
-      secondaryContainer: Color(0xFF1A1A1A),
-      onSecondaryContainer: Color(0xFFFFFFFF),
-      tertiary: Color(0xFF7FFFD4),
-      onTertiary: Color(0xFF000000),
-      tertiaryContainer: Color(0xFF004D33),
-      onTertiaryContainer: Color(0xFFFFFFFF),
-      error: Color(0xFFFF6B6B),
-      onError: Color(0xFF000000),
-      errorContainer: Color(0xFF93000A),
-      onErrorContainer: Color(0xFFFFFFFF),
-      surface: Color(0xFF000000),
-      onSurface: Color(0xFFFFFFFF),
-      surfaceContainerHighest: Color(0xFF1A1A1A),
-      onSurfaceVariant: Color(0xFFFFFFFF),
-      outline: Color(0xFFFFFFFF),
-      outlineVariant: Color(0xFFFFFFFF),
-      shadow: Colors.black,
-      scrim: Colors.black,
-      inverseSurface: Color(0xFFFFFFFF),
-      onInverseSurface: Color(0xFF000000),
-      inversePrimary: Color(0xFF003D99),
-      surfaceTint: Color(0xFF99CCFF),
-    );
-  }
+  static ColorScheme _highContrastDarkScheme() =>
+      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.highContrastDarkColors);
 }

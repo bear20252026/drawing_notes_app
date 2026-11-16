@@ -211,10 +211,18 @@ void main() {
     // 唯一为 StorageService 门面（Ca=1），I 天然偏高；不属于稳定数据层，
     // 不纳入稳定性断言（依赖方向由层规则与 static 访问门禁保障）。
     // directories/secret_session 两协作类实测 I=0.17 达标，保留在断言内。
+    // 主题适配层（2026-11-16）：material_theme_adapter 是**输出适配器**
+    // （内部模型 → Flutter ThemeData 的唯一转换点），与 document_codec
+    // 同类——消费方唯一为 AppDesign 门面（Ca=1）、出向全是 Material 装配
+    // 依赖（Ce=4），I=0.80 天然偏高，不属于稳定数据层。稳定数据层是
+    // app_theme_spec.dart（零框架依赖纯数据，Ca=2 Ce=0 I=0.00，保留在
+    // 断言内且实测达标）；适配器的接缝纪律由 theme_adapter_seam_test
+    // 专项门禁保障（构造唯一落点 + 模型零 Material 依赖）。
     report.removeWhere(
       (k, _) =>
           k.contains('/vfs/') ||
           k.endsWith('/document_codec.dart') ||
+          k.endsWith('/material_theme_adapter.dart') ||
           k.endsWith('/storage_write_pipeline.dart') ||
           k.endsWith('/storage_media_store.dart') ||
           k.endsWith('/storage_trash_bin.dart') ||

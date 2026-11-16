@@ -4,6 +4,41 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 主题适配层：内部主题模型与 Material 实现解耦（2026-11-16，迁移评估步骤 2，业主批准先行）
+
+> material_ui 迁移评估（docs/MATERIAL_UI_MIGRATION_ASSESSMENT.md）第五节
+> 步骤 2「先建主题适配层」——唯一可先行、有独立价值的一步。本批落地，
+> **不做** material_ui 切换本身（步骤 1 等上游收敛仍是前提）。
+
+#### 新增（core/theme/）
+- **app_theme_spec.dart**：内部主题模型——`AppColorSpec`（28 槽语义色板，
+  纯 const 数据）+ `AppThemeSpec`（四档决策：明暗 × 对比度，画布/次级表面/
+  焦点/发丝线/圆角）。**只 import dart:ui**，零 Material/widgets 依赖——
+  将来切换 material_ui（平行实现，两套 ThemeData 类型不兼容）时本文件
+  零改动，新增平行适配器消费同一模型即可。
+- **material_theme_adapter.dart**：模型 → Flutter ThemeData/ColorScheme 的
+  **唯一转换点**（应用级 ThemeData(/ColorScheme( 构造全 lib 只准在此）。
+
+#### 收编（行为零变化）
+- app_design.dart 468→143 行：_theme 与四套 ColorScheme 构造改薄委托
+  （决策→AppThemeSpec，装配→适配器）；公开签名（lightTheme/darkTheme/
+  lightThemeFor/appleLightScheme/navyScheme）全部不变，227 处 Theme.of
+  消费点与 provider 链路零改动。
+- pagePadding 权威收编进 AppThemeSpec（斩断适配器→app_design 循环边），
+  AppDesign.pagePadding 保留别名。
+
+#### 等价性证明与门禁
+- **黄金基线回归**（theme_adapter_equivalence_test）：重构前实机捕获四档
+  ThemeData 全字段快照（28 色槽 + 10 组子主题 + textTheme + 转场，共
+  18 字段组 × 4 档），重构后逐字段比对——实测踩中并修正一处发丝线 alpha
+  手写常量与 withValues 动态计算的舍入分叉（改为同式计算）。
+- **接缝门禁**（theme_adapter_seam_test）：①模型零框架依赖（只准 dart:ui）；
+  ②应用级主题构造唯一落点=适配器；③薄委托三方台账防空转；判据正反自证。
+- 架构规则 3b：适配器按 document_codec 同类先例列为输出适配器豁免
+  （Ca=1 Ce=4 天然高 I）；稳定数据层 app_theme_spec I=0.00 留在断言内。
+- D-14 间距棘轮：2 处 Material 装配裸间距随代码原样搬移登记（app_design
+  归零删行→适配器同值 2），总量不变非新增。
+
 ### 低危批收口（L-1~L-10，2026-11-16，同版本增量，未 bump）
 
 > 全面审计残留的低危项随手清掉（H/M 已在前序批次收口）。
