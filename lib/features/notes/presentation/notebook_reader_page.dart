@@ -139,6 +139,8 @@ class _NotebookReaderPageState extends State<NotebookReaderPage> {
                     itemBuilder: (context, i) => _ReaderSheet(
                       page: pages[i],
                       onTap: () => widget.onEditPage(pages[i]),
+                      // K_note（2026-11-16）：笔记本上下文传线。
+                      notebookId: widget.notebook.id,
                       // C-06（审计 2026-09-27）：解密/VFS 依赖传线。
                       mediaCrypto: widget.mediaCrypto,
                       vaultService: widget.vaultService,
@@ -190,10 +192,14 @@ class _ReaderSheet extends StatelessWidget {
     required this.onTap,
     required this.mediaCrypto,
     this.vaultService,
+    this.notebookId,
   });
 
   final NotebookPage page;
   final VoidCallback onTap;
+
+  /// 所属笔记本 ID（K_note 接线 2026-11-16）：DAN 媒体按笔记本密钥解密。
+  final String? notebookId;
 
   /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入——宿主传线）。
   final MediaCryptoService mediaCrypto;
@@ -244,6 +250,7 @@ class _ReaderSheet extends StatelessWidget {
                               image.filePath,
                               mediaCrypto: mediaCrypto,
                               vaultService: vaultService,
+                              notebookId: notebookId,
                             ),
                             fit: BoxFit.fill,
                             errorBuilder: (_, _, _) => const SizedBox.expand(),

@@ -173,8 +173,8 @@ class DefaultRouteServices implements AppRouteServices {
       try {
         final ok = await storage.decryptNotebook(loaded, sessionPw);
         if (!ok || !context.mounted) return false;
-        final mediaSalt = await storage.ensureMediaSalt();
-        await _services.mediaCrypto.setSessionPassword(sessionPw, mediaSalt);
+        // K_note（2026-11-16）：解包/懒补该笔记本媒体密钥并注入（替代全局盐派生）。
+        await storage.ensureNotebookMediaKey(loaded.id);
       } on FormatException {
         return false; // 密码失效（缓存过期/重置竞态）——fail-closed
       }

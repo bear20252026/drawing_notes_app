@@ -9,8 +9,8 @@
 ![License](https://img.shields.io/github/license/bear20252026/drawing_notes_app)
 
 > **安全定位**：政府级安全设计——加密笔记（仅 v5 双保护器：Argon2id + AAD；
-> 旧版 v2/v3/v4 已删除，每笔记独立密钥；媒体 K_note 注入点已实现、生产暂走
-> 会话级密钥）、策略引擎（默认拒绝）、会话守卫（自动锁定）、VFS 加密对象仓库
+> 旧版 v2/v3/v4 已删除，每笔记独立密钥；媒体 K_note 已全量接入生产——
+> 每笔记本独立媒体密钥，AAD 绑定笔记本 ID）、策略引擎（默认拒绝）、会话守卫（自动锁定）、VFS 加密对象仓库
 > （版本/原子提交；已接入生产，新媒体写 VFS、旧媒体兼容读）、篡改可检测审计
 > （带密钥 HMAC-SHA256 锚 + 世代号；文件链权威重放 + 世代单调校验——详见
 > SECURITY.md）、导入隔离（SVG/PDF 预检）。
@@ -101,7 +101,7 @@ python tools/code_guard.py --dir lib --force-native --json
 | 安全组件 | 说明 |
 | --- | --- |
 | **加密笔记** | AES-256-GCM + AAD 上下文绑定（NIST SP 800-38D）——正文/媒体/回收站加密，nonce 每次随机 |
-| **每笔记独立密钥** | 独立数据密钥 + AAD 绑定笔记 ID——一笔记密钥泄露不影响其他（Knovya 模式）。正文已生效；媒体 K_note 注入点已实现、生产暂走会话级密钥（2026-11-13 审计对齐） |
+| **每笔记独立密钥** | 独立数据密钥 + AAD 绑定笔记 ID——一笔记密钥泄露不影响其他（Knovya 模式）。正文 + 媒体全量生效：媒体 K_note 封存于 v5 信封 media 槽，LRU 映射上限 32 本、逐出即零化（2026-11-16 生产接线） |
 | **开屏密码 / 保险库** | Argon2id 派生 + 恒定时间比较 + 持久化指数冷却防爆破；信封加密（版本化）+ 原子提交 |
 | **快速解锁** | Windows Hello / Android BiometricPrompt（local_auth），DPAPI/Keystore 绑定 |
 | **USB 重置盘** | 分页画布/文件密码「忘记密码」重置（LUKS 同款：盘钥匙解 DEK → 新盐重绕密码槽） |

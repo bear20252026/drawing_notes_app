@@ -46,7 +46,10 @@ abstract interface class INotebookSearchAccessor {
 /// 编辑器向笔记页导入图片时所需的最小媒体写入能力。
 abstract interface class INotebookMediaStore {
   /// 将图片复制进笔记页存储并返回笔记侧托管后的文件路径。
-  Future<String> storeImage(String sourcePath, String pageId);
+  ///
+  /// [notebookId] 用于 K_note 媒体加密（2026-11-16）：密文 AAD 绑定笔记本，
+  /// 密钥按笔记本隔离。未加密笔记本忽略该参数（明文落盘）。
+  Future<String> storeImage(String notebookId, String sourcePath, String pageId);
 }
 
 /// 保持既有装配点的组合契约。

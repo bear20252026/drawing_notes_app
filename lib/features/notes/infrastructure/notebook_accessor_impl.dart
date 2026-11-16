@@ -25,6 +25,6 @@ class NotebookAccessorImpl implements INotebookAccessor {
       _storage.listSearchDocuments();
 
   @override
-  Future<String> storeImage(String sourcePath, String pageId) =>
-      _storage.storeImage(sourcePath, pageId);
+  Future<String> storeImage(String notebookId, String sourcePath, String pageId) =>
+      _storage.storeImage(notebookId, sourcePath, pageId);
 }

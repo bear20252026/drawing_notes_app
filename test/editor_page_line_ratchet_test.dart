@@ -33,7 +33,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// 一份导航目录（17 行注释，逐个 part 标注职责），零逻辑变更、零行为变化。
 /// 这是「结构裁决说明」档：拆分本身没变（part 数与边界不动），补的是索引。
 /// 下一次**逻辑**增长仍须先拆或再点名——注释投资不构成长期放宽的先例。
-const int kBaselineTotalLines = 7144;
+///
+/// 2026-11-16（K_note 媒体独立密钥生产接线，业主批准）：7144 → 7158（+14）。
+/// 动机是**安全接线的必要逻辑**，逐条算：editor_page.dart 新增 notebookId
+/// 字段 + 文档注释 + 构造参数（+7）；editor_page_editing.dart 笔记页图片入库
+/// 前的笔记本上下文守卫（nbId 空判 + 提示 + 传参，+6）；editor_page_overlays.dart
+/// 图片 provider 传 notebookId（+1）。这是跨域密钥隔离的穿线成本，不是展示件
+/// 增长——无新 UI 组件。part 数与边界不动。下一次增长仍须先拆或再点名。
+const int kBaselineTotalLines = 7158;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

@@ -22,11 +22,15 @@ class PresentationPage extends StatefulWidget {
     required this.shapes,
     required this.mediaCrypto,
     this.vaultService,
+    this.notebookId,
   });
 
   final List<PageTextItem> textItems;
   final List<PageImageItem> imageItems;
   final List<PageShapeItem> shapes;
+
+  /// 所属笔记本 ID（K_note 接线 2026-11-16）：DAN 媒体按笔记本密钥解密。
+  final String? notebookId;
 
   /// 媒体会话解密服务（C-06，审计 2026-09-27 构造注入）：页面图片
   /// （EncryptedFileImage）解密依赖由 NotebookViewPage 传线——不再直取
@@ -72,6 +76,7 @@ class _PresentationPageState extends State<PresentationPage> {
                     i.filePath,
                     mediaCrypto: widget.mediaCrypto,
                     vaultService: widget.vaultService,
+                    notebookId: widget.notebookId,
                   ),
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) =>

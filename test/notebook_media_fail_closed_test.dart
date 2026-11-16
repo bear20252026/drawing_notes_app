@@ -79,7 +79,7 @@ void main() {
         keyProvider: () async => null, // 已装配但锁定
       );
       await expectLater(
-        storage.storeImage(pngSource().path, 'pg_locked'),
+        storage.storeImage('nb_fc', pngSource().path, 'pg_locked'),
         throwsA(isA<VaultFileLockException>()),
       );
       expect(
@@ -95,14 +95,18 @@ void main() {
         keyProvider: () async => null,
       );
       await expectLater(
-        storage.sealMediaBytesForPath('whatever.png', base64Decode(_pngBase64)),
+        storage.sealMediaBytesForPath(
+          'nb_fc',
+          'whatever.png',
+          base64Decode(_pngBase64),
+        ),
         throwsA(isA<VaultFileLockException>()),
       );
     });
 
     test('未启用加密（无 keyProvider）→ 明文兼容路径不变', () async {
       final storage = NotebookStorage(directoryProvider: () async => tempDir);
-      final path = await storage.storeImage(pngSource().path, 'pg_plain');
+      final path = await storage.storeImage('nb_fc', pngSource().path, 'pg_plain');
       final stored = await File(path).readAsBytes();
       expect(stored, base64Decode(_pngBase64), reason: '不能破坏未加密笔记本既有明文路径');
       expect(VaultFileCodec.isEncrypted(stored), isFalse);
@@ -119,12 +123,13 @@ void main() {
         keyProvider: () async => key,
       );
       final dnv = await File(
-        await unlocked.storeImage(pngSource().path, 'pg_dnv'),
+        await unlocked.storeImage('nb_fc', pngSource().path, 'pg_dnv'),
       ).readAsBytes();
       expect(VaultFileCodec.isEncrypted(dnv), isTrue);
 
-      // 媒体会话密钥已装（加密笔记本解锁场景）——即便保险库锁定也走 DAN。
-      MediaCryptoService.instance.setSessionKey(
+      // K_note 已装（加密笔记本解锁场景）——即便保险库锁定也走 DAN。
+      MediaCryptoService.instance.setNotebookKey(
+        'nb_fc',
         List<int>.generate(32, (i) => i + 1),
       );
       final danStorage = NotebookStorage(
@@ -133,11 +138,11 @@ void main() {
         keyProvider: () async => null,
       );
       final dan = await File(
-        await danStorage.storeImage(pngSource().path, 'pg_dan'),
+        await danStorage.storeImage('nb_fc', pngSource().path, 'pg_dan'),
       ).readAsBytes();
       expect(MediaCryptoService.isEncryptedFile(dan), isTrue);
       expect(
-        await MediaCryptoService.instance.readMediaFile(dan),
+        await MediaCryptoService.instance.readMediaFile('nb_fc', dan),
         base64Decode(_pngBase64),
       );
     });
@@ -151,7 +156,7 @@ void main() {
         utf8.encode(_maliciousSvg),
       );
       await expectLater(
-        storage.storeImage(src.path, 'pg_svg_bad'),
+        storage.storeImage('nb_fc', src.path, 'pg_svg_bad'),
         throwsA(isA<FormatException>()),
       );
       expect(imagesOnDisk(), isEmpty);
@@ -163,7 +168,7 @@ void main() {
         'ok_${DateTime.now().microsecondsSinceEpoch}.svg',
         utf8.encode(_benignSvg),
       );
-      final path = await storage.storeImage(src.path, 'pg_svg_ok');
+      final path = await storage.storeImage('nb_fc', src.path, 'pg_svg_ok');
       expect(path.endsWith('.svg'), isTrue);
       expect(await File(path).readAsBytes(), utf8.encode(_benignSvg));
     });
@@ -175,7 +180,7 @@ void main() {
         utf8.encode(_maliciousSvg),
       );
       await expectLater(
-        storage.storeImage(src.path, 'pg_svg_sneak'),
+        storage.storeImage('nb_fc', src.path, 'pg_svg_sneak'),
         throwsA(isA<FormatException>()),
       );
       expect(imagesOnDisk(), isEmpty);
@@ -193,7 +198,7 @@ void main() {
         utf8.encode(padded.toString()),
       );
       await expectLater(
-        storage.storeImage(src.path, 'pg_svg_big'),
+        storage.storeImage('nb_fc', src.path, 'pg_svg_big'),
         throwsA(isA<FormatException>()),
       );
       expect(imagesOnDisk(), isEmpty);

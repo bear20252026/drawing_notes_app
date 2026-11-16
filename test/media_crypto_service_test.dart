@@ -1,189 +1,205 @@
-// PBKDF2(600k) 用例在全量高并发下超默认 30s 超时，放宽到 3 分钟。
-// @Tags(['kdf'])（v1.17.23 审计修复 #7）：真 KDF 套件必须打标参与 CI
-// 分流（主套件 --exclude-tags kdf / KDF 套件独占串行），否则绕过隔离。
-@Tags(['kdf'])
-@Timeout(Duration(minutes: 3))
-library;
+// K_note 接线（2026-11-16）：媒体加密改为每笔记本独立密钥（LRU 映射，
+// 上限 32），删除全局会话密码派生路径。本套件不再含真 KDF 派生——
+// 去掉 kdf 标签（密钥直接注入，无 Argon2id 计算）。
 
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
+import 'package:drawing_notes_app/core/security/session_secrets.dart';
 
-/// H-03 跨域专项基础组件（专家审计 2026-08-15）：MediaCryptoService——
-/// BusinessCrypto 层媒体加密（会话密钥注入/清除 + AES-GCM 加解密）。
+/// MediaCryptoService——BusinessCrypto 层媒体加密（K_note 每笔记本密钥
+/// 注入/清除 + AES-GCM 加解密 + LRU 上限 + AAD 绑定笔记本）。
 void main() {
   setUp(MediaCryptoService.instance.clearSessionKey);
   tearDown(MediaCryptoService.instance.clearSessionKey);
 
   final key = List<int>.generate(32, (i) => i);
+  Uint8List plainOf(String s) => Uint8List.fromList(s.codeUnits);
 
-  test('媒体加密：注入密钥后往返解密', () async {
-    MediaCryptoService.instance.setSessionKey(key);
-    final plain = Uint8List.fromList(utf8Encode('机密图片字节'));
-    final enc = await MediaCryptoService.instance.encryptBytes(plain);
+  test('媒体加密：注入笔记本密钥后往返解密', () async {
+    MediaCryptoService.instance.setNotebookKey('nb1', key);
+    final plain = plainOf('机密图片字节');
+    final enc = await MediaCryptoService.instance.encryptBytes('nb1', plain);
     expect(enc.length, greaterThan(plain.length));
-    final dec = await MediaCryptoService.instance.decryptBytes(enc);
+    final dec = await MediaCryptoService.instance.decryptBytes('nb1', enc);
     expect(dec, plain);
   });
 
   test('媒体加密：未注入密钥时抛 StateError', () async {
     expect(
-      () => MediaCryptoService.instance.encryptBytes(Uint8List(4)),
+      () => MediaCryptoService.instance.encryptBytes('nb1', Uint8List(4)),
+      throwsStateError,
+    );
+    expect(
+      () => MediaCryptoService.instance.decryptBytes('nb1', Uint8List(32)),
       throwsStateError,
     );
   });
 
   test('媒体加密：错误密钥解密认证失败', () async {
-    MediaCryptoService.instance.setSessionKey(key);
+    MediaCryptoService.instance.setNotebookKey('nb1', key);
     final enc = await MediaCryptoService.instance.encryptBytes(
-      Uint8List.fromList(utf8Encode('数据')),
+      'nb1',
+      plainOf('数据'),
     );
-    MediaCryptoService.instance.setSessionKey(
+    MediaCryptoService.instance.setNotebookKey(
+      'nb1',
       List<int>.generate(32, (i) => i + 1),
     );
     expect(
-      () => MediaCryptoService.instance.decryptBytes(enc),
+      () => MediaCryptoService.instance.decryptBytes('nb1', enc),
       throwsA(isA<SecretBoxAuthenticationError>()),
     );
   });
 
-  test('媒体加密：clearSessionKey 清除后不可用', () async {
-    MediaCryptoService.instance.setSessionKey(key);
-    expect(MediaCryptoService.instance.isActive, isTrue);
-    MediaCryptoService.instance.clearSessionKey();
-    expect(MediaCryptoService.instance.isActive, isFalse);
-    expect(
-      () => MediaCryptoService.instance.decryptBytes(Uint8List(32)),
-      throwsStateError,
-    );
-  });
-
-  test('密码模式：同盐往返 + 不同盐失败（方案 B，Argon2id 版本 2）', () async {
-    // M-06 收口（2026-11-14）：仅支持版本 2 盐（Argon2id）。
-    final salt = MediaSalt(
-      bytes: MediaCryptoService.generateSalt(),
-      kdf: MediaSalt.argon2idKdf,
-    );
-    await MediaCryptoService.instance.setSessionPassword('secret123', salt);
+  test('跨笔记隔离：同密钥不同 notebookId 也不能互解（AAD 绑定）', () async {
+    // 即使两本笔记注入同一把密钥，AAD 含 notebookId——密文不可跨笔记移植。
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    MediaCryptoService.instance.setNotebookKey('noteB', key);
     final enc = await MediaCryptoService.instance.encryptBytes(
-      Uint8List.fromList(utf8Encode('数据')),
-    );
-    // 同盐重派生（跨会话同全局盐）可解密。
-    await MediaCryptoService.instance.setSessionPassword('secret123', salt);
-    expect(await MediaCryptoService.instance.decryptBytes(enc), isNotEmpty);
-    // 不同盐派生——key 不同——解密认证失败。
-    await MediaCryptoService.instance.setSessionPassword(
-      'secret123',
-      MediaSalt(
-        bytes: MediaCryptoService.generateSalt(),
-        kdf: MediaSalt.argon2idKdf,
-      ),
+      'noteA',
+      plainOf('笔记A媒体'),
     );
     expect(
-      () => MediaCryptoService.instance.decryptBytes(enc),
+      () => MediaCryptoService.instance.decryptBytes('noteB', enc),
       throwsA(isA<SecretBoxAuthenticationError>()),
+    );
+    expect(
+      await MediaCryptoService.instance.decryptBytes('noteA', enc),
+      plainOf('笔记A媒体'),
     );
   });
 
-  test('每笔记 K_note：AAD 绑定笔记 ID——跨笔记密钥不能互解', () async {
+  test('跨笔记隔离：不同 K_note 互解失败', () async {
     MediaCryptoService.instance.setNotebookKey('noteA', key);
     final enc = await MediaCryptoService.instance.encryptBytes(
-      Uint8List.fromList(utf8Encode('笔记A媒体')),
+      'noteA',
+      plainOf('笔记A媒体'),
     );
-    // 切换到 noteB（不同 K_note）——AAD 不同——解密认证失败。
     MediaCryptoService.instance.setNotebookKey(
       'noteB',
       List<int>.generate(32, (i) => i + 1),
     );
     expect(
-      () => MediaCryptoService.instance.decryptBytes(enc),
+      () => MediaCryptoService.instance.decryptBytes('noteB', enc),
       throwsA(isA<SecretBoxAuthenticationError>()),
     );
-    // 同一笔记 K_note 可解。
-    MediaCryptoService.instance.setNotebookKey('noteA', key);
-    final dec = await MediaCryptoService.instance.decryptBytes(enc);
-    expect(dec, Uint8List.fromList(utf8Encode('笔记A媒体')));
   });
 
-  test('每笔记 K_note：clearNotebookKey 清除后不可用', () async {
+  test('clearNotebookKey：只清指定笔记本，其他不受影响', () async {
     MediaCryptoService.instance.setNotebookKey('noteA', key);
-    MediaCryptoService.instance.clearNotebookKey();
+    MediaCryptoService.instance.setNotebookKey('noteB', key);
+    MediaCryptoService.instance.clearNotebookKey('noteA');
+    expect(MediaCryptoService.instance.hasKeyFor('noteA'), isFalse);
+    expect(MediaCryptoService.instance.hasKeyFor('noteB'), isTrue);
+    expect(MediaCryptoService.instance.isActive, isTrue);
+    expect(
+      () => MediaCryptoService.instance.encryptBytes('noteA', Uint8List(4)),
+      throwsStateError,
+    );
+  });
+
+  test('clearSessionKey：清除全部后不可用', () async {
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    MediaCryptoService.instance.setNotebookKey('noteB', key);
+    expect(MediaCryptoService.instance.isActive, isTrue);
+    MediaCryptoService.instance.clearSessionKey();
     expect(MediaCryptoService.instance.isActive, isFalse);
+    expect(
+      () => MediaCryptoService.instance.decryptBytes('noteA', Uint8List(32)),
+      throwsStateError,
+    );
   });
 
-  group('MediaSalt 版本分派（M-06 收口：仅 Argon2id 版本 2）', () {
-    test('旧版 16B 裸盐（版本 1 PBKDF2）→ 拒绝（删除旧版支持）', () {
-      final raw = List<int>.generate(16, (i) => i);
+  test('SessionSecrets 联动：回锁清零全部笔记本密钥', () async {
+    MediaCryptoService.instance.setNotebookKey('noteA', key);
+    MediaCryptoService.instance.setNotebookKey('noteB', key);
+    SessionSecrets.clearAll();
+    expect(MediaCryptoService.instance.isActive, isFalse);
+    expect(MediaCryptoService.instance.hasKeyFor('noteA'), isFalse);
+    expect(MediaCryptoService.instance.hasKeyFor('noteB'), isFalse);
+  });
+
+  group('LRU 映射（业主决策：上限 32 本）', () {
+    test('超上限逐出最久未用（密钥不可再用）', () async {
+      final svc = MediaCryptoService.instance;
+      for (var i = 0; i < MediaCryptoService.maxNotebookKeys; i++) {
+        svc.setNotebookKey('nb$i', key);
+      }
+      expect(svc.hasKeyFor('nb0'), isTrue);
+      // 第 33 本 → 逐出最久未用 nb0。
+      svc.setNotebookKey('nb-extra', key);
+      expect(svc.hasKeyFor('nb0'), isFalse, reason: '最久未用应被逐出');
+      expect(svc.hasKeyFor('nb-extra'), isTrue);
+      expect(svc.hasKeyFor('nb1'), isTrue);
       expect(
-        () => MediaSalt.parse(raw),
-        throwsArgumentError,
-        reason: '旧版 PBKDF2 盐不再支持，fail-closed 拒绝',
+        () => svc.encryptBytes('nb0', Uint8List(4)),
+        throwsStateError,
+        reason: '逐出后密钥已零化，须重新解包注入',
       );
     });
 
-    test('版本 2 + 16B 盐解析为 Argon2id 生产参数', () {
-      final saltBody = List<int>.generate(16, (i) => i + 1);
-      final raw = [MediaSalt.versionArgon2id, ...saltBody];
-      final salt = MediaSalt.parse(raw);
-      expect(salt.bytes, saltBody);
-      expect(salt.kdf, MediaSalt.argon2idKdf);
-      expect(salt.kdf.kdf, KdfParams.kdfArgon2id);
+    test('命中刷新 LRU 序：最近使用的不会被逐出', () async {
+      final svc = MediaCryptoService.instance;
+      for (var i = 0; i < MediaCryptoService.maxNotebookKeys; i++) {
+        svc.setNotebookKey('nb$i', key);
+      }
+      // 使用 nb0（最旧）→ 移到队尾。
+      await svc.encryptBytes('nb0', plainOf('x'));
+      svc.setNotebookKey('nb-extra', key);
+      expect(svc.hasKeyFor('nb0'), isTrue, reason: '刚使用过不应被逐出');
+      expect(svc.hasKeyFor('nb1'), isFalse, reason: 'nb1 成为最久未用');
     });
 
-    test('新写入 encode() 恒为版本 2 前缀 + 16B 盐', () {
-      final salt = MediaSalt(
-        bytes: List<int>.generate(16, (i) => i + 7),
-        kdf: MediaSalt.argon2idKdf,
-      );
-      final encoded = salt.encode();
-      expect(encoded.length, 17);
-      expect(encoded[0], MediaSalt.versionArgon2id);
-      expect(MediaSalt.parse(encoded), salt);
+    test('重复注入同笔记本 = 覆盖（不占额外名额）', () {
+      final svc = MediaCryptoService.instance;
+      for (var i = 0; i < MediaCryptoService.maxNotebookKeys; i++) {
+        svc.setNotebookKey('nb$i', key);
+      }
+      svc.setNotebookKey('nb0', List<int>.generate(32, (i) => i + 1));
+      expect(svc.hasKeyFor('nb0'), isTrue);
+      expect(svc.hasKeyFor('nb31'), isTrue, reason: '覆盖不应触发逐出');
+    });
+  });
+
+  group('DAN 文件封装', () {
+    test('encryptFile/readMediaFile 往返（按笔记本）', () async {
+      MediaCryptoService.instance.setNotebookKey('nb1', key);
+      final plain = plainOf('图片字节');
+      final file = await MediaCryptoService.instance.encryptFile('nb1', plain);
+      expect(MediaCryptoService.isEncryptedFile(file), isTrue);
+      final dec = await MediaCryptoService.instance.readMediaFile('nb1', file);
+      expect(dec, plain);
     });
 
-    test('无法识别的格式 fail-closed 抛 ArgumentError', () {
-      expect(
-        () => MediaSalt.parse(List<int>.filled(20, 0)),
-        throwsArgumentError,
-      );
-      expect(
-        () => MediaSalt.parse([99, ...List<int>.filled(16, 0)]),
-        throwsArgumentError,
-      );
+    test('readMediaFile：明文原样返回（未加密笔记本）', () async {
+      final plain = plainOf('明文图片');
+      final dec = await MediaCryptoService.instance.readMediaFile('nb1', plain);
+      expect(dec, plain);
     });
 
-    test('Argon2id 盐往返：同盐可解、异盐认证失败', () async {
-      final salt = MediaSalt(
-        bytes: MediaCryptoService.generateSalt(),
-        kdf: MediaSalt.argon2idKdf,
-      );
-      await MediaCryptoService.instance.setSessionPassword('pw', salt);
-      final enc = await MediaCryptoService.instance.encryptBytes(
-        Uint8List.fromList(utf8Encode('argon2id 媒体')),
-      );
-      await MediaCryptoService.instance.setSessionPassword('pw', salt);
-      expect(
-        await MediaCryptoService.instance.decryptBytes(enc),
-        Uint8List.fromList(utf8Encode('argon2id 媒体')),
-      );
-      await MediaCryptoService.instance.setSessionPassword(
-        'pw',
-        MediaSalt(
-          bytes: MediaCryptoService.generateSalt(),
-          kdf: MediaSalt.argon2idKdf,
-        ),
+    test('DAN 密文跨笔记本读取失败（AAD 绑定）', () async {
+      MediaCryptoService.instance.setNotebookKey('nb1', key);
+      MediaCryptoService.instance.setNotebookKey('nb2', key);
+      final file = await MediaCryptoService.instance.encryptFile(
+        'nb1',
+        plainOf('图片'),
       );
       expect(
-        () => MediaCryptoService.instance.decryptBytes(enc),
+        () => MediaCryptoService.instance.readMediaFile('nb2', file),
         throwsA(isA<SecretBoxAuthenticationError>()),
       );
     });
   });
-}
 
-Uint8List utf8Encode(String s) =>
-    Uint8List.fromList(s.codeUnits.map((c) => c & 0xFF).toList());
+  test('generateNotebookKey：32B 随机且两次不同', () {
+    final k1 = MediaCryptoService.generateNotebookKey();
+    final k2 = MediaCryptoService.generateNotebookKey();
+    expect(k1.length, 32);
+    expect(k2.length, 32);
+    expect(k1, isNot(equals(k2)));
+  });
+}

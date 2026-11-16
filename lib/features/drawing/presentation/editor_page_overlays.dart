@@ -414,6 +414,8 @@ extension _EditorPageOverlays on _EditorPageState {
                           image: EncryptedFileImage.fromPath(
                             item.filePath,
                             mediaCrypto: widget.mediaCrypto,
+                            // K_note（2026-11-16）：笔记本上下文（独立画布为 null）。
+                            notebookId: widget.notebookId,
                           ),
                           fit: BoxFit.contain,
                           // L-03 语义（专家审计 2026-08-15）：图片可读名。

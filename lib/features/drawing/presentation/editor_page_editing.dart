@@ -274,7 +274,13 @@ extension _EditorPageEditing on _EditorPageState {
           _showSnack(_l10nSafe?.edNoteImageStoreUnavailable ?? '笔记页图片存储不可用');
           return;
         }
-        final storedPath = await storage.storeImage(result.path, page.id);
+        // K_note（2026-11-16）：笔记本上下文——媒体按笔记本密钥加密。
+        final nbId = widget.notebookId;
+        if (nbId == null) {
+          _showSnack('笔记页图片存储缺少笔记本上下文');
+          return;
+        }
+        final storedPath = await storage.storeImage(nbId, result.path, page.id);
         if (!mounted) return;
         final position = EditorImageMutation.pageImagePosition(
           centerX: center.dx,

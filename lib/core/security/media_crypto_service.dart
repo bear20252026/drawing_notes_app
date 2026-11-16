@@ -4,165 +4,102 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-import 'package:drawing_notes_app/core/security/kek_session_cache.dart';
-import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 
-/// 媒体加密盐 + KDF 版本（M1 修复 2026-11-11；M-06 收口 2026-11-14 删除旧版）。
+// MediaSalt（全局媒体盐 + KDF 版本）已删除（K_note 接线 2026-11-16）：
+// 媒体加密不再走「全局会话密码 + 持久盐」派生，改用每笔记本 K_note
+// （v5 信封 slots.media 封存，AAD 绑定笔记本 ID）——无盐文件、无全局密钥。
+
+/// 媒体加密服务（H-03 跨域专项基础组件；K_note 生产接线 2026-11-16）。
 ///
-/// 盐文件为带版本前缀的自描述格式：`[1B 版本][16B 盐]`。
-/// **仅支持版本 2（Argon2id 生产参数 64 MiB / t2 / p2）**。
-/// 旧版版本 1（纯 16B 盐，PBKDF2-600k）一律 fail-closed 拒绝——存量旧盐
-/// 派生的媒体须先升级方可读取（删除旧版 KDF 支持）。
-class MediaSalt {
-  const MediaSalt({required this.bytes, required this.kdf});
-
-  /// 16 字节盐（明文无害）。
-  final List<int> bytes;
-
-  /// 本盐对应的 KDF 参数（版本分派的单一事实来源）。
-  final KdfParams kdf;
-
-  /// 盐长度常量（16B）。
-  static const int saltLength = 16;
-  static const int versionByteCount = 1;
-
-  /// 版本 2 的 KDF（Argon2id 生产）——唯一支持的 KDF。
-  static const KdfParams argon2idKdf = KdfParams.argon2idProduction;
-
-  /// 版本 2 标记。
-  static const int versionArgon2id = 2;
-
-  /// 解析盐文件字节：
-  /// - 17B 且首字节 == 2 ⇒ 版本 2（Argon2id）。
-  /// - 其余（含旧版纯 16B 盐）⇒ [ArgumentError]（fail-closed：不猜，避免
-  ///   用错 KDF 解不开已加密媒体；旧版 PBKDF2 盐不再支持）。
-  factory MediaSalt.parse(List<int> raw) {
-    if (raw.length == versionByteCount + saltLength) {
-      final v = raw[0];
-      if (v == versionArgon2id) {
-        return MediaSalt(
-          bytes: List.of(raw.sublist(versionByteCount)),
-          kdf: argon2idKdf,
-        );
-      }
-    }
-    throw ArgumentError('媒体加密盐文件格式无法识别或旧版已不再支持（长度 ${raw.length}）');
-  }
-
-  /// 序列化为盐文件字节（恒为版本 2 + 16B 盐）。
-  List<int> encode() => [versionArgon2id, ...bytes];
-
-  @override
-  bool operator ==(Object other) =>
-      other is MediaSalt &&
-      other.kdf == kdf &&
-      _listEquals(other.bytes, bytes);
-
-  static bool _listEquals(List<int> a, List<int> b) {
-    if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode => Object.hash(kdf, Object.hashAll(bytes));
-
-  @override
-  String toString() => 'MediaSalt(kdf=$kdf, salt=${bytes.length}B)';
-}
-
-/// 媒体加密服务（H-03 跨域专项基础组件，专家审计 2026-08-15）。
+/// BusinessCrypto 层：媒体资产（图片/PDF 副本）的加密逻辑集中于此，
+/// **不把长期密钥暴露给业务模块**。
 ///
-/// BusinessCrypto 层（掘金 HUKS 四层架构模式）：媒体资产（图片/PDF 副本）
-/// 的加密逻辑集中于此，**不把长期密钥暴露给业务模块**；会话密钥解锁后
-/// 注入（setSessionKey）、退出/锁定时清除（clearSessionKey——D-2 内存
-/// 清理模式）。storeImage 加密写入与 EncryptedFileImage 渲染解密均经此
-/// 服务（Flutter 官方 DI 模式：服务注入，密钥不散传）。
+/// **K_note 唯一口径（2026-11-16，业主确认无存量用户、不兼容旧格式）**：
+/// 每笔记本一把独立媒体密钥 K_note（32B CSPRNG），封存在笔记本 v5 信封的
+/// `slots.media`（DEK 包裹，AAD 绑定笔记本 ID）。媒体加解密一律
+/// `encryptFile(notebookId, …)` / `readMediaFile(notebookId, …)` 按笔记本
+/// 取钥；AAD 恒为 `drawing-notes|media|v1|<notebookId>`——**无全局密钥
+/// 回退**（防跨笔记密文交换；一笔记密钥泄露不影响其他笔记）。
+/// 旧「全局会话密码派生」路径（setSessionPassword/setSessionKey）已删除。
 ///
-/// 注册为 [SessionSecretsHolder]（P0-7，审计 2026-10-09）：此前会话媒体
-/// 密钥只在笔记本页 dispose 时清理——搜索页/路由仅注入密码就派生密钥、
-/// 导航离开后无任何生命周期钩子清它，AppLockGate.hidden 的 SessionSecrets
-/// 联动也够不到。注册后切后台统一掉锁清零。
+/// **LRU 密钥映射（业主决策 2026-11-15）**：最多驻留 [maxNotebookKeys]（32）
+/// 本笔记的 K_note；超限逐出最久未用并**立即零化**（用时再从信封解包）。
+///
+/// 注册为 [SessionSecretsHolder]（P0-7）：回锁/切后台经 SessionSecrets
+/// 统一清零全部驻留 K_note。
 class MediaCryptoService implements SessionSecretsHolder {
   MediaCryptoService._() {
     SessionSecrets.register(this);
   }
 
-  // C-06 裁决（审计 2026-09-27，2026-10-03 落地）：对外全局可达性已收敛——
-  // features/shared 零 `.instance` 直取（消费方一律构造注入，实例由组合根
-  // 装配：AppServices 缺省持有 + app.dart/default_editor_page_builder 组装
-  // 传线），由 test/security_static_access_gate_test.dart 门禁锁死；core
-  // 内部互调（kek_session_cache 派生等）属解锁生命周期作用域的会话单例
-  // 实现细节，保留静态语义、不注入。本体收敛留后续批次。
+  // C-06 裁决（审计 2026-09-27）：features/shared 零 `.instance` 直取，
+  // 消费方一律构造注入（门禁 security_static_access_gate_test 锁死）。
   static final MediaCryptoService instance = MediaCryptoService._();
 
-  List<int>? _sessionKey;
-  String? _notebookId;
+  /// LRU 上限（业主决策：32 本）。超限逐出最久未用并零化。
+  static const int maxNotebookKeys = 32;
 
-  /// 注入全局媒体会话密钥（解锁时由外部派生/解包后传入——兼容旧路径）。
-  void setSessionKey(List<int> key) => _sessionKey = List.of(key);
+  /// notebookId → K_note（LinkedHashMap 插入序 = LRU 序；命中即移到队尾）。
+  final Map<String, Uint8List> _keys = <String, Uint8List>{};
 
-  /// 注入每笔记数据密钥 K_note（专家审计最优先行动③——Knovya 每笔记
-  /// DEK 隔离模式 2026-08-16）：媒体加解密使用该笔记的 K_note，AAD 绑定
-  /// 笔记本 ID（note_id——防跨笔记密文交换；一笔记密钥泄露不影响其他
-  /// 笔记）。密钥由调用方从笔记本加密载荷解包/派生后传入（K_user 包裹
-  /// K_note——信封加密——SiYuan KEK 包络模式）。
+  /// 注入某笔记本的 K_note（调用方从 v5 信封解包后传入）。复制入参；
+  /// 重复注入同笔记本 = 覆盖（旧值零化）；超 LRU 上限逐出最久未用。
   void setNotebookKey(String notebookId, List<int> noteKey) {
-    _notebookId = notebookId;
-    _sessionKey = List.of(noteKey);
+    final prev = _keys.remove(notebookId);
+    if (prev != null) prev.fillRange(0, prev.length, 0);
+    _keys[notebookId] = Uint8List.fromList(noteKey);
+    while (_keys.length > maxNotebookKeys) {
+      final oldest = _keys.keys.first;
+      final evicted = _keys.remove(oldest)!;
+      evicted.fillRange(0, evicted.length, 0); // 逐出即零化。
+    }
   }
 
-  /// 清除每笔记密钥（锁定时——D-2 内存清零语义）。
-  void clearNotebookKey() => clearSessionKey();
+  /// 某笔记本的 K_note 是否已驻留。
+  bool hasKeyFor(String notebookId) => _keys.containsKey(notebookId);
 
-  /// 密码模式注入（H-03 方案 B——HelloPrivacy salt.dat 模式）：按盐版本
-  /// 分派 KDF 派生 key 后注入（与会话密钥注入统一——服务不感知模式）。
-  /// [salt] 为全局持久盐（明文无害——盐无需保密）；跨会话用同一全局
-  /// 盐重派生（解密媒体 key 一致）。
-  ///
-  /// N3 提速 B 方案：走 KekSessionCache——同 (密码,盐) 重复解锁零重算。
-  ///
-  /// **M-06 收口（2026-11-14）**：仅支持版本 2 盐（Argon2id 生产参数）。
-  /// 旧版版本 1（PBKDF2-600k）盐已在 [MediaSalt.parse] fail-closed 拒绝。
-  /// 调用方传入 [MediaSalt]（来自 [NotebookStorage.ensureMediaSalt]）。
-  Future<void> setSessionPassword(String password, MediaSalt salt) async {
-    final key = await KekSessionCache.instance.deriveKek(
-      password,
-      salt.bytes,
-      salt.kdf,
-    );
-    _sessionKey = List.of(key);
-    // KekSessionCache 返回独立副本，注入后源副本就地清零（P0 密钥零化）。
-    key.fillRange(0, key.length, 0);
-  }
-
-  /// 生成 16 字节全局盐（密码模式媒体加密派生用——明文无害）。
-  static List<int> generateSalt() {
-    final rng = Random.secure();
-    return List<int>.generate(16, (_) => rng.nextInt(256));
-  }
-
-  /// 清除会话密钥（退出/锁定——fillRange 主动擦除，D-2 模式）。
-  void clearSessionKey() {
-    final key = _sessionKey;
+  /// 清除某笔记本密钥（锁定/离开——fillRange 主动擦除，D-2 模式）。
+  void clearNotebookKey(String notebookId) {
+    final key = _keys.remove(notebookId);
     if (key != null) key.fillRange(0, key.length, 0);
-    _notebookId = null;
-    _sessionKey = null;
+  }
+
+  /// 清除全部驻留 K_note（退出/锁定）。
+  void clearSessionKey() {
+    for (final key in _keys.values) {
+      key.fillRange(0, key.length, 0);
+    }
+    _keys.clear();
   }
 
   @override
   void clearAllSessionSecrets() => clearSessionKey();
 
-  bool get isActive => _sessionKey != null;
+  /// 是否有任一笔记本密钥驻留（storeImage 加密分支判据）。
+  bool get isActive => _keys.isNotEmpty;
+
+  /// 生成 32B 随机 K_note（新笔记本/懒补槽用）。
+  static List<int> generateNotebookKey() {
+    final rng = Random.secure();
+    return List<int>.generate(32, (_) => rng.nextInt(256));
+  }
+
+  Uint8List _requireKey(String notebookId) {
+    final key = _keys[notebookId];
+    if (key == null) {
+      throw StateError('笔记本媒体密钥未注入（请先解锁该笔记本）');
+    }
+    // LRU 命中：移到队尾（LinkedHashMap remove+重插）。
+    _keys.remove(notebookId);
+    _keys[notebookId] = key;
+    return key;
+  }
 
   /// 加密媒体字节（AES-256-GCM——载荷 = [nonce(12), cipherText, tag(16)]，
-  /// AAD 绑定用途 'media'——防跨用途密文交换）。
-  Future<Uint8List> encryptBytes(Uint8List plain) async {
-    final key = _sessionKey;
-    if (key == null) throw StateError('会话密钥未注入（请先解锁）');
+  /// AAD 绑定用途 + 笔记本 ID）。
+  Future<Uint8List> encryptBytes(String notebookId, Uint8List plain) async {
+    final key = _requireKey(notebookId);
     final aes = AesGcm.with256bits();
     final rng = Random.secure();
     final nonce = Uint8List.fromList(
@@ -172,64 +109,58 @@ class MediaCryptoService implements SessionSecretsHolder {
       plain,
       secretKey: SecretKey(key),
       nonce: nonce,
-      aad: _currentAad,
+      aad: _aadFor(notebookId),
     );
     return Uint8List.fromList([...nonce, ...box.cipherText, ...box.mac.bytes]);
   }
 
   /// 解密媒体字节（EncryptedFileImage 渲染用）；密钥错误/损坏抛异常。
-  Future<Uint8List> decryptBytes(Uint8List data) async {
-    final key = _sessionKey;
-    if (key == null) throw StateError('会话密钥未注入（请先解锁）');
+  /// AAD 不符即认证失败，不做第二次尝试（防 AAD 降级试探旁路）。
+  Future<Uint8List> decryptBytes(String notebookId, Uint8List data) async {
+    final key = _requireKey(notebookId);
     if (data.length <= 28) throw FormatException('媒体密文长度不合法');
     final nonce = data.sublist(0, 12);
     final cipher = data.sublist(12, data.length - 16);
     final mac = data.sublist(data.length - 16);
     final aes = AesGcm.with256bits();
-    // 单一 AAD 口径（2026-11-10）：只认当前 [_currentAad]——存在每笔记上下文
-    // 时绑定 notebookId，否则为应用级 'drawing-notes|media|v1'。旧版『无
-    // noteId 回退分支』已移除（不兼容旧版媒体密文）：AAD 不符即认证失败，
-    // 不做第二次尝试（避免把 AAD 降级变成可试探的旁路）。
     final clear = await aes.decrypt(
       SecretBox(cipher, nonce: nonce, mac: Mac(mac)),
       secretKey: SecretKey(key),
-      aad: _currentAad,
+      aad: _aadFor(notebookId),
     );
     return Uint8List.fromList(clear);
   }
 
-  /// 媒体 AAD 基：绑定应用/用途/版本（NIST SP 800-38D 上下文绑定）。
-  /// 存在每笔记上下文时附加笔记本 ID（'|notebookId'——Knovya AAD
-  /// binding note_id——防跨笔记密文交换）。
+  /// 媒体 AAD：应用/用途/版本 + 笔记本 ID（NIST SP 800-38D 上下文绑定，
+  /// Knovya note_id binding——防跨笔记密文交换）。**恒含 notebookId**。
   static final Uint8List _mediaAad = Uint8List.fromList(
     utf8.encode('drawing-notes|media|v1'),
   );
 
-  Uint8List get _currentAad => _notebookId == null
-      ? _mediaAad
-      : Uint8List.fromList([..._mediaAad, ...utf8.encode('|$_notebookId')]);
+  static Uint8List _aadFor(String notebookId) => Uint8List.fromList(
+    [..._mediaAad, ...utf8.encode('|$notebookId')],
+  );
 
-  /// 媒体密文文件头魔数（H-03 双端接入 2026-08-15）：AES 密文与随机噪声
-  /// 不可区分（无法用图片魔数检测）——用应用层文件头标记密文。
+  /// 媒体密文文件头魔数：AES 密文与随机噪声不可区分——应用层文件头标记。
   static const List<int> _fileMagic = [0x44, 0x41, 0x4E]; // 'DAN'
   static const int _fileVersion = 1;
 
   /// 加密并封装为文件格式：[DAN, 版本, ...密文载荷]。
-  Future<Uint8List> encryptFile(Uint8List plain) async {
-    final payload = await encryptBytes(plain);
+  Future<Uint8List> encryptFile(String notebookId, Uint8List plain) async {
+    final payload = await encryptBytes(notebookId, plain);
     return Uint8List.fromList([..._fileMagic, _fileVersion, ...payload]);
   }
 
-  /// 读取媒体文件：DAN 文件头 → 解密；否则原样返回（明文兼容——
-  /// 旧数据/未加密笔记本）。
-  Future<Uint8List> readMediaFile(Uint8List data) async {
+  /// 读取媒体文件：DAN 文件头 → 按笔记本 K_note 解密；否则原样返回
+  /// （未加密笔记本的明文媒体——非密文不涉及密钥）。
+  Future<Uint8List> readMediaFile(String notebookId, Uint8List data) async {
     if (isEncryptedFile(data)) {
-      return decryptBytes(Uint8List.fromList(data.sublist(4)));
+      return decryptBytes(notebookId, Uint8List.fromList(data.sublist(4)));
     }
     return data;
   }
 
-  /// 检测媒体文件是否为 DAN 密文（旧明文迁移用——明文重加密判断）。
+  /// 检测媒体文件是否为 DAN 密文。
   static bool isEncryptedFile(List<int> data) =>
       data.length >= 4 &&
       data[0] == _fileMagic[0] &&

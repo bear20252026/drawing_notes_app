@@ -156,6 +156,7 @@ void main() {
       final nb = Notebook(id: 'nb_del', title: '待删');
       // 构造一个真实图片副本文件。
       final imgPath = await storage.storeImage(
+        'nb_del',
         await _makeSourceImage(tempDir),
         'pg_1',
       );
@@ -194,19 +195,22 @@ void main() {
 
     test('未知扩展名回退为 png', () async {
       final src = await _makeSourceImage(tempDir, name: 'evil.exe');
-      final target = await storage.storeImage(src, 'pg_x');
+      final target = await storage.storeImage('nb_ext', src, 'pg_x');
       expect(target.endsWith('.png'), isTrue, reason: '非白名单扩展名回退 png');
     });
 
     test('合法扩展名保留', () async {
       final src = await _makeSourceImage(tempDir, name: 'photo.jpeg');
-      final target = await storage.storeImage(src, 'pg_y');
+      final target = await storage.storeImage('nb_ext', src, 'pg_y');
       expect(target.endsWith('.jpeg'), isTrue);
     });
 
     test('非法 pageId 被拒绝', () async {
       final src = await _makeSourceImage(tempDir);
-      expect(() => storage.storeImage(src, '../evil'), throwsArgumentError);
+      expect(
+        () => storage.storeImage('nb_ext', src, '../evil'),
+        throwsArgumentError,
+      );
     });
   });
 

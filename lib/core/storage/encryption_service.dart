@@ -240,13 +240,14 @@ class EncryptionService {
   }
 
   /// v5 加密核心（scope 感知）：随机 DEK 加密 payload + 密码槽包裹
-  /// （可选重置盘槽）。
+  /// （可选重置盘槽 + 可选媒体密钥槽）。
   Future<String> _encryptWithPasswordV5({
     required String scope,
     required String id,
     required String plaintext,
     required String password,
     List<int>? usbKey,
+    List<int>? mediaKey,
   }) async {
     final dek = VaultKeyService.randomBytes(_v5DekLength);
     final payload = await _encryptPayload(
@@ -261,6 +262,7 @@ class EncryptionService {
       dek: dek,
       password: password,
       usbKey: usbKey,
+      mediaKey: mediaKey,
     );
     return jsonEncode({
       'mode': 'password',
@@ -271,11 +273,17 @@ class EncryptionService {
   }
 
   /// 分页画布 v5 加密（N4 批 3）。
+  ///
+  /// K_note 接线（2026-11-16，业主确认无存量用户）：[mediaKey] 为该笔记本的
+  /// 媒体独立密钥 K_note（32B）；不传则**自动生成**随机 K_note 并封入
+  /// `slots.media`（DEK 包裹，AAD 绑定笔记本 ID）。媒体加密一律用 K_note，
+  /// 不再走全局会话密码派生——一笔记密钥泄露不影响其他笔记。
   Future<String> encryptWithPasswordV5({
     required String notebookId,
     required String plaintext,
     required String password,
     List<int>? usbKey,
+    List<int>? mediaKey,
   }) {
     return _encryptWithPasswordV5(
       scope: 'nb',
@@ -283,6 +291,7 @@ class EncryptionService {
       plaintext: plaintext,
       password: password,
       usbKey: usbKey,
+      mediaKey: mediaKey ?? VaultKeyService.randomBytes(_v5DekLength),
     );
   }
 
@@ -304,13 +313,14 @@ class EncryptionService {
   }
 
   /// 生成 v5 槽位组：密码槽（KDF 包裹 DEK——批B 起新槽位 Argon2id，
-  /// 槽位 JSON 自描述）+ 可选重置盘槽。
+  /// 槽位 JSON 自描述）+ 可选重置盘槽 + 可选媒体密钥槽（K_note）。
   static Future<Map<String, dynamic>> _wrapSlotsV5({
     required String scope,
     required String id,
     required List<int> dek,
     required String password,
     List<int>? usbKey,
+    List<int>? mediaKey,
   }) async {
     final kdf = KdfParams.newSlotDefault;
     final salt = VaultKeyService.randomBytes(_saltLength);
@@ -330,6 +340,17 @@ class EncryptionService {
         );
         usbWrapped = base64Encode(w);
       }
+      // K_note 媒体槽（2026-11-16）：DEK 包裹 K_note，AAD 绑定 scope/id——
+      // 槽位密文不可跨笔记本移植；改密/重置只重绕 pw 槽，media 槽原样保留。
+      String? mediaWrapped;
+      if (mediaKey != null) {
+        final w = await VaultKeyService.aeadEncrypt(
+          dek,
+          mediaKey,
+          _slotAadV5(scope, 'media', id),
+        );
+        mediaWrapped = base64Encode(w);
+      }
       return {
         'pw': {
           's': base64Encode(salt),
@@ -337,6 +358,7 @@ class EncryptionService {
           'w': base64Encode(pwWrapped),
         },
         if (usbWrapped != null) 'usb': {'w': usbWrapped},
+        if (mediaWrapped != null) 'media': {'w': mediaWrapped},
       };
     } finally {
       // 零化补齐（2026-11-15）：KEK 用完即焚，异常路径同样擦除——缩短
@@ -385,6 +407,97 @@ class EncryptionService {
       rethrow; // 字段畸形（篡改）/旧版拒绝保持契约
     } catch (_) {
       return null; // 密码错误（AEAD 认证失败）
+    }
+  }
+
+  /// 解包笔记本媒体独立密钥 K_note（K_note 接线 2026-11-16）。
+  ///
+  /// 密码解出 DEK → DEK 解 `slots.media` 得 K_note（AAD 绑定笔记本 ID）。
+  /// 返回 null 的情形：密码错误 / 信封非 v5 / **无 media 槽**（该笔记本尚未
+  /// 启用 K_note——调用方负责懒补槽，见 NotebookStorage.ensureNotebookMediaKey）。
+  /// 字段畸形（篡改）抛 [FormatException]。DEK 用完即焚（零化口径）。
+  Future<List<int>?> unwrapNotebookMediaKey({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (!isDualProtectorEnvelope(encryptedJson)) return null;
+    final slots = map['slots'];
+    if (slots is! Map<String, dynamic> || slots['media'] == null) return null;
+    final dek = await _unwrapPasswordSlotV5(
+      scope: 'nb',
+      id: notebookId,
+      map: map,
+      password: password,
+    );
+    if (dek == null) return null; // 密码错误。
+    try {
+      final media = slots['media'] as Map<String, dynamic>;
+      final wrapped = base64Decode(_requireString(media, 'w'));
+      return await VaultKeyService.aeadDecrypt(
+        dek,
+        wrapped,
+        _slotAadV5('nb', 'media', notebookId),
+      );
+    } on FormatException {
+      rethrow; // 字段畸形（篡改）保持契约。
+    } catch (_) {
+      return null; // media 槽认证失败（损坏/被篡改）。
+    } finally {
+      dek.fillRange(0, dek.length, 0); // DEK 用完即焚。
+    }
+  }
+
+  /// 读取 v5 信封是否已含媒体密钥槽（不解密）。
+  static bool hasMediaSlotV5(String encryptedJson) {
+    if (!isDualProtectorEnvelope(encryptedJson)) return false;
+    try {
+      final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+      final slots = map['slots'] as Map<String, dynamic>;
+      return slots['media'] != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 给已有 v5 信封**补装**媒体密钥槽（懒生成——不改动 payload 与其他槽位）。
+  ///
+  /// 密码解出 DEK → 用同一 DEK 包裹 [mediaKey] 写入 `slots.media`。
+  /// 密码错误/非 v5 抛 [FormatException]；已有 media 槽直接原样返回（幂等）。
+  Future<String> attachNotebookMediaKey({
+    required String notebookId,
+    required String encryptedJson,
+    required String password,
+    required List<int> mediaKey,
+  }) async {
+    _requireInputSize(encryptedJson);
+    final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
+    if (!isDualProtectorEnvelope(encryptedJson)) {
+      throw const FormatException('不是 v5 双保护器载荷');
+    }
+    final slots = map['slots'] as Map<String, dynamic>;
+    if (slots['media'] != null) return encryptedJson; // 幂等：已有槽不动。
+    final dek = await _unwrapPasswordSlotV5(
+      scope: 'nb',
+      id: notebookId,
+      map: map,
+      password: password,
+    );
+    if (dek == null) {
+      throw const FormatException('密码错误或数据已损坏');
+    }
+    try {
+      final w = await VaultKeyService.aeadEncrypt(
+        dek,
+        mediaKey,
+        _slotAadV5('nb', 'media', notebookId),
+      );
+      slots['media'] = {'w': base64Encode(w)};
+      return jsonEncode(map);
+    } finally {
+      dek.fillRange(0, dek.length, 0); // DEK 用完即焚。
     }
   }
 
@@ -438,10 +551,12 @@ class EncryptionService {
       password: newPassword,
       usbKey: null,
     );
-    // 保留原重置盘槽位（DEK 未变——槽位仍然有效）。
+    // 保留原重置盘槽位与媒体密钥槽（DEK 未变——槽位仍然有效）。
     final oldSlots = map['slots'] as Map<String, dynamic>;
     final usb = oldSlots['usb'];
     if (usb is Map<String, dynamic>) slots['usb'] = usb;
+    final media = oldSlots['media'];
+    if (media is Map<String, dynamic>) slots['media'] = media;
     return jsonEncode({
       'mode': 'password',
       'v': 5,
@@ -518,10 +633,12 @@ class EncryptionService {
       password: newPassword,
       usbKey: null,
     );
-    // 保留原重置盘槽位。
+    // 保留原重置盘槽位与媒体密钥槽（DEK 未变）。
     final oldSlots = map['slots'] as Map<String, dynamic>;
     final usb = oldSlots['usb'];
     if (usb is Map<String, dynamic>) slots['usb'] = usb;
+    final media = oldSlots['media'];
+    if (media is Map<String, dynamic>) slots['media'] = media;
     return jsonEncode({
       'mode': 'password',
       'v': 5,

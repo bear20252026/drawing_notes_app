@@ -374,10 +374,9 @@ extension _AppShellRoutes on _AppShellState {
             final ok = await nbStorage.decryptNotebook(fresh, sessionPw);
             if (!ok) return;
             nb = fresh;
-            // H-03 媒体加密注入（与旧解锁路径同口径——页面图片解密用）。
-            // C-06：媒体服务经 AppServices 组合根持有（不再直取全局单例）。
-            final mediaSalt = await nbStorage.ensureMediaSalt();
-            await _services.mediaCrypto.setSessionPassword(sessionPw, mediaSalt);
+            // K_note 媒体密钥注入（2026-11-16——页面图片解密用）：解包/懒补
+            // 该笔记本 K_note（替代全局盐派生）。媒体服务经组合根持有。
+            await nbStorage.ensureNotebookMediaKey(nbId);
           } on FormatException {
             return; // 密码失效（缓存过期/重置竞态）——fail-closed
           }
