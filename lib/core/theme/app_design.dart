@@ -123,21 +123,9 @@ abstract final class AppDesign {
   static ColorScheme _navyScheme() =>
       MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.navyColors);
 
-  /// Windows 高对比度（亮）：纯白底 / 纯黑字 / 边框 100% 不透明。
-  ///
-  /// 依据 Microsoft win-dev-skills：高对比度档要求正文 ≥ 7:1、UI 组件
-  /// 边界 ≥ 3:1。本项目常规档靠 8% 发丝线表达层级，在该档位下等于
-  /// 不可见，因此边框与分割线全部推到纯黑。
-  ///
-  /// 强调色仍留在 Action Blue 色族（`#003D99`，对白 8.6:1）——
-  /// 不引入第二种强调色，守住 DESIGN.md:491 的铁律。
-  static ColorScheme _highContrastLightScheme() =>
-      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.highContrastLightColors);
-
-  /// Windows 高对比度（暗）：纯黑底 / 纯白字 / 边框 100% 不透明。
-  ///
-  /// 常规深色档是深蓝（保留应用身份），但高对比度档下可读性优先，
-  /// 因此退回纯黑——深蓝底上的白字对比度不足 7:1。
-  static ColorScheme _highContrastDarkScheme() =>
-      MaterialThemeAdapter.colorSchemeOf(AppThemeSpec.highContrastDarkColors);
+  // Windows 高对比度两档色板（亮：纯白底/纯黑字；暗：纯黑底/纯白字，
+  // 边框 100% 不透明，正文 ≥7:1）已收编进 AppThemeSpec.highContrast*
+  // Colors（含设计依据注释）；原私有 _highContrast*Scheme 委托在
+  // _theme 改经 AppThemeSpec.resolve 后零引用，已删（2026-11-16）。
+  // 高对比主题入口不变：lightTheme/darkTheme(contrast: AppleContrast.high)。
 }
