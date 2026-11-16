@@ -111,6 +111,14 @@ error • The argument type 'ThemeData' can't be assigned to the parameter type 
 2. **先建主题适配层**：在 `core/theme/` 内引入单一转换点，把内部主题模型
    与具体 Material 实现解耦（现在是直接产出 Flutter `ThemeData`）。
    **这一步本身有独立价值**，可先做。
+   **✅ 已实施（2026-11-16，业主批准先行）**：`app_theme_spec.dart`（内部
+   模型，只 import dart:ui，28 槽色板 + 四档决策）+
+   `material_theme_adapter.dart`（模型→Flutter ThemeData 唯一转换点）；
+   app_design 改薄委托（468→143 行），公开签名与 227 处消费点零改动。
+   等价性由黄金基线回归钉死（四档 ThemeData 全字段，重构前实机捕获）；
+   接缝由 `test/architecture/theme_adapter_seam_test.dart` 门禁钉死
+   （模型零框架依赖 + 构造唯一落点）。将来切 material_ui 时新增平行
+   适配器消费同一 AppThemeSpec 即可，色板/决策零改动。
 3. **再切 App 根**：11 处 App 根 + 主题 provider 一次性切换，跑全量 UI 回归。
 4. **最后批量换导入**：207 个文件的 import 替换（此时才是体力活）。
 5. **收尾**：移除 CI 的 `--no-fatal-infos` 旗标（4 处 workflow）。
