@@ -89,10 +89,15 @@ void main() {
       expect(imageItems.map((e) => e.id), ['i1']);
       expect(shapes.map((e) => e.id), ['s1']);
       expect(charts.map((e) => e.id), ['c1']);
+      // 拖拽撤销专项（2026-11-17）：快照升级为深拷贝（值语义）——
+      // 浅快照捕获不到原地字段变更，且与变换命令 LIFO 组合时会放回
+      // 被后续拖拽改脏的旧实例。身份不变量改钉 **id 与字段值**：
+      // 撤销恢复的是「同一对象的那个状态」，不是「同一个 Dart 实例」。
+      expect(textItems.first.id, command.before.textItems.first.id);
       expect(
-        identical(textItems.first, command.before.textItems.first),
-        isTrue,
-        reason: '放回的是同一实例：撤销不能把对象换成新身份',
+        textItems.first.toJson().toString(),
+        command.before.textItems.first.toJson().toString(),
+        reason: '放回的是起始状态的完整字段值（深快照值语义）',
       );
 
       command.redo();

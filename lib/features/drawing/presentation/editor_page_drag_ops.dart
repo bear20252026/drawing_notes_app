@@ -97,6 +97,21 @@ extension _EditorPageDragOps on _EditorPageState {
         );
       }
     }
+    // 图表元素（拖拽撤销专项 2026-11-17）：overlay 早已挂 _dragItem(chart.id)
+    // 回调，但本方法此前没有图表循环——图表拖拽是死手势（回调空转）。
+    // 补齐与形状同口径的移动（clamp 到文档边界）。
+    for (final c in page.charts) {
+      if (moveIds.contains(c.id)) {
+        c.x = (c.x + canvasDelta.dx).clamp(
+          0,
+          _controller.document.width.toDouble(),
+        );
+        c.y = (c.y + canvasDelta.dy).clamp(
+          0,
+          _controller.document.height.toDouble(),
+        );
+      }
+    }
     // 箭头绑定（借鉴 Excalidraw boundElements）：目标元素移动时，
     // 绑定到该元素的箭头同步跟随（引用关联而非坐标快照）。
     for (final targetId in moveIds) {

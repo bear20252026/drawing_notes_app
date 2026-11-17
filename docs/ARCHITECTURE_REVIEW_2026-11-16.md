@@ -101,8 +101,11 @@
 - **落地形态**：框选/套索命中收敛进 infrastructure 纯函数
   MixedItemHitGeometry（+6 项单测钉边界口径）；旋转保存链通知移 onPanEnd
   （+onPanCancel 兜底），角度计算逐字未动。_onPointerUp 净降 20 行。
-- **诚实边界**：「不入撤销」是整个混排拖拽域既有缺口（移动同样不入命令
-  历史）——单独给旋转加撤销会造成语义分裂，留待拖拽域统一事务化。
+- **诚实边界（已闭环）**：「不入撤销」是整个混排拖拽域既有缺口——
+  2026-11-17 专项已统一事务化：MixedObjectDragRecorder（begin 深快照 /
+  commit 有变化才入栈 / cancel 还原不入栈）接四类 overlay 移动 + 旋转 +
+  缩放 + 文字宽度柄；顺带修复图表死手势与独立模式单图片 pointerUp 结算
+  缺口。深快照恢复同 id 写回原实例（身份连续性，撤销在屏上成立）。
 
 ### R4（低优先，净删行）重复与死码清理 —— ✅ 已落地（2026-11-17）
 - text_span_editor toggleLink 约 40 行同构循环收敛进 _mapSelection；

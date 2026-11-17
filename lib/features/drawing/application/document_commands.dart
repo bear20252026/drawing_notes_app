@@ -567,7 +567,12 @@ class DocumentObjectsSnapshotCommand extends DocCommand {
   void redo() => restoreObjectsSnapshot(_after);
 }
 
-/// 混排对象四类集合的一份浅快照（条目仍是原实例，只复制列表本身）。
+/// 混排对象四类集合的一份**深快照**（条目逐个 copy，值语义）。
+///
+/// 为什么必须深（拖拽撤销专项 2026-11-17）：手势原地改字段（shape.x=...），
+/// 浅快照（List.of，条目同实例）捕获不到任何变化；且删除命令若持浅快照，
+/// 与变换命令 LIFO 组合时会「撤销删除放回被后续拖拽改脏的旧实例」。值语义
+/// 让每条命令的边界自洽——这是跨命令组合正确的前提，不是内存优化选项。
 @immutable
 class MixedObjectCollections {
   MixedObjectCollections({
@@ -575,10 +580,10 @@ class MixedObjectCollections {
     required List<PageImageItem> imageItems,
     required List<PageShapeItem> shapes,
     required List<PageChartItem> charts,
-  }) : textItems = List.of(textItems),
-       imageItems = List.of(imageItems),
-       shapes = List.of(shapes),
-       charts = List.of(charts);
+  }) : textItems = List.of(textItems.map((e) => e.copy())),
+       imageItems = List.of(imageItems.map((e) => e.copy())),
+       shapes = List.of(shapes.map((e) => e.copy())),
+       charts = List.of(charts.map((e) => e.copy()));
 
   final List<PageTextItem> textItems;
   final List<PageImageItem> imageItems;
@@ -632,10 +637,128 @@ class MixedObjectsSnapshotCommand extends DocCommand {
     onRestored?.call();
   }
 
-  static void _writeBack<T>(List<T> live, List<T> snapshot) {
+  /// 原地写回：宿主列表引用不换；**同 id 的存活实例也不换**——把快照
+  /// 字段值写回原实例（restoreFrom 语义），而不是把深拷贝副本塞进去。
+  ///
+  /// 为什么（拖拽撤销专项 2026-11-17 实测）：深快照的条目是 copy() 副本，
+  /// 若直接 addAll 副本，overlay 闭包捕获的旧实例（如旋转手柄的 `shape`）
+  /// 与列表里的新副本脱钩——撤销后屏幕上的对象停在旧位置，「撤销在屏上
+  /// 不成立」。同 id 写回原实例保住身份连续性；快照里有、活列表没有的
+  /// 条目（删除撤销）才放副本进去。
+  static void _writeBack<T extends Object>(List<T> live, List<T> snapshot) {
     if (identical(live, snapshot)) return;
+    final restored = <T>[];
+    for (final snap in snapshot) {
+      final liveItem = live.cast<T?>().firstWhere(
+        (e) => e != null && _idOf(e) == _idOf(snap),
+        orElse: () => null,
+      );
+      if (liveItem != null) {
+        _restoreFields(liveItem, snap);
+        restored.add(liveItem);
+      } else {
+        restored.add(snap);
+      }
+    }
     live
       ..clear()
-      ..addAll(snapshot);
+      ..addAll(restored);
+  }
+
+  static String _idOf(Object item) {
+    if (item is PageTextItem) return item.id;
+    if (item is PageImageItem) return item.id;
+    if (item is PageShapeItem) return item.id;
+    if (item is PageChartItem) return item.id;
+    throw ArgumentError('未知混排对象类型（CTL-03：不读运行时类型名）');
+  }
+
+  /// 把快照的全字段值写回同 id 存活实例（toJson→fromJson 往返覆盖，
+  /// 与模型序列化同口径，不逐字段手抄——模型加字段时自动跟随）。
+  static void _restoreFields<T>(T live, T snap) {
+    if (live is PageTextItem && snap is PageTextItem) {
+      final j = snap.toJson();
+      live
+        ..x = j['x'] as double
+        ..y = j['y'] as double
+        ..text = j['text'] as String
+        ..fontSize = j['fontSize'] as double
+        ..color = j['color'] as int
+        ..isSticky = j['isSticky'] as bool
+        ..bold = j['bold'] as bool
+        ..italic = j['italic'] as bool
+        ..underline = j['underline'] as bool
+        ..strikethrough = j['strikethrough'] as bool
+        ..isTodo = j['isTodo'] as bool
+        ..todoChecked = j['todoChecked'] as bool
+        ..zOrder = j['zOrder'] as int
+        ..width = j['width'] as double?
+        ..groupId = j['groupId'] as String?
+        ..href = j['href'] as String?
+        ..fontFamily = j['fontFamily'] as String?
+        ..fractionalIndex = j['fractionalIndex'] as String?
+        ..runs = snap.runs == null ? null : List.of(snap.runs!);
+      // align 是枚举，toJson 写 wireName——直接从快照实例取。
+      live.align = snap.align;
+      return;
+    }
+    if (live is PageImageItem && snap is PageImageItem) {
+      live
+        ..x = snap.x
+        ..y = snap.y
+        ..filePath = snap.filePath
+        ..width = snap.width
+        ..height = snap.height
+        ..zOrder = snap.zOrder
+        ..groupId = snap.groupId
+        ..href = snap.href
+        ..fractionalIndex = snap.fractionalIndex;
+      return;
+    }
+    if (live is PageShapeItem && snap is PageShapeItem) {
+      // 形状字段多且含绑定/seed：用 copy() 的逆——逐字段从快照取。
+      live
+        ..shapeType = snap.shapeType
+        ..x = snap.x
+        ..y = snap.y
+        ..width = snap.width
+        ..height = snap.height
+        ..color = snap.color
+        ..fillColor = snap.fillColor
+        ..strokeWidth = snap.strokeWidth
+        ..zOrder = snap.zOrder
+        ..rotation = snap.rotation
+        ..rough = snap.rough
+        ..elbow = snap.elbow
+        ..strokeStyle = snap.strokeStyle
+        ..fillStyle = snap.fillStyle
+        ..flipX = snap.flipX
+        ..flipY = snap.flipY
+        ..boundElementId = snap.boundElementId
+        ..locked = snap.locked
+        ..startBinding = snap.startBinding?.copy()
+        ..endBinding = snap.endBinding?.copy()
+        ..groupId = snap.groupId
+        ..href = snap.href
+        ..version = snap.version
+        ..versionNonce = snap.versionNonce
+        ..fractionalIndex = snap.fractionalIndex
+        ..lineStart = snap.lineStart
+        ..lineEnd = snap.lineEnd;
+      return;
+    }
+    if (live is PageChartItem && snap is PageChartItem) {
+      live
+        ..chartType = snap.chartType
+        ..data = List.of(snap.data)
+        ..labels = List.of(snap.labels)
+        ..x = snap.x
+        ..y = snap.y
+        ..width = snap.width
+        ..height = snap.height
+        ..color = snap.color
+        ..zOrder = snap.zOrder;
+      return;
+    }
   }
 }

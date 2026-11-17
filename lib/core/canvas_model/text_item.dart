@@ -134,6 +134,32 @@ class PageTextItem {
     if (runs != null) 'runs': runs!.map((r) => r.toJson()).toList(),
   };
 
+  /// 为命令历史创建独立快照（与 PageShapeItem.copy 同纪律）：拖拽原地改
+  /// 字段，浅快照捕获不到变化；TextRun 不可变，列表本身复制即足够。
+  PageTextItem copy() => PageTextItem(
+    id: id,
+    x: x,
+    y: y,
+    text: text,
+    fontSize: fontSize,
+    color: color,
+    isSticky: isSticky,
+    bold: bold,
+    italic: italic,
+    underline: underline,
+    strikethrough: strikethrough,
+    isTodo: isTodo,
+    todoChecked: todoChecked,
+    align: align,
+    zOrder: zOrder,
+    width: width,
+    groupId: groupId,
+    href: href,
+    fontFamily: fontFamily,
+    fractionalIndex: fractionalIndex,
+    runs: runs == null ? null : List.of(runs!),
+  );
+
   factory PageTextItem.fromJson(Map<String, dynamic> json) => PageTextItem(
     id: json['id'] as String,
     x: (json['x'] as num).toDouble(),
