@@ -406,6 +406,13 @@ extension _EditorPageInput on _EditorPageState {
         _lastDragCanvas = null;
         _controller.endDocumentShapeTransform();
         _notifyChanged();
+      } else if (_selectionDone && _controller.hasSelectedDocumentImage) {
+        // 拖拽撤销专项（2026-11-17）：pointerDown/Move 都有单图片分支，
+        // 唯独 pointerUp 漏了——落 else endSelection，懒快照永不结算，
+        // 独立模式单图片拖动不入撤销。补齐与形状分支对称的结算腿。
+        _lastDragCanvas = null;
+        _controller.endDocumentImageTransform();
+        _notifyChanged();
       } else if (_selectionDone && _controller.hasSelectedStrokes) {
         _lastDragCanvas = null;
         _controller.endTransform();

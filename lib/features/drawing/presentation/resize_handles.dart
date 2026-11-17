@@ -78,6 +78,8 @@ class ResizeHandles extends StatelessWidget {
     required this.screenToCanvasDelta,
     required this.onResize,
     required this.onChanged,
+    this.onDragStart,
+    this.onDragEnd,
   });
 
   /// 元素外接框尺寸（经 viewScale 换算后的展示坐标，决定手柄位置）。
@@ -94,6 +96,12 @@ class ResizeHandles extends StatelessWidget {
 
   /// 每次拖拽更新后的通知（宿主 State 通知变更/自动保存）。
   final VoidCallback onChanged;
+
+  /// 拖拽/键盘会话开始（宿主拍撤销起始快照）。null = 宿主不需要事务。
+  final VoidCallback? onDragStart;
+
+  /// 拖拽/键盘会话结束（宿主结算撤销）。null = 宿主不需要事务。
+  final VoidCallback? onDragEnd;
 
   /// 视觉手柄尺寸：保持 10px 的小巧观感，不遮挡画布内容。
   static const double _handleSize = 10.0;
@@ -145,8 +153,8 @@ class ResizeHandles extends StatelessWidget {
     // 注意：极小元素上相邻手柄热区会重叠，后声明的手柄优先命中
     // （列表顺序 TL→BR）。如需更精细，可按元素尺寸缩放命中区。
     //
-    // 缩放没有「拖拽基准」一说（几何是相对当前 bounds 的纯增量），故不接
-    // onPanStart/onPanEnd——与 EndpointHandle 不同。
+    // 缩放几何是相对当前 bounds 的纯增量，无需拖拽基准；但撤销事务需要
+    // 会话边界（拖拽撤销专项 2026-11-17）——onPanStart/onPanEnd 透传给宿主。
     final l10n = AppLocalizations.of(context);
     return Positioned(
       left: position.dx - CanvasDragHandle.hitSize / 2,
@@ -155,6 +163,8 @@ class ResizeHandles extends StatelessWidget {
         label: l10n?.canvasShapeHandleSemantics ?? '形状角柄',
         hint: l10n?.canvasHandleKeyboardHint ?? '方向键微调，Shift 加速',
         visualSize: size,
+        onPanStart: onDragStart,
+        onPanEnd: onDragEnd,
         onPanUpdate: (screenDelta) {
           onResize(handle, screenToCanvasDelta(screenDelta));
           onChanged();

@@ -269,8 +269,10 @@ extension _EditorPageTextOverlays on _EditorPageState {
         // 触屏长按 = 右键等价入口（审计二-10）。
         onLongPressStart: (d) =>
             _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+        onPanStart: (_) => _beginMixedDrag(),
         onPanUpdate: (d) => _dragItem(item.id, d.delta),
-        onPanEnd: (_) => _notifyChanged(),
+        onPanEnd: (_) => _commitMixedDrag(),
+        onPanCancel: _cancelMixedDrag,
         child: Stack(
           children: [
             Container(
@@ -430,13 +432,17 @@ extension _EditorPageTextOverlays on _EditorPageState {
                   // ——CanvasDragHandle 把两条路径都归到 onPanUpdate，因此
                   // 宽度算法全库只有一份，不会分叉。
                   onPanStart: () {
+                    _beginMixedDrag();
                     _textResizeAnchor = (
                       width: item.width!,
                       fontSize: item.fontSize,
                       x: _controller.canvasToView(item.position).dx,
                     );
                   },
-                  onPanEnd: () => _textResizeAnchor = null,
+                  onPanEnd: () {
+                    _textResizeAnchor = null;
+                    _commitMixedDrag();
+                  },
                   onPanUpdate: (d) {
                     final anchor = _textResizeAnchor;
                     if (anchor == null) return;

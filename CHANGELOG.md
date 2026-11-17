@@ -4,6 +4,47 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 混排拖拽域统一入撤销专项（2026-11-17，同版本增量，未 bump）
+
+**整域缺口**：笔记模式的移动/旋转/缩放/文字宽度柄直改对象字段，结束只
+`_notifyChanged`（排自动保存）不 push 任何命令——拖完既撤不回又立刻落盘，
+与删除（EUI-02 已修）是同一形状。独立画布模式的指针链路早已走 session
+事务，本批把同一语义补给 overlay 手势链路。
+
+**事务层（补编排层而非逐个加守卫）**：
+- `MixedObjectDragRecorder`（editor_page_object_mutation.dart，独立库不计
+  棘轮）：begin 拍四类集合**深快照** / commit 逐字段比对有变化才入栈 /
+  cancel 还原不入栈。嵌套 begin 首个为准；空拖拽不白吃撤销步。
+- 三类模型补 `copy()`（PageTextItem/PageImageItem/PageChartItem，与
+  PageShapeItem.copy 同纪律）；`MixedObjectCollections` 浅→深——浅快照
+  捕获不到原地字段变更，且与变换命令 LIFO 组合时会放回被后续拖拽改脏的
+  旧实例（值语义是跨命令组合正确的前提）。
+- **恢复身份写回**（实测踩坑修复）：深快照条目是 copy 副本，直接 addAll
+  会让 overlay 闭包捕获的旧实例与列表脱钩——撤销后屏幕对象停在旧位置。
+  `_writeBack` 改为同 id 写回原实例（restoreFrom 语义），快照有/活列表
+  没有的条目（删除撤销）才放副本。身份连续性保住，「撤销在屏上成立」。
+- 主文件三个便捷入口 `_beginMixedDrag/_commitMixedDrag/_cancelMixedDrag`；
+  四类 overlay（文字/图片/形状/图表移动）+ 旋转手柄 + ResizeHandles
+  （新增 onDragStart/onDragEnd 可选参数）+ 文字宽度柄全部接线。
+
+**顺带修复两个既有缺口**：
+- 图表拖拽是**死手势**：overlay 早挂 `_dragItem(chart.id)` 回调但方法内
+  无图表循环（回调空转）——补齐与形状同口径的移动循环。
+- 独立模式单图片 pointerUp **结算分支缺失**：pointerDown/Move 都有单图片
+  分支，唯独 pointerUp 漏了（落 else endSelection，懒快照永不结算）——
+  补齐与形状分支对称的 `endDocumentImageTransform` 结算腿。
+
+**测试**：事务语义单测 11 项（mixed_object_drag_recorder_test）+ 真手势
+链路回归 8 项（editor_mixed_drag_undo_test：形状移动/旋转/缩放、文字移动、
+图表死手势、图片移动、空拖拽不入栈、独立图片结算）+ 既有命令测试更新
+（identical 断言改钉 id+字段值，深快照值语义）。
+
+**棘轮交代（P3-3）**：editor_page 库 7149→7235（+86），逐文件明细见
+test/editor_page_line_ratchet_test.dart 注释（主文件 +48 事务入口、
+overlays +10 接线、text_overlays +6 接线、drag_ops +15 图表循环、
+input +7 结算分支）。事务本体落独立库不计棘轮。零新 UI、零新 part。
+
+
 ### 棘轮反向锁收紧 + 过期注释纠正（2026-11-17，同版本增量，未 bump）
 
 R5 落地后的复查收尾（零行为变更，仅测试与注释）：

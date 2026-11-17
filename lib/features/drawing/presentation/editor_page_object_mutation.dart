@@ -6,6 +6,7 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
 
 /// 混合画布对象的无状态突变协作者。
 ///
@@ -356,5 +357,129 @@ class MixedObjectDeleteRecorder {
       ),
     );
     return removed;
+  }
+}
+
+/// 混排对象**拖拽事务**的成对登记组合根（拖拽撤销专项 2026-11-17）。
+///
+/// 整域缺口：笔记模式的移动/旋转/缩放/文字宽度柄直改对象字段，结束只
+/// `_notifyChanged`（排自动保存）不 push 任何命令——拖完既撤不回又立刻
+/// 落盘，与删除（EUI-02 已修）是同一形状。独立画布模式的指针链路早已
+/// 走 session 的 begin/end 事务（`endDocumentObjectsTransform` 等），
+/// 本类把同一语义补给 overlay 手势链路，**不碰独立模式那条腿**（防双记）。
+///
+/// 事务形状（与 session 懒快照同构，但起点显式）：
+/// - [begin]：手势起点拍一份四类集合**深快照**存进交互态槽；嵌套 begin
+///   以首个为准（宽度柄聚焦+指针同会话不覆盖基准）。
+/// - [commit]：手势终点再拍一份，与起始**逐字段比对**（toJson 串，与
+///   DocumentObjectsSnapshot 同口径）；无变化不产生条目（空拖拽不白吃
+///   一步撤销）；有变化 push 一条 [MixedObjectsSnapshotCommand]。
+/// - [cancel]：还原起始快照、不入栈（与 session cancel* 同口径）。
+///
+/// 为什么落本文件不新开：presentation 目录 max_files=40 已满；本文件是
+/// 独立库（不计 editor_page 行数棘轮），与 MixedObjectDeleteRecorder 同域。
+class MixedObjectDragRecorder {
+  const MixedObjectDragRecorder._();
+
+  /// 手势起点：拍起始深快照。已有进行中事务时不覆盖（首个为准）。
+  static void begin({
+    required EditorCanvasInteractionState interaction,
+    required List<PageTextItem> textItems,
+    required List<PageImageItem> imageItems,
+    required List<PageShapeItem> shapes,
+    required List<PageChartItem> charts,
+  }) {
+    interaction.mixedDragBefore ??= MixedObjectCollections(
+      textItems: textItems,
+      imageItems: imageItems,
+      shapes: shapes,
+      charts: charts,
+    );
+  }
+
+  /// 手势终点：有变化才登记一条撤销；返回是否产生了历史条目。
+  static bool commit({
+    required EditorCanvasInteractionState interaction,
+    required List<PageTextItem> textItems,
+    required List<PageImageItem> imageItems,
+    required List<PageShapeItem> shapes,
+    required List<PageChartItem> charts,
+    required DrawingController host,
+    required void Function() markDirty,
+  }) {
+    final before = interaction.mixedDragBefore;
+    interaction.mixedDragBefore = null;
+    if (before == null) return false;
+    final after = MixedObjectCollections(
+      textItems: textItems,
+      imageItems: imageItems,
+      shapes: shapes,
+      charts: charts,
+    );
+    if (_same(before, after)) return false;
+    host.pushCommand(
+      MixedObjectsSnapshotCommand(
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+        charts: charts,
+        before: before,
+        after: after,
+        onRestored: () {
+          // 与删除记录器同口径：字节回来了还得失效渲染缓存、补一帧，
+          // 并把这次撤销登记成待落盘改动。
+          host.invalidateLayer(host.currentLayer.id);
+          host.tickFrame();
+          markDirty();
+        },
+      ),
+    );
+    return true;
+  }
+
+  /// 手势取消：还原起始快照，不写入历史（与 session cancel* 同口径）。
+  static void cancel({
+    required EditorCanvasInteractionState interaction,
+    required List<PageTextItem> textItems,
+    required List<PageImageItem> imageItems,
+    required List<PageShapeItem> shapes,
+    required List<PageChartItem> charts,
+    required DrawingController host,
+  }) {
+    final before = interaction.mixedDragBefore;
+    interaction.mixedDragBefore = null;
+    if (before == null) return;
+    _writeBack(textItems, before.textItems);
+    _writeBack(imageItems, before.imageItems);
+    _writeBack(shapes, before.shapes);
+    _writeBack(charts, before.charts);
+    host.invalidateLayer(host.currentLayer.id);
+    host.tickFrame();
+  }
+
+  static void _writeBack<T>(List<T> live, List<T> snapshot) {
+    live
+      ..clear()
+      ..addAll(snapshot);
+  }
+
+  /// 逐字段比对（toJson 串，与 DocumentObjectsSnapshot.isSame 同口径）。
+  static bool _same(MixedObjectCollections a, MixedObjectCollections b) {
+    bool sameList<T>(List<T> x, List<T> y, String Function(T) json) {
+      if (x.length != y.length) return false;
+      for (var i = 0; i < x.length; i++) {
+        if (json(x[i]) != json(y[i])) return false;
+      }
+      return true;
+    }
+
+    String t(PageTextItem e) => e.toJson().toString();
+    String i(PageImageItem e) => e.toJson().toString();
+    String s(PageShapeItem e) => e.toJson().toString();
+    String c(PageChartItem e) => e.toJson().toString();
+    return sameList(a.textItems, b.textItems, t) &&
+        sameList(a.imageItems, b.imageItems, i) &&
+        sameList(a.shapes, b.shapes, s) &&
+        sameList(a.charts, b.charts, c);
   }
 }

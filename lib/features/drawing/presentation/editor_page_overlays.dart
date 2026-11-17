@@ -85,11 +85,13 @@ extension _EditorPageOverlays on _EditorPageState {
                 _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
             onLongPressStart: (d) =>
                 _showItemContextMenu(chart.id, globalAnchor: d.globalPosition),
+            onPanStart: (_) => _beginMixedDrag(),
             onPanUpdate: (d) => _dragItem(chart.id, d.delta),
             onPanEnd: (_) {
               _canvasInteraction.clearTrail();
-              _notifyChanged();
+              _commitMixedDrag();
             },
+            onPanCancel: _cancelMixedDrag,
             child: Container(
               width: w,
               height: h,
@@ -142,11 +144,13 @@ extension _EditorPageOverlays on _EditorPageState {
             // 触屏长按 = 右键等价入口（审计二-10：触屏与键盘双盲修复）。
             onLongPressStart: (d) =>
                 _showItemContextMenu(shape.id, globalAnchor: d.globalPosition),
+            onPanStart: (_) => _beginMixedDrag(),
             onPanUpdate: (d) => _dragItem(shape.id, d.delta),
             onPanEnd: (_) {
               _canvasInteraction.clearTrail();
-              _notifyChanged();
+              _commitMixedDrag();
             },
+            onPanCancel: _cancelMixedDrag,
             child: SizedBox(
               width: w,
               height: h,
@@ -210,6 +214,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                           child: Center(
                                             child: GestureDetector(
                                               behavior: HitTestBehavior.opaque,
+                                              onPanStart: (_) =>
+                                                  _beginMixedDrag(),
                                               onPanUpdate: (d) {
                                                 final center = Offset(
                                                   w / 2,
@@ -232,9 +238,9 @@ extension _EditorPageOverlays on _EditorPageState {
                                                 // + updatedAt 改写，与移动/缩放
                                                 // 的「结束才通知」语义不一致。
                                               },
-                                              onPanEnd: (_) => _notifyChanged(),
-                                              onPanCancel: () =>
-                                                  _notifyChanged(),
+                                              onPanEnd: (_) =>
+                                                  _commitMixedDrag(),
+                                              onPanCancel: _cancelMixedDrag,
                                               child: Container(
                                                 width: 10,
                                                 height: 10,
@@ -255,6 +261,8 @@ extension _EditorPageOverlays on _EditorPageState {
                                     ),
                                     // 8 向缩放手柄（四角 + 四边中点，借鉴 Excalidraw）。
                                     ResizeHandles(
+                                      onDragStart: _beginMixedDrag,
+                                      onDragEnd: _commitMixedDrag,
                                       width: w,
                                       height: h,
                                       screenToCanvasDelta: (delta) =>
@@ -394,11 +402,13 @@ extension _EditorPageOverlays on _EditorPageState {
                 _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
             onLongPressStart: (d) =>
                 _showItemContextMenu(item.id, globalAnchor: d.globalPosition),
+            onPanStart: (_) => _beginMixedDrag(),
             onPanUpdate: (d) => _dragItem(item.id, d.delta),
             onPanEnd: (_) {
               _canvasInteraction.clearTrail();
-              _notifyChanged();
+              _commitMixedDrag();
             },
+            onPanCancel: _cancelMixedDrag,
             child: Stack(
               children: [
                 Container(

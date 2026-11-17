@@ -54,7 +54,27 @@ import 'package:flutter_test/flutter_test.dart';
 /// （overlays +7 行含 onPanCancel 兜底与注释）；主文件 +1 行导入。
 /// R1 首域：导出方法群 persistence→actions 逐字搬移（-169/+171，含 2 行
 /// 域注释与接缝清理），行数中性。棘轮随净删行下调——只紧不松。
-const int kBaselineTotalLines = 7149;
+///
+/// 2026-11-17（混排拖拽域统一入撤销专项）：7149 → 7235（+86）。
+/// 动机是**整域撤销缺口修复**（移动/旋转/缩放/宽度柄直改字段不入撤销，
+/// 拖完既撤不回又立刻落盘），非功能增长。逐文件明细：
+/// - editor_page_drag_ops.dart +63：_beginMixedDrag/_commitMixedDrag/
+///   _cancelMixedDrag 三个事务便捷入口（含注释 48 行，落拖拽域 part 而非
+///   主文件——主文件受 linecheck 单文件 1000 行硬上限，事务入口属拖拽域
+///   职责）+ 图表移动循环补齐（死手势修复，与形状同口径 clamp，含注释）。
+/// - editor_page_overlays.dart +10：形状/图片/图表移动补 onPanStart/
+///   onPanCancel、旋转补 onPanStart、ResizeHandles 补 onDragStart/onDragEnd
+///   传参（每处 1-3 行接线）。
+/// - editor_page_text_overlays.dart +6：文字移动补 onPanStart/onPanCancel、
+///   宽度柄 onPanStart 补 begin / onPanEnd 补 commit。
+/// - editor_page_input.dart +7：独立模式单图片 pointerUp 结算分支补齐
+///   （与形状分支对称，含 3 行注释）。
+/// - editor_page.dart +0：主文件零增长（事务入口落 part，linecheck 合规）。
+/// 事务本体（MixedObjectDragRecorder ~130 行）落 editor_page_object_mutation.dart
+/// （独立库，不计本棘轮）；深快照恢复身份写回逻辑落 document_commands.dart
+/// （application 层）。零新 UI 组件、零新 part。这是缺陷修复成本，不构成
+/// 放宽先例——下一次增长仍须先拆或再点名。
+const int kBaselineTotalLines = 7235;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

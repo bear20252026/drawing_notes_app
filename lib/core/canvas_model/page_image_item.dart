@@ -54,6 +54,20 @@ class PageImageItem {
     if (fractionalIndex != null) 'fractionalIndex': fractionalIndex,
   };
 
+  /// 为命令历史创建独立快照（与 PageShapeItem.copy 同纪律）。
+  PageImageItem copy() => PageImageItem(
+    id: id,
+    x: x,
+    y: y,
+    filePath: filePath,
+    width: width,
+    height: height,
+    zOrder: zOrder,
+    groupId: groupId,
+    href: href,
+    fractionalIndex: fractionalIndex,
+  );
+
   factory PageImageItem.fromJson(Map<String, dynamic> json) => PageImageItem(
     id: json['id'] as String,
     x: (json['x'] as num).toDouble(),

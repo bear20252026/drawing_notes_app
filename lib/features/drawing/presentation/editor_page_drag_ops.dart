@@ -45,6 +45,54 @@ extension _EditorPageDragOps on _EditorPageState {
     );
   }
 
+  // ── 混排拖拽事务便捷入口（拖拽撤销专项 2026-11-17）──────────────
+  // overlay 手势链路（移动/旋转/缩放/宽度柄）统一经此三法登记撤销；
+  // 独立画布指针链路走 session 事务，不经这里（防双记）。
+
+  /// 手势起点：拍四类集合起始深快照（笔记模式才有混排集合）。
+  void _beginMixedDrag() {
+    final page = widget.session;
+    if (page == null) return;
+    MixedObjectDragRecorder.begin(
+      interaction: _canvasInteraction,
+      textItems: page.textItems,
+      imageItems: page.imageItems,
+      shapes: page.shapes,
+      charts: page.charts,
+    );
+  }
+
+  /// 手势终点：有变化登记一条撤销，随后走既有保存链通知。
+  void _commitMixedDrag() {
+    final page = widget.session;
+    if (page == null) return;
+    MixedObjectDragRecorder.commit(
+      interaction: _canvasInteraction,
+      textItems: page.textItems,
+      imageItems: page.imageItems,
+      shapes: page.shapes,
+      charts: page.charts,
+      host: _controller,
+      markDirty: _notifyChanged,
+    );
+    _notifyChanged();
+  }
+
+  /// 手势取消：还原起始快照、不入栈，随后补保存链通知（还原也是改动）。
+  void _cancelMixedDrag() {
+    final page = widget.session;
+    if (page == null) return;
+    MixedObjectDragRecorder.cancel(
+      interaction: _canvasInteraction,
+      textItems: page.textItems,
+      imageItems: page.imageItems,
+      shapes: page.shapes,
+      charts: page.charts,
+      host: _controller,
+    );
+    _notifyChanged();
+  }
+
   void _dragItem(String id, Offset screenDelta) {
     final page = widget.session;
     if (page == null) return;
@@ -92,6 +140,21 @@ extension _EditorPageDragOps on _EditorPageState {
           _controller.document.width.toDouble(),
         );
         s.y = (s.y + canvasDelta.dy).clamp(
+          0,
+          _controller.document.height.toDouble(),
+        );
+      }
+    }
+    // 图表元素（拖拽撤销专项 2026-11-17）：overlay 早已挂 _dragItem(chart.id)
+    // 回调，但本方法此前没有图表循环——图表拖拽是死手势（回调空转）。
+    // 补齐与形状同口径的移动（clamp 到文档边界）。
+    for (final c in page.charts) {
+      if (moveIds.contains(c.id)) {
+        c.x = (c.x + canvasDelta.dx).clamp(
+          0,
+          _controller.document.width.toDouble(),
+        );
+        c.y = (c.y + canvasDelta.dy).clamp(
           0,
           _controller.document.height.toDouble(),
         );

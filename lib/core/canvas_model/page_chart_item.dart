@@ -58,6 +58,21 @@ class PageChartItem {
     'zOrder': zOrder,
   };
 
+  /// 为命令历史创建独立快照（与 PageShapeItem.copy 同纪律）：
+  /// data/labels 是可变列表，必须复制列表本身。
+  PageChartItem copy() => PageChartItem(
+    id: id,
+    chartType: chartType,
+    data: List.of(data),
+    labels: List.of(labels),
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    color: color,
+    zOrder: zOrder,
+  );
+
   factory PageChartItem.fromJson(Map<String, dynamic> json) => PageChartItem(
     id: json['id'] as String,
     // 回落口径与改造前逐字相同：未知/缺失 → bar。
