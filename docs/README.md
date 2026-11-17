@@ -19,6 +19,7 @@
 | [`STATE_MANAGEMENT_DECISION_TREE.md`](STATE_MANAGEMENT_DECISION_TREE.md) | Riverpod ↔ 手工协作者决策树（新增状态前必读，2026-11-15） |
 | [`SESSION_KEY_LIFECYCLE.md`](SESSION_KEY_LIFECYCLE.md) | 会话密钥生命周期：取钥权威编排器契约与划界（媒体加解密前必读，2026-11-15） |
 | [`PACKAGES_BOUNDARY.md`](PACKAGES_BOUNDARY.md) | 子包职责与「如何判断空壳」判据（2026-11-15） |
+| [`ARCHITECTURE_REVIEW_2026-11-16.md`](ARCHITECTURE_REVIEW_2026-11-16.md) | 架构健康度审查：屎山判定（宏观不是/微观 editor_page 局部是）+ 量化耦合 + R1~R5 重构路线图（2026-11-16） |
 | [`AUDIT_FULL_2026-09-07.md`](AUDIT_FULL_2026-09-07.md) | 2026-09-07 全量审计台账（100+ 大类 / 259 修复 / 118 提升 + 未决清单） |
 | `CAPACITY_BUDGET_2026-08-28.md` | 容量预算（内存/性能基线，随版本更新数值） |
 | `COMMAND_CYCLE_GOVERNANCE_2026-08-27.md` | 命令周期治理 |

@@ -40,7 +40,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// 前的笔记本上下文守卫（nbId 空判 + 提示 + 传参，+6）；editor_page_overlays.dart
 /// 图片 provider 传 notebookId（+1）。这是跨域密钥隔离的穿线成本，不是展示件
 /// 增长——无新 UI 组件。part 数与边界不动。下一次增长仍须先拆或再点名。
-const int kBaselineTotalLines = 7158;
+///
+/// 2026-11-16（全面升级重构审查，mounted 守卫补齐）：7158 → 7161（+3）。
+/// 动机是**异步安全修复**，非功能增长：editor_page.dart 退出裁决的第二个
+/// 异步间隙（confirmLeaveWithUnsavedChanges 确认弹窗）后此前未复查 mounted
+/// 即 setState——弹窗期间页面被销毁会抛异常。补 `if (!mounted) return;`（1 行）
+/// + 2 行说明注释。零逻辑分支变更、零新 UI。part 数与边界不动。这是缺陷修复
+/// 成本，不构成放宽先例——下一次增长仍须先拆或再点名。
+const int kBaselineTotalLines = 7161;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

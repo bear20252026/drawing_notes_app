@@ -250,26 +250,32 @@ class EncryptionService {
     List<int>? mediaKey,
   }) async {
     final dek = VaultKeyService.randomBytes(_v5DekLength);
-    final payload = await _encryptPayload(
-      scope: scope,
-      id: id,
-      plaintext: plaintext,
-      key: dek,
-    );
-    final slots = await _wrapSlotsV5(
-      scope: scope,
-      id: id,
-      dek: dek,
-      password: password,
-      usbKey: usbKey,
-      mediaKey: mediaKey,
-    );
-    return jsonEncode({
-      'mode': 'password',
-      'v': 5,
-      'slots': slots,
-      'payload': jsonDecode(payload),
-    });
+    try {
+      final payload = await _encryptPayload(
+        scope: scope,
+        id: id,
+        plaintext: plaintext,
+        key: dek,
+      );
+      final slots = await _wrapSlotsV5(
+        scope: scope,
+        id: id,
+        dek: dek,
+        password: password,
+        usbKey: usbKey,
+        mediaKey: mediaKey,
+      );
+      return jsonEncode({
+        'mode': 'password',
+        'v': 5,
+        'slots': slots,
+        'payload': jsonDecode(payload),
+      });
+    } finally {
+      // DEK 用完即焚（2026-11-16 审查补齐）：本方法新生成的独占副本，
+      // 与 KEK/media 槽同口径——含异常路径，缩短数据密钥堆驻留窗口。
+      dek.fillRange(0, dek.length, 0);
+    }
   }
 
   /// 分页画布 v5 加密（N4 批 3）。
@@ -554,25 +560,30 @@ class EncryptionService {
     if (dek == null) {
       throw const FormatException('密码错误或数据已损坏');
     }
-    final slots = await _wrapSlotsV5(
-      scope: scope,
-      id: id,
-      dek: dek,
-      password: newPassword,
-      usbKey: null,
-    );
-    // 保留原重置盘槽位与媒体密钥槽（DEK 未变——槽位仍然有效）。
-    final oldSlots = map['slots'] as Map<String, dynamic>;
-    final usb = oldSlots['usb'];
-    if (usb is Map<String, dynamic>) slots['usb'] = usb;
-    final media = oldSlots['media'];
-    if (media is Map<String, dynamic>) slots['media'] = media;
-    return jsonEncode({
-      'mode': 'password',
-      'v': 5,
-      'slots': slots,
-      'payload': map['payload'],
-    });
+    try {
+      final slots = await _wrapSlotsV5(
+        scope: scope,
+        id: id,
+        dek: dek,
+        password: newPassword,
+        usbKey: null,
+      );
+      // 保留原重置盘槽位与媒体密钥槽（DEK 未变——槽位仍然有效）。
+      final oldSlots = map['slots'] as Map<String, dynamic>;
+      final usb = oldSlots['usb'];
+      if (usb is Map<String, dynamic>) slots['usb'] = usb;
+      final media = oldSlots['media'];
+      if (media is Map<String, dynamic>) slots['media'] = media;
+      return jsonEncode({
+        'mode': 'password',
+        'v': 5,
+        'slots': slots,
+        'payload': map['payload'],
+      });
+    } finally {
+      // DEK 用完即焚（2026-11-16 审查补齐）：旧密码解出的独占副本。
+      dek.fillRange(0, dek.length, 0);
+    }
   }
 
   /// 分页画布 v5 改密（N4 批 3）。
@@ -636,25 +647,30 @@ class EncryptionService {
     } catch (_) {
       return null; // 盘不匹配（AEAD 认证失败）
     }
-    final slots = await _wrapSlotsV5(
-      scope: scope,
-      id: id,
-      dek: dek,
-      password: newPassword,
-      usbKey: null,
-    );
-    // 保留原重置盘槽位与媒体密钥槽（DEK 未变）。
-    final oldSlots = map['slots'] as Map<String, dynamic>;
-    final usb = oldSlots['usb'];
-    if (usb is Map<String, dynamic>) slots['usb'] = usb;
-    final media = oldSlots['media'];
-    if (media is Map<String, dynamic>) slots['media'] = media;
-    return jsonEncode({
-      'mode': 'password',
-      'v': 5,
-      'slots': slots,
-      'payload': map['payload'],
-    });
+    try {
+      final slots = await _wrapSlotsV5(
+        scope: scope,
+        id: id,
+        dek: dek,
+        password: newPassword,
+        usbKey: null,
+      );
+      // 保留原重置盘槽位与媒体密钥槽（DEK 未变）。
+      final oldSlots = map['slots'] as Map<String, dynamic>;
+      final usb = oldSlots['usb'];
+      if (usb is Map<String, dynamic>) slots['usb'] = usb;
+      final media = oldSlots['media'];
+      if (media is Map<String, dynamic>) slots['media'] = media;
+      return jsonEncode({
+        'mode': 'password',
+        'v': 5,
+        'slots': slots,
+        'payload': map['payload'],
+      });
+    } finally {
+      // DEK 用完即焚（2026-11-16 审查补齐）：U 盘钥匙解出的独占副本。
+      dek.fillRange(0, dek.length, 0);
+    }
   }
 
   /// 分页画布 v5 重置盘重置（N4 批 3）。
@@ -715,19 +731,24 @@ class EncryptionService {
     if (dek == null) {
       throw const FormatException('密码错误或数据已损坏');
     }
-    final w = await VaultKeyService.aeadEncrypt(
-      usbKey,
-      dek,
-      _slotAadV5(scope, 'usb', id),
-    );
-    final slots = map['slots'] as Map<String, dynamic>;
-    slots['usb'] = {'w': base64Encode(w)};
-    return jsonEncode({
-      'mode': 'password',
-      'v': 5,
-      'slots': slots,
-      'payload': map['payload'],
-    });
+    try {
+      final w = await VaultKeyService.aeadEncrypt(
+        usbKey,
+        dek,
+        _slotAadV5(scope, 'usb', id),
+      );
+      final slots = map['slots'] as Map<String, dynamic>;
+      slots['usb'] = {'w': base64Encode(w)};
+      return jsonEncode({
+        'mode': 'password',
+        'v': 5,
+        'slots': slots,
+        'payload': map['payload'],
+      });
+    } finally {
+      // DEK 用完即焚（2026-11-16 审查补齐）：密码解出的独占副本。
+      dek.fillRange(0, dek.length, 0);
+    }
   }
 
   /// 分页画布 v5 事后绑定重置盘（N4 批 3）。
@@ -885,6 +906,9 @@ class EncryptionService {
     } catch (_) {
       // payload 内层 AEAD 认证失败（密文被篡改）→ 统一契约。
       throw const FormatException('载荷认证失败（数据已损坏）');
+    } finally {
+      // DEK 用完即焚（2026-11-16 审查补齐）：密码解出的独占副本。
+      dek.fillRange(0, dek.length, 0);
     }
   }
 
@@ -921,15 +945,4 @@ class EncryptionService {
     return List<int>.generate(n, (_) => rng.nextInt(256));
   }
 
-  /// 读取加密数据格式版本（红蓝攻防 D-1 修复 2026-08-15）：
-  /// 用于判断旧格式（v≤2 = PBKDF2 10 万次迭代）提示用户重新保存升级；
-  /// 无 v 字段的旧数据视为 v=2，解析失败保守视为旧格式。
-  static int formatVersionOf(String encryptedJson) {
-    try {
-      final map = jsonDecode(encryptedJson) as Map<String, dynamic>;
-      return map['v'] is int ? map['v'] as int : 2;
-    } catch (_) {
-      return 2;
-    }
-  }
 }
