@@ -1,7 +1,7 @@
 // 独立画布文字块的落盘往返（交接文档核心价值 #2：保存→重开内容必须一致）。
 //
 // 独立画布模式下文字工具写入 `document.textItems`
-// （`editor_page_actions.dart:460` 注释即「独立画布模式回退到
+// （`editor_page_actions.dart:632` 注释即「独立画布模式回退到
 // document.textItems」，绘制端见 `editor_page_canvas_surface.dart:24`），
 // 但 `DocumentCodec.snapshotOf`/解码两侧都没有 `textItems` 这一项——
 // 本文件把「打了字、存了盘、重开字还在」这条链路的真实结果核一遍。

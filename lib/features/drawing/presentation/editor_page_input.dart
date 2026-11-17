@@ -295,23 +295,14 @@ extension _EditorPageInput on _EditorPageState {
       final page = widget.session;
       final rect = _marqueeRect!;
       if (page != null) {
-        final selectedIds = <String>[
-          for (final text in page.textItems)
-            if (rect.overlaps(
-              Rect.fromLTWH(text.x, text.y, text.fontSize * 2, text.fontSize),
-            ))
-              text.id,
-          for (final image in page.imageItems)
-            if (rect.overlaps(
-              Rect.fromLTWH(image.x, image.y, image.width, image.height),
-            ))
-              image.id,
-          for (final shape in page.shapes)
-            if (rect.overlaps(
-              Rect.fromLTWH(shape.x, shape.y, shape.width, shape.height),
-            ))
-              shape.id,
-        ];
+        // R3（审查 2026-11-17）：三类边界换算 + 命中收敛进纯函数
+        // MixedItemHitGeometry（可单测，口径与抽取前逐字一致）。
+        final selectedIds = MixedItemHitGeometry.idsInRect(
+          rect: rect,
+          textItems: page.textItems,
+          imageItems: page.imageItems,
+          shapes: page.shapes,
+        );
         _applyState(() => _canvasInteraction.completeMarquee(selectedIds));
         _notifyChanged();
       } else {
@@ -432,26 +423,15 @@ extension _EditorPageInput on _EditorPageState {
         // 分页笔记保留既有的混排对象套索；独立绘图文档由控制器统一维护
         // 笔画、形状和图片选择，避免 UI 侧临时 ID 与历史事务脱节。
         if (_isNotebookMode && polygon.length >= 3) {
-          final path = Path()..addPolygon(polygon, true);
           final page = widget.session;
           if (page != null) {
-            final selectedIds = <String>[
-              for (final text in page.textItems)
-                if (path.contains(
-                  text.position + Offset(text.fontSize, text.fontSize / 2),
-                ))
-                  text.id,
-              for (final image in page.imageItems)
-                if (path.contains(
-                  image.position + Offset(image.width / 2, image.height / 2),
-                ))
-                  image.id,
-              for (final shape in page.shapes)
-                if (path.contains(
-                  shape.position + Offset(shape.width / 2, shape.height / 2),
-                ))
-                  shape.id,
-            ];
+            // R3：中心点命中口径收敛进 MixedItemHitGeometry（同框选）。
+            final selectedIds = MixedItemHitGeometry.idsInPolygon(
+              polygon: polygon,
+              textItems: page.textItems,
+              imageItems: page.imageItems,
+              shapes: page.shapes,
+            );
             _applyState(
               () => _canvasInteraction.addToMultiSelection(selectedIds),
             );

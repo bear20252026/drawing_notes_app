@@ -226,8 +226,15 @@ extension _EditorPageOverlays on _EditorPageState {
                                                 // 跟随，不全页 setState。
                                                 shape.rotation = angle;
                                                 _controller.tickFrame();
-                                                _notifyChanged();
+                                                // R3（审查 2026-11-17）：保存链
+                                                // 通知移到 onPanEnd——此前每帧
+                                                // _notifyChanged 打防抖自动保存
+                                                // + updatedAt 改写，与移动/缩放
+                                                // 的「结束才通知」语义不一致。
                                               },
+                                              onPanEnd: (_) => _notifyChanged(),
+                                              onPanCancel: () =>
+                                                  _notifyChanged(),
                                               child: Container(
                                                 width: 10,
                                                 height: 10,

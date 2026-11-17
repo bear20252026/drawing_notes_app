@@ -501,10 +501,10 @@ class DocumentObjectEditingSession {
   /// 移动、缩放和删除，防止资料底图或固定节点被批量误触。
   bool get mixedDocumentSelectionHasLockedObjects =>
       _document.shapes.any(
-        (shape) => _selection.containsShape(shape.id) && shape.locked,
+        (shape) => _selection._containsShape(shape.id) && shape.locked,
       ) ||
       _document.imageItems.any(
-        (image) => _selection.containsImage(image.id) && image.locked,
+        (image) => _selection._containsImage(image.id) && image.locked,
       );
 
   /// 以矩形或套索多边形命中笔画、形状和图片。对象与选区相交即被选择；对
@@ -528,7 +528,7 @@ class DocumentObjectEditingSession {
         selectedStrokeIndices: selectedStrokeIndices,
       ),
     );
-    _selection.selectMixed(
+    _selection._selectMixed(
       shapeIds: hitTest.shapeIds,
       imageIds: hitTest.imageIds,
     );
@@ -646,10 +646,10 @@ class DocumentObjectEditingSession {
   /// 全部已锁时统一解锁。笔画没有锁定字段，不受此操作影响。
   void toggleSelectedDocumentObjectsLock() {
     final selectedShapes = _document.shapes
-        .where((shape) => _selection.containsShape(shape.id))
+        .where((shape) => _selection._containsShape(shape.id))
         .toList(growable: false);
     final selectedImages = _document.imageItems
-        .where((image) => _selection.containsImage(image.id))
+        .where((image) => _selection._containsImage(image.id))
         .toList(growable: false);
     if (selectedShapes.isEmpty && selectedImages.isEmpty) return;
     final before = _documentObjectsSnapshot();
@@ -744,8 +744,8 @@ class _DocumentObjectSelectionState {
       hasObjectSelection || _activeShapeId != null || _activeImageId != null;
   int get objectSelectionCount => _shapeIds.length + _imageIds.length;
 
-  bool containsShape(String id) => _shapeIds.contains(id);
-  bool containsImage(String id) => _imageIds.contains(id);
+  bool _containsShape(String id) => _shapeIds.contains(id);
+  bool _containsImage(String id) => _imageIds.contains(id);
 
   /// 设置单一图片选择，并清除形状选择及两种活动对象的互斥状态。
   void selectImage(String? imageId) {
@@ -768,7 +768,7 @@ class _DocumentObjectSelectionState {
   }
 
   /// 设置多对象选择。活动 id 只在对应类型恰好选择一个对象时保留。
-  void selectMixed({
+  void _selectMixed({
     required Iterable<String> shapeIds,
     required Iterable<String> imageIds,
   }) {

@@ -4,6 +4,42 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 架构审查路线图 R2/R4/R3 + R1 首域（2026-11-17，同版本增量，未 bump）
+
+**R2 · 7 个破千 part 库补棘轮**（零行为变更）：doc_store 1600 /
+notebook_storage 1462 / sync 1389 / controller 1380 / app_data_root 1259 /
+webdav_settings 1052 / app_lock_gate 1048——新增
+test/architecture/part_library_ratchet_test.dart 台账（主文件 + part 合计
+只许减不许增，分母 7 防静默缩水），补上此前仅 editor_page 有库级棘轮的盲区。
+
+**R4 · 重复/死码净删**（行为零变化）：
+- text_span_editor：toggleLink 的 40 行 clamp/交集/前后段切分循环收敛进
+  既有 _mapSelection（与 clearStyle/_toggleStyle 共用，差异只在交集段变换）。
+- skeleton：SkeletonList/SkeletonCardGrid 两份相同的脉冲 controller
+  创建/dispose/Semantics 样板收敛进 _SkeletonPulseMixin。
+- document_object_editing_session：_DocumentObjectSelectionState（私有类）
+  的 containsShape/containsImage/selectMixed 私有化——「谁能碰选区内部」
+  成为机器事实，5 处调用点同步。
+
+**R3 · 手势域收敛**：
+- 框选/套索两处三类同构命中循环（约 60 行）收敛进 infrastructure 纯函数
+  MixedItemHitGeometry（idsInRect/idsInPolygon，口径逐字一致：文字宽 =
+  fontSize*2、套索取中心点、文字→图片→形状顺序），_onPointerUp 净降 20 行；
+  新增 6 项单测把边界口径钉成机器事实（此前散在手势巨方法里不可单测）。
+- 旋转手柄保存链通知移到 onPanEnd（+onPanCancel 兜底）：此前每帧
+  _notifyChanged 打防抖自动保存 + updatedAt 改写，与移动/缩放的「结束才
+  通知」语义不一致。旋转角度计算逐字未动。
+- 诚实边界：「混排拖拽不入撤销」是整个拖拽域既有缺口（移动同样不入命令
+  历史），单独给旋转加撤销会造成语义分裂——留待拖拽域统一事务化，不本批打补丁。
+
+**R1 首域 · 导出职责归并**（逐字搬移零逻辑变更）：PNG/PDF/SVG/RTF/TXT
+导出方法群原散在 editor_page_persistence（保存域），与 actions 的 PPTX/JSON
+同一职责两处安放——归并进 editor_page_actions 导出域；persistence 只剩
+保存/自动保存/重命名/裁剪（480→311 行），职责声明同步更新。
+
+**棘轮**：editor_page 库 7161→7149（-12，R3 净删行收益；R1 搬移行数中性），
+基线随净删下调——只紧不松（test/editor_page_line_ratchet_test.dart 注释交代）。
+
 ### 全面升级 + 架构审查 + 高置信度修复（2026-11-16，同版本增量，未 bump）
 
 **升级**：Flutter 3.50.0 已是最新 stable（verify-only 确认）；pdfrx 链

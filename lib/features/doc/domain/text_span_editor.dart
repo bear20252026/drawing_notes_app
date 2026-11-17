@@ -68,74 +68,41 @@ class TextSpanEditor {
     SpanRange range,
     String link,
   ) {
-    if (range.isEmpty) return spans;
-    final plainText = spans.plainText;
-    final clampedStart = range.start.clamp(0, plainText.length);
-    final clampedEnd = range.end.clamp(clampedStart, plainText.length);
-
-    final result = <NoteInlineSpan>[];
-    var offset = 0;
-
-    for (final span in spans) {
-      final spanStart = offset;
-      final spanEnd = offset + span.text.length;
-      offset = spanEnd;
-
-      // 选区前的 span → 原样保留
-      if (spanEnd <= clampedStart) {
-        result.add(span);
-        continue;
-      }
-      // 选区后的 span → 原样保留
-      if (spanStart >= clampedEnd) {
-        result.add(span);
-        continue;
-      }
-
-      // 计算交集
-      final intersectStart = spanStart > clampedStart
-          ? spanStart
-          : clampedStart;
-      final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
-
-      // 选区前部分
-      if (spanStart < intersectStart) {
-        result.add(
-          span.copyWith(
-            text: span.text.substring(0, intersectStart - spanStart),
-          ),
-        );
-      }
-
-      // 交集部分：toggle 链接
-      final intersectText = span.text.substring(
-        intersectStart - spanStart,
-        intersectEnd - spanStart,
-      );
+    // R4（审查 2026-11-16）：切分循环收敛进 _mapSelection——与
+    // clearStyle/_toggleStyle 共用同一套 clamp/交集/前后段保留逻辑，
+    // 差异只在交集段变换（此处 toggle 链接）。
+    return _mapSelection(spans, range, (span, intersectText) {
       final hasSameLink = span.link == link;
-      result.add(
-        NoteInlineSpan(
-          text: intersectText,
-          bold: span.bold,
-          italic: span.italic,
-          underline: span.underline,
-          link: hasSameLink ? null : link,
-        ),
+      return NoteInlineSpan(
+        text: intersectText,
+        bold: span.bold,
+        italic: span.italic,
+        underline: span.underline,
+        link: hasSameLink ? null : link,
       );
-
-      // 选区后部分
-      if (intersectEnd < spanEnd) {
-        result.add(
-          span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
-        );
-      }
-    }
-
-    return result.normalized();
+    });
   }
 
   /// 移除选区上的所有样式。
   List<NoteInlineSpan> clearStyle(List<NoteInlineSpan> spans, SpanRange range) {
+    return _mapSelection(
+      spans,
+      range,
+      (span, intersectText) => NoteInlineSpan.plain(intersectText),
+    );
+  }
+
+  // ── 内部工具 ───────────────────────────────────────────────
+
+  /// 选区切分核心（R4 收敛，2026-11-16）：clamp 选区 → 逐 span 三段切分
+  /// （选区前/交集/选区后），前后段原样保留样式，交集段交给 [transform]。
+  /// 此前 applyLink/clearStyle/_toggleStyle 各持一份同构循环（约 40 行 ×3），
+  /// 收敛后切分语义只有一份——修边界 bug 不再需要三处同步。
+  List<NoteInlineSpan> _mapSelection(
+    List<NoteInlineSpan> spans,
+    SpanRange range,
+    NoteInlineSpan Function(NoteInlineSpan span, String intersectText) transform,
+  ) {
     if (range.isEmpty) return spans;
     final plainText = spans.plainText;
     final clampedStart = range.start.clamp(0, plainText.length);
@@ -149,6 +116,7 @@ class TextSpanEditor {
       final spanEnd = offset + span.text.length;
       offset = spanEnd;
 
+      // 与选区无交集 → 原样保留。
       if (spanEnd <= clampedStart || spanStart >= clampedEnd) {
         result.add(span);
         continue;
@@ -159,6 +127,7 @@ class TextSpanEditor {
           : clampedStart;
       final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
 
+      // 选区前部分（保留原样式）。
       if (spanStart < intersectStart) {
         result.add(
           span.copyWith(
@@ -167,12 +136,14 @@ class TextSpanEditor {
         );
       }
 
+      // 交集部分：交给调用方变换。
       final intersectText = span.text.substring(
         intersectStart - spanStart,
         intersectEnd - spanStart,
       );
-      result.add(NoteInlineSpan.plain(intersectText));
+      result.add(transform(span, intersectText));
 
+      // 选区后部分（保留原样式）。
       if (intersectEnd < spanEnd) {
         result.add(
           span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
@@ -182,8 +153,6 @@ class TextSpanEditor {
 
     return result.normalized();
   }
-
-  // ── 内部工具 ───────────────────────────────────────────────
 
   List<NoteInlineSpan> _toggleStyle(
     List<NoteInlineSpan> spans,
@@ -196,61 +165,20 @@ class TextSpanEditor {
     // 检查选区内是否全部已为该样式
     final allSet = _isAllStyleSet(spans, range, getter);
 
-    final plainText = spans.plainText;
-    final clampedStart = range.start.clamp(0, plainText.length);
-    final clampedEnd = range.end.clamp(clampedStart, plainText.length);
-
-    final result = <NoteInlineSpan>[];
-    var offset = 0;
-
-    for (final span in spans) {
-      final spanStart = offset;
-      final spanEnd = offset + span.text.length;
-      offset = spanEnd;
-
-      if (spanEnd <= clampedStart || spanStart >= clampedEnd) {
-        result.add(span);
-        continue;
-      }
-
-      final intersectStart = spanStart > clampedStart
-          ? spanStart
-          : clampedStart;
-      final intersectEnd = spanEnd < clampedEnd ? spanEnd : clampedEnd;
-
-      if (spanStart < intersectStart) {
-        result.add(
-          span.copyWith(
-            text: span.text.substring(0, intersectStart - spanStart),
-          ),
-        );
-      }
-
-      final intersectText = span.text.substring(
-        intersectStart - spanStart,
-        intersectEnd - spanStart,
-      );
-      result.add(
-        setter(
-          NoteInlineSpan(
-            text: intersectText,
-            bold: span.bold,
-            italic: span.italic,
-            underline: span.underline,
-            link: span.link,
-          ),
-          !allSet,
+    return _mapSelection(
+      spans,
+      range,
+      (span, intersectText) => setter(
+        NoteInlineSpan(
+          text: intersectText,
+          bold: span.bold,
+          italic: span.italic,
+          underline: span.underline,
+          link: span.link,
         ),
-      );
-
-      if (intersectEnd < spanEnd) {
-        result.add(
-          span.copyWith(text: span.text.substring(intersectEnd - spanStart)),
-        );
-      }
-    }
-
-    return result.normalized();
+        !allSet,
+      ),
+    );
   }
 
   bool _isAllStyleSet(
