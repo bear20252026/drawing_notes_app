@@ -21,7 +21,7 @@ abstract final class AppL10nSetup {
   /// App 翻译委托 + 全局三件套（Material/Cupertino/Widgets）。
   ///
   /// dynamic 是框架 API 强制口径：WidgetsApp.localizationsDelegates 参数
-  /// 类型即 Iterable<LocalizationsDelegate<dynamic>>（SDK app.dart:908），
+  /// 类型即 `Iterable<LocalizationsDelegate<dynamic>>`（SDK app.dart:908），
   /// material_ui 的 GlobalMaterialLocalizations.delegates 同型——异构委托
   /// （AppLocalizations/Material/Cupertino/Widgets 各加载不同类型）无法
   /// 统一成具体类型参数。与生成码 app_localizations.dart 同口径豁免。
