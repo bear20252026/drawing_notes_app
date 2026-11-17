@@ -7,7 +7,7 @@
 // 批次②：设置流程前插入「密码长度」选择器（S-002 起 6–12 位）；
 // 收集模式按钮文案为「确定」（验证模式仍为「解锁」）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

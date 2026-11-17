@@ -49,7 +49,7 @@
       "titleStyle": {
         "color": 4280098079,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.25,
         "height": null,
         "fontFamily": "Roboto",
@@ -85,7 +85,7 @@
       "labelStyle": {
         "color": 4280098079,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": null,
         "height": null,
         "fontFamily": "Roboto",
@@ -124,7 +124,7 @@
       "titleStyle": {
         "color": 4280098079,
         "fontSize": 17.0,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.35,
         "height": null,
         "fontFamily": null,
@@ -133,7 +133,7 @@
       "contentStyle": {
         "color": 4285427315,
         "fontSize": 15.0,
-        "fontWeight": 3,
+        "fontWeight": 400,
         "letterSpacing": -0.374,
         "height": 1.47,
         "fontFamily": null,
@@ -250,7 +250,7 @@
       "titleStyle": {
         "color": 4293060852,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.25,
         "height": null,
         "fontFamily": "Roboto",
@@ -286,7 +286,7 @@
       "labelStyle": {
         "color": 4293060852,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": null,
         "height": null,
         "fontFamily": "Roboto",
@@ -325,7 +325,7 @@
       "titleStyle": {
         "color": 4293060852,
         "fontSize": 17.0,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.35,
         "height": null,
         "fontFamily": null,
@@ -334,7 +334,7 @@
       "contentStyle": {
         "color": 4291021789,
         "fontSize": 15.0,
-        "fontWeight": 3,
+        "fontWeight": 400,
         "letterSpacing": -0.374,
         "height": 1.47,
         "fontFamily": null,
@@ -451,7 +451,7 @@
       "titleStyle": {
         "color": 4278190080,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.25,
         "height": null,
         "fontFamily": "Roboto",
@@ -487,7 +487,7 @@
       "labelStyle": {
         "color": 4278190080,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": null,
         "height": null,
         "fontFamily": "Roboto",
@@ -526,7 +526,7 @@
       "titleStyle": {
         "color": 4278190080,
         "fontSize": 17.0,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.35,
         "height": null,
         "fontFamily": null,
@@ -535,7 +535,7 @@
       "contentStyle": {
         "color": 4278190080,
         "fontSize": 15.0,
-        "fontWeight": 3,
+        "fontWeight": 400,
         "letterSpacing": -0.374,
         "height": 1.47,
         "fontFamily": null,
@@ -652,7 +652,7 @@
       "titleStyle": {
         "color": 4294967295,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.25,
         "height": null,
         "fontFamily": "Roboto",
@@ -688,7 +688,7 @@
       "labelStyle": {
         "color": 4294967295,
         "fontSize": null,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": null,
         "height": null,
         "fontFamily": "Roboto",
@@ -727,7 +727,7 @@
       "titleStyle": {
         "color": 4294967295,
         "fontSize": 17.0,
-        "fontWeight": 5,
+        "fontWeight": 600,
         "letterSpacing": -0.35,
         "height": null,
         "fontFamily": null,
@@ -736,7 +736,7 @@
       "contentStyle": {
         "color": 4294967295,
         "fontSize": 15.0,
-        "fontWeight": 3,
+        "fontWeight": 400,
         "letterSpacing": -0.374,
         "height": 1.47,
         "fontFamily": null,

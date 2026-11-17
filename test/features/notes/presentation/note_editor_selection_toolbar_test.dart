@@ -2,7 +2,7 @@
 //
 // 行为：聚焦块内出现非折叠文本选区 → 浮动工具条出现（复制块图标唯一标识）；
 // 选区折叠 → 工具条消失；「复制块」动作复制当前块并聚焦新块。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/documents/note_block.dart';

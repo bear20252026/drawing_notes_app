@@ -6,7 +6,7 @@
 //   2. 非无限画布走「图层离屏位图」路径——invalidateLayer 触发异步光栅化，
 //      paintViews 中出现非空 image（否则画上去不可见 = 空白页）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

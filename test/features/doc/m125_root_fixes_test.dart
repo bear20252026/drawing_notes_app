@@ -3,7 +3,7 @@
 // 2) buildAllDocs 跨 kind 去重（同一逻辑笔记的双标签分叉）
 // 3) IME 组合期按键放行（中文输入根修）
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';

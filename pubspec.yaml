@@ -36,6 +36,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  material_ui: 1.11.1
+  cupertino_ui: 1.1.7
   # 跟随 flutter_localizations SDK 约束（SDK 内部依赖 intl，any 会在 SDK
   # 升级时静默漂移）——锁到当前解析版本，SDK 升级时同步手动上调。
   intl: 0.20.3

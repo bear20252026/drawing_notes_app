@@ -4,7 +4,7 @@
 /// 调用方（数据库块协调者）拿到值后再做领域写入，本文件不碰持久化。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import '../../../../core/theme/apple_design.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_dialog.dart';

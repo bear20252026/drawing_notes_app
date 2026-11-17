@@ -9,8 +9,7 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -90,12 +89,7 @@ class _StubController extends SyncController {
 
 Widget _wrap(Widget child) => MaterialApp(
   locale: const Locale('zh'),
-  localizationsDelegates: [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    AppLocalizations.delegate,
-  ],
+  localizationsDelegates: [...GlobalMaterialLocalizations.delegates, AppLocalizations.delegate],
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: child,
 );

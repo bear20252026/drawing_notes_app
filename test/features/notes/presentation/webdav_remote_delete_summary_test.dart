@@ -7,8 +7,7 @@
 //  ② l10n 缺席时兜底文案仍在（与 zh arb 逐字一致，由 l10n 门禁C 另一头锁）；
 //  ③ 没有这类分叉时**不得凭空出现**该提示——它就是「本机什么都没删」这句话，
 //     冒错了会让人以为自己的画布被程序删过。
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -82,12 +81,7 @@ class _StubController extends SyncController {
 
 Widget _wrap(Widget child, {bool withL10n = true}) => MaterialApp(
   locale: withL10n ? const Locale('zh') : null,
-  localizationsDelegates: [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    if (withL10n) AppLocalizations.delegate,
-  ],
+  localizationsDelegates: [...GlobalMaterialLocalizations.delegates, if (withL10n) AppLocalizations.delegate],
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: child,
 );

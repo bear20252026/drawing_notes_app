@@ -1,6 +1,6 @@
 import 'package:drawing_notes_app/app/app_services.dart';
 import 'package:drawing_notes_app/app/composition_root.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/layout/responsive.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';

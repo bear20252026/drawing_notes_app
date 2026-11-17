@@ -3,7 +3,7 @@
 // 纯展示层：输入一个或多个 SyncConflict，返回 Map<docId, ConflictResolution>。
 // 通过 showDialog<Map<String, ConflictResolution>> 使用；取消返回 null（走默认 LWW）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';

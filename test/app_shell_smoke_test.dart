@@ -9,10 +9,9 @@
 // - AppShell 含常驻环境背景动画，不能 pumpAndSettle。
 import 'dart:io';
 
-import 'package:flutter/material.dart' as m;
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -71,12 +70,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppDesign.lightTheme(),
-        localizationsDelegates: [
-          GlobalMaterialLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: const [Locale('zh'), Locale('en')],
         home: AppShell(
           blockDocStore: blockDocStore ?? _MemBlockDocStore(),

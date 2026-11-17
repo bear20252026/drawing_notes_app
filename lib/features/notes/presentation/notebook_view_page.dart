@@ -10,7 +10,7 @@ import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/rendering/ink_layer_painter.dart';
 import 'package:drawing_notes_app/core/rendering/shape_renderer.dart';

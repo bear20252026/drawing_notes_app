@@ -34,7 +34,7 @@ library;
 
 import 'dart:io';
 
-import 'package:flutter/material.dart' show ThemeMode;
+import 'package:material_ui/material_ui.dart' show ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/all_doc.dart' show AllDocKind;

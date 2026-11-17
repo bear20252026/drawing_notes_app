@@ -8,7 +8,7 @@
 //
 // 红线对照（DESIGN_SYSTEM.md）：FAB 是浮层（悬浮于内容之上），属玻璃合法域；
 // 与底部玻璃导航条同屏共存（不嵌套，非玻璃叠玻璃）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 

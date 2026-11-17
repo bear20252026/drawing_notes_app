@@ -10,8 +10,7 @@
 // 所以下面同时钉：真实 l10n 取值、en 不残留中文、U 盘那一支的回归锁、
 // 以及每条具名分支不许静默降级成兜底。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';
@@ -25,12 +24,7 @@ Future<AppLocalizations> _loadL10n(WidgetTester tester, Locale locale) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
       supportedLocales: const [Locale('zh'), Locale('en')],
       home: Builder(
         builder: (context) {

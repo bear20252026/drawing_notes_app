@@ -9,7 +9,7 @@
 // 由 SyncController 透出），也不保存用户的选择——选择只活在被点下去的那一轮
 // 同步里，那一轮成功后基线推进，隔离自然解除（见 `FilePostRestoreBaselineGate`）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/sync/post_restore_baseline.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

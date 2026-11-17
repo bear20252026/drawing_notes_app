@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 // RenderProxyBox（尺寸测量层）在 rendering 库，material 不导出。
 import 'package:flutter/rendering.dart';
 

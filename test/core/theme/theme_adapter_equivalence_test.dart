@@ -16,7 +16,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -43,7 +43,7 @@ void main() {
   };
 
   Map<String, dynamic> tsToJson(TextStyle? t) => t == null ? {} : {
-    'color': t.color?.toARGB32(), 'fontSize': t.fontSize, 'fontWeight': t.fontWeight?.index,
+    'color': t.color?.toARGB32(), 'fontSize': t.fontSize, 'fontWeight': t.fontWeight?.value,
     'letterSpacing': t.letterSpacing, 'height': t.height, 'fontFamily': t.fontFamily,
     'inherit': t.inherit,
   };

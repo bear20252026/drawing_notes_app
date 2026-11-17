@@ -7,8 +7,7 @@
 
 import 'dart:io';
 
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/security/notebook_media_keys.dart';
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
@@ -32,11 +31,7 @@ Future<Directory> _brokenDir() async {
 
 Widget _wrap(Widget child) {
   return MaterialApp(
-    localizationsDelegates: const [
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     supportedLocales: const [Locale('zh'), Locale('en')],
     home: child,
   );

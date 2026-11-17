@@ -5,7 +5,7 @@
 // 覆盖：圆点随输入增长、计数文案、退格、✓ 确认（不足最短长度抖动拒绝）、
 // 校验失败清空、固定模式不受影响（无退格/✓ 键、输满自动提交）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';

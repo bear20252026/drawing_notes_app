@@ -1,5 +1,5 @@
 // C-10（审计 2026-09-27）自 shared 归位 drawing：唯一消费方在此，伪共享解除。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_palette.dart';

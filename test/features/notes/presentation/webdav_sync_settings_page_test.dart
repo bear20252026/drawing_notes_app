@@ -1,7 +1,6 @@
 // M10-B 冒烟测试：WebDavSyncSettingsPage 渲染骨架 + 表单字段。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drawing_notes_app/features/notes/application/sync_controller.dart';
@@ -13,11 +12,7 @@ import '../../../helpers/wait_until.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
-    localizationsDelegates: const [
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     supportedLocales: const [Locale('zh'), Locale('en')],
     home: child,
   );

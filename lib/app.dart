@@ -1,11 +1,10 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:drawing_notes_app/app/default_editor_page_builder.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
@@ -289,15 +288,7 @@ class _DrawingNotesAppState extends State<DrawingNotesApp> {
           locale: _localeController.locale,
           // L-04 国际化（专家审计 2026-08-15）：gen_l10n 本地化标题。
           title: AppLocalizations.of(context)?.appTitle ?? '绘图笔记',
-          localizationsDelegates: [
-            AppLocalizations.delegate,
-            // W3 修正（2026-09-02）：原此处注册两次 GlobalMaterialLocalizations
-            // （历史上 material_ui fork 曾需自己的 MaterialLocalizations——
-            // 该包已移除，注释一并删除）。现在统一用 flutter_localizations 版。
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
           supportedLocales: const [Locale('zh'), Locale('en')],
           debugShowCheckedModeBanner: false,
           themeMode: _themeController.mode,

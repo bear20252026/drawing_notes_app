@@ -5,7 +5,7 @@ import 'package:drawing_notes_app/core/utils/domain_display_labels.dart';
 // M11.3：新增「文档树」（最近文档，AFFiNE 侧栏文档树语义，可折叠）。
 // 纯展示：所有数据由父 widget 注入。不 import 任何存储/服务实现。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';

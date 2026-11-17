@@ -3,7 +3,7 @@
 // 背景：真机集成测试发现"输入正文后保存快照为空"（架构审计 2026-08-31）。
 // 本测试用 FakeAsync pump 推进防抖 Timer，覆盖 DocPage→DocController→store 全链。
 
-import 'package:flutter/material.dart' as m;
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';

@@ -6,7 +6,7 @@
 // 共用的流程骨架：说明确认 → 插盘读钥匙 → 新密码两遍 → 提示原语。
 // 两条流只保留各自的「未绑定检查 + 重置调用」差异部分。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';

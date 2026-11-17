@@ -8,7 +8,7 @@
 /// ListView.builder」行级虚拟化——此前 Column 一次性 build 全部卡片。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/features/doc/domain/note_database.dart';

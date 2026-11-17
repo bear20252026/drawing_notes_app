@@ -10,7 +10,7 @@
 // 全部块以 AnimatedBuilder 监听同一个；dispose 随父 State 收口
 // （父组件即「最后一个使用者」，语义正确）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';

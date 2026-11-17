@@ -2,7 +2,7 @@
 // 标签视图（M12.6，AFFiNE Tags 对齐）：标签列表 + 点选过滤。
 // 独立库（不依赖 all_docs_page 私有成员），由 all_docs_page_widgets 装配。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 

@@ -4,7 +4,7 @@
 // 版权声明见 THIRD_PARTY_NOTICES.md。本模块与画板模块（features/notes 的
 // edgeless/drawing 部分）零交叉引用：画板打开文档经由导航跳转到本模块。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 

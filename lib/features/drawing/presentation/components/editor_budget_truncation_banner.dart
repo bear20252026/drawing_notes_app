@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/storage/document_budgets.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

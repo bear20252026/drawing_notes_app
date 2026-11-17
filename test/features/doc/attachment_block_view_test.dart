@@ -2,7 +2,7 @@
 // 渲染文件/PDF/书签卡片，编辑备注写回 props['attachment'] 的 JSON。
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/core/documents/note_attachment.dart';

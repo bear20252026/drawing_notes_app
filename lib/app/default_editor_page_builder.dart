@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/navigation/editor_page_builder.dart';
 import 'package:drawing_notes_app/core/navigation/editor_page_session.dart';

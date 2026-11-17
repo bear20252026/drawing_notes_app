@@ -2,7 +2,7 @@
 // - P0-7：`_hasUnpersistedPageContent` 判定的域语义（跳过无谓重加密）。
 // - P1-9：_syncText 静默模型同步 + 装饰刷新合帧的行为等价性。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';

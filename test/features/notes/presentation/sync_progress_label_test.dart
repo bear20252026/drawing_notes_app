@@ -5,8 +5,7 @@
 // ① 每个阶段在 en 下都取到英文；② 中文路径不回归；
 // ③ 缺 l10n 时确实回落到 core 的中文兜底（而不是空串或异常）。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_progress.dart';
@@ -18,12 +17,7 @@ Future<AppLocalizations> _loadL10n(WidgetTester tester, Locale locale) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
       supportedLocales: const [Locale('zh'), Locale('en')],
       home: Builder(
         builder: (context) {

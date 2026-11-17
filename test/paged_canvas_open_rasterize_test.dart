@@ -9,7 +9,7 @@
 // 且 CanvasPainter 在位图未就绪时走矢量回退。本测试断言打开已含笔画的
 // 文档后位图确实物化。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

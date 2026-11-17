@@ -8,7 +8,7 @@
 // 覆盖：鼠标 / 触屏 / 触控笔三种输入在分页画布模式各落一笔。
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

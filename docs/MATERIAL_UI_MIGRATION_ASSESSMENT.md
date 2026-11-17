@@ -1,8 +1,21 @@
-# material_ui 迁移可行性评估（实测定案 2026-11-15）
+# material_ui 迁移可行性评估（2026-11-15 初评；2026-11-16 探针实测推翻原判，迁移已完成）
 
-> **结论：不是「纯体力活」，而是框架级替换。当前不做，本文记录实测证据与
+> **⚠️ 本文原结论「当前不做、等上游类型收敛」已被 2026-11-16 探针实验推翻。**
+> 原判定把「迁移步骤没走完的标准中间态」误读为「上游不兼容」，并把整件事
+> 挂在一个**官方从未计划**的前提（上游出兼容层/类型别名）上。官方路径就是
+> 全量迁移（包 README 三步：dart fix 迁移码 → GlobalMaterialLocalizations.delegates
+> → MaterialUiCompatibilityBridge 兜第三方遗留子树），不存在「等收敛」。
+> **迁移已于 2026-11-16 完成**：209 文件、analyze 严格口径零问题、
+> 3062+97 测试全过、黄金基线四档逐字段等价。原文保留作误判教训留档
+> （教训：①「自动迁移后报错」≠「不可迁移」，先核对官方步骤是否走完；
+> ②单文件试点失败只证明「不能切一半」，正确结论是「必须原子切换」；
+> ③第三方依赖暴露面要实测盘点，不能拿 google_fonts 类泛例套本项目——
+> 本项目直接依赖零 SDK Material 暴露，bridge 根本用不上）。
+> 以下为原文（历史留档，结论已失效）：
+
+> ~~**结论：不是「纯体力活」，而是框架级替换。当前不做，本文记录实测证据与
 > 将来若要做的前置条件。** 两次尝试（2026-11-14 自动迁移、2026-11-15 单文件
-> 试点）均失败，失败根因不同，下文逐条给证据。
+> 试点）均失败，失败根因不同，下文逐条给证据。~~
 
 ---
 
@@ -127,8 +140,22 @@ error • The argument type 'ThemeData' can't be assigned to the parameter type 
 
 ---
 
-## 六、当前处置（已生效）
+## 六、当前处置（2026-11-16 迁移完成后生效）
 
-- CI 4 处 `flutter analyze` 使用 `--no-fatal-infos`，info 级弃用不判红。
-- 本文档作为**决策依据留档**，避免后人重复尝试已证伪的路径。
-- 若上游类型关系收敛，重开评估时请先更新本文的实测数据。
+- **迁移已完成**：material_ui 1.11.1 + cupertino_ui 1.1.7 升为直接依赖
+  （精确钉版）；209 文件 import 经官方 `dart fix --code=migrate_design_widgets`
+  迁移；35 处 localizationsDelegates 改 `GlobalMaterialLocalizations.delegates`
+  （含 l10n 生成码与历史双 GML 残留形态）；26 处旧 flutter_localizations
+  导入移除。**MaterialUiCompatibilityBridge 未使用**——实测本项目直接依赖
+  （pdfrx/riverpod/window_manager 等）零 SDK Material 类型暴露，无遗留子树。
+- **CI 4 处 `--no-fatal-infos` 已移除**，`flutter analyze` 恢复严格口径
+  （实测 No issues found）。
+- 主题适配层（步骤 2）先行完成的价值兑现：dart fix 连适配器一起切到
+  material_ui ThemeData，AppThemeSpec 色板/决策零改动，黄金基线四档
+  逐字段等价（仅 fontWeight 序列化口径 index→value 随 SDK 弃用同步换算）。
+- **后续升级纪律**：material_ui 走周更 + semver，1.6~1.11 已带 M3 Expressive
+  等变化（TabBar 指示器默认宽度等）。**每次升级该包必须重跑黄金基线回归**
+  （theme_adapter_equivalence_test）——基线只在钉版那一刻成立，升级可能
+  带视觉漂移；有意的视觉变更须按基线更新纪律写明裁决依据。
+- 本文档作为**误判教训留档**：真正的「等」只适用于第三方依赖迁移进度
+  （本项目实测为零），不适用于 Flutter 官方——官方路径就是全量迁移。

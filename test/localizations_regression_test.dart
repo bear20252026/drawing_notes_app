@@ -7,17 +7,12 @@
 // 才能避免 "No MaterialLocalizations found"。mui 退役后全库统一为
 // flutter/material 单一方言，本测试锁定"单一 delegate 即可"的新契约。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget _app() {
   return MaterialApp(
-    localizationsDelegates: const [
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
+    localizationsDelegates: GlobalMaterialLocalizations.delegates,
     supportedLocales: const [Locale('zh'), Locale('en')],
     debugShowCheckedModeBanner: false,
     home: Builder(

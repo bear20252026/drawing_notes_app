@@ -6,8 +6,7 @@
 // 模式照抄 editor_page_390dp_overflow_test（takeException isNull 探针）。
 import 'dart:io';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,11 +68,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: theme ?? AppDesign.lightThemeFor(false),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: const [Locale('zh'), Locale('en')],
         // 1.5× 字阶用 MediaQuery 包裹实现——不动平台层（Flutter 3.x 已
         // 没有 view.textScaleFactor setter，`platformDispatcher.textScale

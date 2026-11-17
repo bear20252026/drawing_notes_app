@@ -2,7 +2,7 @@
 // notifyDataChanged 空回调/有效回调解耦 + AppRefreshRouteAware 路由感知
 // （didPopNext 触发刷新，didPush/didPushNext/didPop 不触发）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/navigation/app_refresh.dart';
 

@@ -5,7 +5,7 @@
 // 原地报错不关闭）；默认 false 维持 digitsOnly（数字以外的输入被过滤）；
 // 收集模式回传原文。测试跑在 Windows 桌面宿主，组件可直构。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_test/flutter_test.dart';
 

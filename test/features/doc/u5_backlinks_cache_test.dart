@@ -5,7 +5,7 @@
 // 越重。U5b 修复：DocPage 首次访问后缓存 Future，保存触发的重算只做
 // 内存 backlinksOf，零 IO。本测试用计数 loader 验证「多次保存仅一次加载」。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_page.dart';

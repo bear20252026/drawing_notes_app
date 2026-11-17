@@ -15,7 +15,7 @@
 // 模糊的是 Scaffold 背景（视觉为半透明面板 + 边缘亮线，桌面无滚动内容
 // 从属），不做 extendBody 式左让位（内容左缘贴栏是桌面列表的可读性前提，
 // 与窄屏底条的 extendBody 语义不同源，见 app_shell 接入注释）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

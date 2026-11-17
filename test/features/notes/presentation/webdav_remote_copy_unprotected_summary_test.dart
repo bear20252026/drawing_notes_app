@@ -5,8 +5,7 @@
 // 「两者皆保留」已经生效。这里用桩控制器把结果直接喂给页面，锁两条：
 // ①走 l10n 新键（zh arb 有文案）；②l10n 缺失时兜底文案仍在（不得静默）。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -55,12 +54,7 @@ class _StubController extends SyncController {
 
 Widget _wrap(Widget child, {bool withL10n = true}) => MaterialApp(
   locale: withL10n ? const Locale('zh') : null,
-  localizationsDelegates: [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    if (withL10n) AppLocalizations.delegate,
-  ],
+  localizationsDelegates: [...GlobalMaterialLocalizations.delegates, if (withL10n) AppLocalizations.delegate],
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: child,
 );

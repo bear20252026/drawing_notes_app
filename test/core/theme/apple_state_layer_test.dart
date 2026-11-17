@@ -7,7 +7,7 @@
 // 钉住这些数值的理由：它们被主题层统一应用到 filled/outlined/icon 三类按钮，
 // 一旦漂移，全 App 的悬停与按压反馈会变得不一致，且肉眼很难定位源头。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// DESIGN.md:336-350 的 `typography.*` 表，逐格照抄。

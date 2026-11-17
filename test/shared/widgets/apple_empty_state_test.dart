@@ -1,5 +1,5 @@
 // 空态统一组件（审计二-4）契约测试：icon/标题/引导语/行动按钮渲染与缺省。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/apple_empty_state.dart';

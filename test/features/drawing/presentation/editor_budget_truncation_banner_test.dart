@@ -11,13 +11,13 @@
 //      「保存失败，请重试」。
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:drawing_notes_app/l10n/app_l10n_setup.dart';
 import 'package:drawing_notes_app/core/storage/document_budgets.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/components/editor_budget_truncation_banner.dart';
-import 'package:drawing_notes_app/l10n/app_localizations.dart';
 import 'package:drawing_notes_app/shared/widgets/apple_pressable.dart';
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 
@@ -42,8 +42,8 @@ DocumentDecodeReport truncatedReport({
 Widget host(Locale locale, Widget child) => MaterialApp(
   locale: locale,
   theme: AppDesign.lightTheme(),
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
+  localizationsDelegates: AppL10nSetup.delegates,
+  supportedLocales: AppL10nSetup.supportedLocales,
   home: Scaffold(body: child),
 );
 

@@ -10,8 +10,7 @@ library;
 
 import 'dart:io';
 
-import 'package:flutter/material.dart' as m;
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart' show showInstanceNotice;
@@ -35,7 +34,7 @@ void main() {
           // 不挂 AppLocalizations.delegate 的话 `l10n` 是 null，用例就会测到**兜底文案**
           // 而不是真文案——那条断言（措辞必须留「可能」）会因此测错东西。
           AppLocalizations.delegate,
-          ...GlobalMaterialLocalizations.delegates,
+          ...m.GlobalMaterialLocalizations.delegates,
         ],
         supportedLocales: const [m.Locale('en'), m.Locale('zh')],
         home: m.Scaffold(
