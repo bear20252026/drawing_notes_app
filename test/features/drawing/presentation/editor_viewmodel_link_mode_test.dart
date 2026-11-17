@@ -1,11 +1,14 @@
 // EUI-03 的第二条腿（2026-10-15）。
 //
 // 页面那十个入口的互斥由 `editor_link_mode_exit_test.dart` 逐格驱动；这里钉的是
-// `EditorViewModel` 自己那套「工具切换（UI 只调用这些方法）」的意图 API
-// （selectBrush / selectEraser / selectEyedropper / selectText / selectRect /
-// selectLasso）。这套 API 目前由 `EditorToolbarActionFactory` 与页面各自委托，
-// 两条路此前**都没清 linkMode**——只在页面那侧补，等于把同一个判据留成两份，
-// 下一份拷贝又会先红一边。
+// `EditorViewModel` 自己那套「工具切换」意图 API（selectBrush / selectEraser /
+// selectEyedropper / selectText / selectRect / selectLasso）。历史上
+// `EditorToolbarActionFactory` 与页面各自委托、两条路**都没清 linkMode**——
+// 只在页面那侧补，等于把同一个判据留成两份，下一份拷贝又会先红一边。
+//
+// 现状更正（R5 连带裁决 2026-11-17）：生产工具条已走 editor_page_tools 的
+// _toolMode/_selectWritingTool 路径，这组意图 API 生产调用方为零——保留为
+// 互斥判据的单一载体（本文件逐格钉住），将来工具条重构接回时判据不丢。
 //
 // 对照用例同样重要：`toggleLinkMode()` 打开连线后不能被自己的清理逻辑顺手关掉。
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
