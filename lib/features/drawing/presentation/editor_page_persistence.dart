@@ -5,12 +5,6 @@ part of 'editor_page.dart';
 
 /// 编辑器保存域（拆分自 editor_page.dart）。
 extension _EditorPagePersistence on _EditorPageState {
-  /// setState 的 lint 友好包装（extension 无法直接调用受保护成员）。
-  void notify() {
-    // ignore: invalid_use_of_protected_member
-    setState(() {});
-  }
-
   void _scheduleAutosave() {
     _viewModel.scheduleAutosave();
   }
@@ -21,7 +15,7 @@ extension _EditorPagePersistence on _EditorPageState {
   void _onSavingStateChanged() {
     if (!mounted) return;
     _canvasSaving = _saveScheduler.savingState.value;
-    notify();
+    _applyState(() {});
   }
 
   /// 保存失败的用户可见通知（2026-10-06）：状态栏芯片常驻显示「保存失败」
@@ -31,7 +25,7 @@ extension _EditorPagePersistence on _EditorPageState {
     if (!mounted) return;
     final notice = _saveScheduler.saveFailure.value;
     _canvasSaveFailure = notice;
-    notify();
+    _applyState(() {});
     if (notice == null) {
       _snackedForCurrentEpisode = false;
       return;
@@ -115,9 +109,9 @@ extension _EditorPagePersistence on _EditorPageState {
     if (!await confirmBudgetTruncationOverride(context, report)) return;
     storage.acknowledgeBudgetTruncation(report.documentId);
     if (!mounted) return;
-    // extension 里不能直接碰受保护的 setState——走本域既有的 notify() 薄包装。
+    // 整页刷新走 _applyState 单点（R1 收口 2026-11-17，原 notify() 包装已删）。
     _budgetTruncation = null;
-    notify();
+    _applyState(() {});
     // 放行即写：不等 5s 防抖，让用户当场看到「已保存」或失败措辞回到芯片上。
     await _viewModel.saveNow();
   }
@@ -162,7 +156,7 @@ extension _EditorPagePersistence on _EditorPageState {
     }
     if (mounted && !_closingEditor) {
       _canvasLastSavedAt = DateTime.now();
-      notify();
+      _applyState(() {});
     }
   }
 
@@ -221,6 +215,105 @@ extension _EditorPagePersistence on _EditorPageState {
     AppSnack.show(context, message);
   }
 
+  // ── 裁剪交互域（R1 归并 2026-11-17：手柄自 drag_ops、键盘自 shortcuts
+  // 逐字搬入，与 _confirmCrop 团聚；写盘管线仍在 infrastructure）──
+
+  /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
+  ///
+  /// 照抄 [ResizeHandles] 的热区模式：视觉手柄保持 10×10 小巧观感，
+  /// 命中区外包 44×44（HIG / WCAG 2.5.5 最小触控尺寸，触屏主用设备），
+  /// 热区中心与视觉中心同点，桌面鼠标观感零变化。
+  List<Widget> _buildCropHandles() {
+    const handleSize = 10.0;
+    const hitSize = 44.0;
+    final handleLabels = <EditorImageCropHandle, String>{
+      EditorImageCropHandle.topLeft:
+          AppLocalizations.of(context)?.cropHandleTopLeft ?? '调整裁剪框左上角',
+      EditorImageCropHandle.topRight:
+          AppLocalizations.of(context)?.cropHandleTopRight ?? '调整裁剪框右上角',
+      EditorImageCropHandle.bottomLeft:
+          AppLocalizations.of(context)?.cropHandleBottomLeft ?? '调整裁剪框左下角',
+      EditorImageCropHandle.bottomRight:
+          AppLocalizations.of(context)?.cropHandleBottomRight ?? '调整裁剪框右下角',
+    };
+    final rect = _cropRect!;
+    final handles = <({EditorImageCropHandle handle, Offset position})>[
+      (handle: EditorImageCropHandle.topLeft, position: rect.topLeft),
+      (handle: EditorImageCropHandle.topRight, position: rect.topRight),
+      (handle: EditorImageCropHandle.bottomLeft, position: rect.bottomLeft),
+      (handle: EditorImageCropHandle.bottomRight, position: rect.bottomRight),
+    ];
+    return [
+      for (final entry in handles)
+        Positioned(
+          left: _controller.canvasToView(entry.position).dx - hitSize / 2,
+          top: _controller.canvasToView(entry.position).dy - hitSize / 2,
+          child: Semantics(
+            label: handleLabels[entry.handle],
+            button: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (details) {
+                final canvasDelta = screenDeltaToCanvas(
+                  details.delta,
+                  _controller.viewRotation,
+                  _controller.viewScale,
+                );
+                final image = _cropItem!;
+                final resized = EditorImageCropGeometry.resizeCropRect(
+                  cropRect: rect,
+                  imageBounds: Rect.fromLTWH(
+                    image.x,
+                    image.y,
+                    image.width,
+                    image.height,
+                  ),
+                  handle: entry.handle,
+                  canvasDelta: canvasDelta,
+                );
+                _applyState(() => _cropRect = resized);
+              },
+              child: SizedBox(
+                width: hitSize,
+                height: hitSize,
+                child: Center(
+                  child: Container(
+                    width: handleSize,
+                    height: handleSize,
+                    decoration: BoxDecoration(
+                      color: AppleColor.actionBlue,
+                      borderRadius: BorderRadius.circular(AppleRadius.xs),
+                      border: Border.all(color: Colors.white, width: 1),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// B3：键盘平移裁剪框（画布坐标，钳制在裁剪对象 bounds 内）。
+  void _nudgeCropRect(double dx, double dy) {
+    final item = _canvasInteraction.cropItem;
+    final rect = _cropRect;
+    if (item == null || rect == null) return;
+    final bounds = Rect.fromLTWH(item.x, item.y, item.width, item.height);
+    var left = rect.left + dx;
+    var top = rect.top + dy;
+    left = left.clamp(bounds.left, bounds.right - rect.width);
+    top = top.clamp(bounds.top, bounds.bottom - rect.height);
+    _applyState(
+      () => _cropRect = Rect.fromLTWH(left, top, rect.width, rect.height),
+    );
+  }
+
+  /// B3：Esc 退出裁剪模式（不落盘）。
+  void _exitCropMode() {
+    _applyState(_canvasInteraction.clearCrop);
+  }
+
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
   ///
   /// C-04 第五批：解码/几何换算/密封/原子写管线整体迁
@@ -265,11 +358,11 @@ extension _EditorPagePersistence on _EditorPageState {
           _controller.invalidateDocumentImage(imageId);
           // 标脏：由既有 5s 防抖自动保存 / 退出兜底 flush 持久化（见闸门注释）。
           _notifyChanged();
-          if (mounted) notify();
+          if (mounted) _applyState(() {});
         },
         endCrop: () {
           _canvasInteraction.clearCrop();
-          if (mounted) notify();
+          if (mounted) _applyState(() {});
         },
         writeGate: (inFlight) => _cropWriteInFlight = inFlight,
         reportError: (e) {

@@ -4,6 +4,39 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 架构审查路线图 R1 剩余域（2026-11-17，同版本增量，未 bump）
+
+**R1 · 裁剪交互域归并**（逐字搬移零逻辑变更）：_buildCropHandles（4 角手柄
+UI）自 drag_ops、_nudgeCropRect/_exitCropMode（键盘平移/Esc 退出）自
+shortcuts 搬入 persistence，与 _confirmCrop 团聚——裁剪「手柄→键盘→确认」
+全链一处可见；写盘管线仍在 infrastructure/editor_image_crop.dart。
+persistence 310→403 行，职责声明与 part 导航同步。
+
+**R1 · 文字编辑域归并**（逐字搬移零逻辑变更）：11 个纯文字方法（新建/画布
+新建/双击分发/提交/取消/便利贴/字号/分页预览/改色/批量改色/进入编辑，约
+261 行）自 editing 搬入 text_overlays，与就地编辑渲染/斜杠命令同域。
+editing 798→470 行脱离五类杂烩，只剩图片插入/链接/点选/菜单/层序/删除等
+跨对象混排动作。顺手归位：缩放三法→input（视口手势同域）、分组两法→
+drag_ops（与 _expandGroup 同域）。
+
+**R1 · _applyState 收口单点**：主文件 5 处裸 setState（4 个顶栏开关 + 退出
+保存流）收编进 _applyState；persistence 的 notify() 第二包装删除（6 处调用
+统一 _applyState(() {})）——整页重建从此只有一个入口。新增门禁
+test/editor_page_setstate_single_entry_test.dart 钉死：_EditorPageState 作用域
+（class 体 + 全部 on _EditorPageState extension）内 setState 只许出现在
+_applyState 定义行；独立对话框 State 合法豁免按作用域判定自然排除；配塌空
+下限 + 探针自证防门禁空转。
+
+**诚实边界（本批不动，留档）**：① _addTextItem/_addCanvasTextItem 的
+「_commitTextEditing + 紧接 _applyState」双刷是**有意时序**（原注释：避免
+setState 内再 setState 造成输入框失焦），不合并；② EditorViewModel 的
+notifyListeners 全库无订阅者（页面刷新全靠 _applyState 包裹 VM 调用）——
+VM 通知机制与页面刷新的双轨是设计意图问题，同 R5 须业主裁决，不擅动。
+
+**棘轮**：editor_page 库总量 7149 不变（纯搬移 + 等行注释更新 + 接缝清理），
+基线不动。D-14 裸间距台账随文字域搬移同步（editing 的 1 处分页预览弹窗
+SizedBox 移往 text_overlays：5→6、editing 归零删行，总量不变非新增）。
+
 ### 架构审查路线图 R2/R4/R3 + R1 首域（2026-11-17，同版本增量，未 bump）
 
 **R2 · 7 个破千 part 库补棘轮**（零行为变更）：doc_store 1600 /

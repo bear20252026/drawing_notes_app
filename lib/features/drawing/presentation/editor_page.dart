@@ -97,16 +97,16 @@ import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_ma
 // State 的方法群（行数门禁 1000 上限的产物，切的是位置不是逻辑）。
 //   editor_page_dialogs.dart          对话框控件（命令面板/文本输入）
 //   editor_page_overlays.dart         浮层编排（图层/属性/选区面板）
-//   editor_page_text_overlays.dart    文本对象浮层（就地编辑/样式）
+//   editor_page_text_overlays.dart    文字域（浮层/就地编辑/编辑动作）
 //   editor_page_canvas_surface.dart   画布表面（CustomPaint + 手势承载）
-//   editor_page_drag_ops.dart         拖拽操作（对象移动/缩放/框选）
-//   editor_page_input.dart            指针与手势输入分派
-//   editor_page_editing.dart          编辑态流转（进入/退出/提交）
+//   editor_page_drag_ops.dart         拖拽操作（移动/缩放/框选/分组）
+//   editor_page_input.dart            指针与手势输入分派 + 缩放控件
+//   editor_page_editing.dart          混排动作（图片/链接/菜单/层序/删除）
 //   editor_page_actions.dart          高层动作（复制/删除/对齐等）+ 导出域
 //   editor_page_tools.dart            工具切换（画笔/橡皮/形状/文本）
 //   editor_page_commands.dart         命令派发（可撤销操作入口）
 //   editor_page_shortcuts.dart        键盘快捷键映射
-//   editor_page_persistence.dart      保存/自动保存/重命名/裁剪确认
+//   editor_page_persistence.dart      保存域 + 裁剪交互（手柄/键盘/确认）
 //   editor_page_toolbar_actions.dart  工具栏动作实现
 //   editor_page_appbar.dart           顶栏构建
 //   editor_page_body.dart             主体布局构建
@@ -486,16 +486,16 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     return page.imageItems.where((i) => i.id == id).firstOrNull;
   }
 
-  // 顶栏开关（O1 拆分后供 editor_page_appbar.dart 的 extension 调用；
-  // 在 State 实例内封装受保护的 setState，避免扩展方法中非法访问）。
+  // 顶栏开关（O1 拆分后供 editor_page_appbar.dart 的 extension 调用）。
   // C-04 第四批：Controller 单一真源，toggle 即写 Controller，State getter 随动。
-  void _toggleLayers() => setState(_chrome.toggleLayers);
+  // R1 收口（2026-11-17）：统一走 _applyState 单点（此前裸 setState）。
+  void _toggleLayers() => _applyState(_chrome.toggleLayers);
 
-  void _toggleInspector() => setState(_chrome.toggleInspector);
+  void _toggleInspector() => _applyState(_chrome.toggleInspector);
 
-  void _toggleFullscreen() => setState(_chrome.toggleFullscreen);
+  void _toggleFullscreen() => _applyState(_chrome.toggleFullscreen);
 
-  void _toggleReadingInverted() => setState(_chrome.toggleReadingInverted);
+  void _toggleReadingInverted() => _applyState(_chrome.toggleReadingInverted);
 
   /// 裁剪磁盘写入的在飞行句柄（修复 3，审计 2026-10-04；写入本体在
   /// editor_page_persistence.dart 的 [_confirmCrop]）：非 null 期间自动保存
@@ -825,10 +825,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool get _hasObjectSelection =>
       _selectedItemId != null || _multiSelectedIds.isNotEmpty;
 
-  /// 注册编辑器命令（借鉴 Excalidraw ActionManager）。
-  ///
-  /// 每条命令声明同一个执行器、关键词、分类与可用性谓词；工具栏、主菜单、
-  /// 快捷键和命令面板都应调用这里的 id，而不能各自复制业务逻辑。
+  /// 页面状态刷新唯一入口（R1 收口 2026-11-17，门禁
+  /// test/editor_page_setstate_single_entry_test.dart 钉死）：
+  /// 本库（主文件 + 全部 part 的 _EditorPageState extension）内禁止裸
+  /// setState——需要整页重建一律经此；文档/工具状态变更仍走 _notifyChanged。
   void _applyState(VoidCallback fn) => setState(fn);
 
   /// 剪贴板元素（复制/粘贴的元素，借鉴 Excalidraw 元素复制）。
@@ -931,7 +931,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         // 第二个异步间隙（确认弹窗）后同样须复查 mounted（2026-11-16 审查
         // 补齐）：弹窗期间页面可能已被销毁，直接 setState 会抛异常。
         if (!mounted) return;
-        setState(() => _allowPopAfterSave = true);
+        _applyState(() => _allowPopAfterSave = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) navigator.pop(result);
         });

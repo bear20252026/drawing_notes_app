@@ -192,27 +192,6 @@ extension _EditorPageShortcuts on _EditorPageState {
     }
   }
 
-  /// 右上角主菜单选择处理（对齐 Excalidraw main-menu）。
-
-  /// B3：键盘平移裁剪框（画布坐标，钳制在裁剪对象 bounds 内）。
-  void _nudgeCropRect(double dx, double dy) {
-    final item = _canvasInteraction.cropItem;
-    final rect = _cropRect;
-    if (item == null || rect == null) return;
-    final bounds = Rect.fromLTWH(item.x, item.y, item.width, item.height);
-    var left = rect.left + dx;
-    var top = rect.top + dy;
-    left = left.clamp(bounds.left, bounds.right - rect.width);
-    top = top.clamp(bounds.top, bounds.bottom - rect.height);
-    _applyState(
-      () => _cropRect = Rect.fromLTWH(left, top, rect.width, rect.height),
-    );
-  }
-
-  /// B3：Esc 退出裁剪模式（不落盘）。
-  void _exitCropMode() {
-    _applyState(_canvasInteraction.clearCrop);
-  }
 }
 
 // V-01（审计 2026-09-27）：键盘选中画布对象专项——Tab / Shift+Tab 轮选。

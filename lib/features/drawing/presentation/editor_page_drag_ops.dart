@@ -366,82 +366,6 @@ extension _EditorPageDragOps on _EditorPageState {
     );
   }
 
-  /// 图片裁剪 4 角手柄（拖拽调整 _cropRect，画布坐标）。
-  ///
-  /// 照抄 [ResizeHandles] 的热区模式：视觉手柄保持 10×10 小巧观感，
-  /// 命中区外包 44×44（HIG / WCAG 2.5.5 最小触控尺寸，触屏主用设备），
-  /// 热区中心与视觉中心同点，桌面鼠标观感零变化。
-  List<Widget> _buildCropHandles() {
-    const handleSize = 10.0;
-    const hitSize = 44.0;
-    final handleLabels = <EditorImageCropHandle, String>{
-      EditorImageCropHandle.topLeft:
-          AppLocalizations.of(context)?.cropHandleTopLeft ?? '调整裁剪框左上角',
-      EditorImageCropHandle.topRight:
-          AppLocalizations.of(context)?.cropHandleTopRight ?? '调整裁剪框右上角',
-      EditorImageCropHandle.bottomLeft:
-          AppLocalizations.of(context)?.cropHandleBottomLeft ?? '调整裁剪框左下角',
-      EditorImageCropHandle.bottomRight:
-          AppLocalizations.of(context)?.cropHandleBottomRight ?? '调整裁剪框右下角',
-    };
-    final rect = _cropRect!;
-    final handles = <({EditorImageCropHandle handle, Offset position})>[
-      (handle: EditorImageCropHandle.topLeft, position: rect.topLeft),
-      (handle: EditorImageCropHandle.topRight, position: rect.topRight),
-      (handle: EditorImageCropHandle.bottomLeft, position: rect.bottomLeft),
-      (handle: EditorImageCropHandle.bottomRight, position: rect.bottomRight),
-    ];
-    return [
-      for (final entry in handles)
-        Positioned(
-          left: _controller.canvasToView(entry.position).dx - hitSize / 2,
-          top: _controller.canvasToView(entry.position).dy - hitSize / 2,
-          child: Semantics(
-            label: handleLabels[entry.handle],
-            button: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (details) {
-                final canvasDelta = screenDeltaToCanvas(
-                  details.delta,
-                  _controller.viewRotation,
-                  _controller.viewScale,
-                );
-                final image = _cropItem!;
-                final resized = EditorImageCropGeometry.resizeCropRect(
-                  cropRect: rect,
-                  imageBounds: Rect.fromLTWH(
-                    image.x,
-                    image.y,
-                    image.width,
-                    image.height,
-                  ),
-                  handle: entry.handle,
-                  canvasDelta: canvasDelta,
-                );
-                _applyState(() => _cropRect = resized);
-              },
-              child: SizedBox(
-                width: hitSize,
-                height: hitSize,
-                child: Center(
-                  child: Container(
-                    width: handleSize,
-                    height: handleSize,
-                    decoration: BoxDecoration(
-                      color: AppleColor.actionBlue,
-                      borderRadius: BorderRadius.circular(AppleRadius.xs),
-                      border: Border.all(color: Colors.white, width: 1),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-    ];
-  }
-
   /// 返回 [canvasPoint] 附近（50px 内）吸附命中的混排对象 id。
   ///
   /// 与 [_findSnapTarget] 同逻辑但返回元素 id（供箭头绑定 boundElementId 使用）；
@@ -594,4 +518,53 @@ extension _EditorPageDragOps on _EditorPageState {
   // ---------------- 工具条 ----------------
 
   /// 选区操作条：完成选区后显示（复制/粘贴/删除/清除 + 缩放/旋转滑块）。
+
+  // ── 分组（R1 归并 2026-11-17：自 editing 逐字搬移，与 _expandGroup 同域）──
+
+  /// 分组：给选中的多个元素设置相同 groupId（借鉴 Excalidraw groupIds）。
+  void _groupSelected() {
+    final page = widget.session;
+    if (page == null) return;
+    final ids = _multiSelectedIds.isNotEmpty
+        ? _multiSelectedIds
+        : <String>{?_selectedItemId};
+    if (ids.length < 2) {
+      _showSnack(
+        AppLocalizations.of(context)?.edGroupNeed2 ?? '请先框选/多选至少 2 个元素再分组',
+      );
+      return;
+    }
+    final groupId = LocalIdGenerator.next('grp');
+    _applyState(() {
+      EditorPageObjectMutation.setGroupId(
+        ids: ids,
+        groupId: groupId,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
+    });
+    _notifyChanged();
+    _showSnack(_l10nSafe?.edGroupedN(ids.length) ?? '已分组 ${ids.length} 个元素');
+  }
+
+  /// 取消分组：清空选中元素的 groupId。
+  void _ungroupSelected() {
+    final page = widget.session;
+    if (page == null) return;
+    final ids = _multiSelectedIds.isNotEmpty
+        ? _multiSelectedIds
+        : <String>{?_selectedItemId};
+    _applyState(() {
+      EditorPageObjectMutation.setGroupId(
+        ids: ids,
+        groupId: null,
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+      );
+    });
+    _notifyChanged();
+    _showSnack(_l10nSafe?.edUngrouped ?? '已取消分组');
+  }
 }

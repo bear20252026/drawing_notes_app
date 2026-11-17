@@ -86,7 +86,10 @@ const Map<String, int> _baseline = {
   'lib/features/drawing/presentation/layer_panel.dart': 6,
   'lib/features/doc/presentation/table_editor_widget.dart': 5,
   'lib/features/drawing/presentation/editor_page_appbar.dart': 5,
-  'lib/features/drawing/presentation/editor_page_text_overlays.dart': 5,
+  // R1 文字域归并（2026-11-17）：原 editing 的 1 处裸间距（分页预览弹窗
+  // SizedBox）随文字编辑方法群**逐字搬移**到 text_overlays；editing 归零
+  // 删行，text_overlays 5→6。总量不变，非新增裸间距（同导出域先例）。
+  'lib/features/drawing/presentation/editor_page_text_overlays.dart': 6,
   'lib/features/doc/presentation/doc_editor_ui.dart': 4,
   'lib/features/notes/presentation/webdav_sync_settings_page.dart': 4,
   'lib/features/doc/presentation/doc_page_info.dart': 4,
@@ -115,7 +118,6 @@ const Map<String, int> _baseline = {
   'lib/features/notes/presentation/notebook_reader_page.dart': 2,
   'lib/core/rendering/pdf_hybrid_exporter.dart': 1,
   'lib/features/drawing/presentation/selection_action_button.dart': 1,
-  'lib/features/drawing/presentation/editor_page_editing.dart': 1,
   'lib/features/doc/presentation/database/database_cell_editor.dart': 1,
   'lib/features/notes/presentation/home_page.dart': 1,
 };
