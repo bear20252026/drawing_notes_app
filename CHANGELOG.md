@@ -4,6 +4,42 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 全面升级 + 架构审查 + 高置信度修复（2026-11-16，同版本增量，未 bump）
+
+**升级**：Flutter 3.50.0 已是最新 stable（verify-only 确认）；pdfrx 链
+2.12.1→2.13.0（pdfium_dart/pdfium_flutter 0.4.2→0.4.3、pdfrx_engine
+0.9.2→0.9.3）。7 个传递依赖受 SDK/约束钉住不可升（analyzer/qr/cross_file
+等），非遗漏。升级后全量门禁复验通过。
+
+**架构审查结论（屎山判定）：宏观不是，微观局部是。**
+- 宏观健康：四层占比 features 50%/core 30%/shared 3.5%/app 1.6%；
+  跨层倒挂 0、源码环 0、横向 feature 隔离 0 违规；9 规则 + 14 专项门禁 +
+  边界脚本 + DCM 真实覆盖；TODO/FIXME/HACK 真实 0 处。
+- 微观泥球：editor_page 库 7158 行（15 part，主文件自认「切的是位置不是
+  逻辑」），扇出 73 全仓最高；_applyState 散见 11 文件 92 处；7 个破千
+  part 库无棘轮（仅 editor_page 有）。详见 docs/ARCHITECTURE_REVIEW_2026-11-16.md。
+
+**高置信度修复（本批落地，全部读码复核 + 回归护航）**：
+- **DEK 用完即焚补齐 5 处**（encryption_service）：新生/改密/重置盘/绑盘/
+  块文档解密路径解出的 DEK 此前无 finally 零化，与 KEK/media 槽「用完即焚」
+  纪律不一致——补 fillRange（只擦方法内独占副本；unwrapPasswordSlotForRewrap/
+  rewrapPayloadV5 的 DEK 归属调用方，未擦，回归钉住可二次复用）。
+- **明文外层取钥守卫**（notebook_storage_password.dart
+  _encryptedPayloadOnDiskInsideExclusive）：保险库有钥但笔记本未设密时外层
+  是明文 JSON，此前有钥即无条件 decrypt 撞「不是 DNV 信封」抛错，阻断
+  ensure/改密/绑盘——补 !isEncrypted 放行（对齐同文件 patch 路径既有口径）。
+- **死代码删除**：encryption_service.formatVersionOf 全仓零引用（旧格式
+  提示用途，v5 收口后失效）。
+- **mounted 守卫补齐**（editor_page.dart 退出裁决）：第二个异步间隙
+  （确认弹窗）后未复查 mounted 即 setState——弹窗期间页面销毁会抛异常。
+  补 if (!mounted) return（+3 行，棘轮 7158→7161 按 P3-3 纪律三处交代）。
+
+**回归**：新增 notebook_review_fixes_test（6 项：明文外层 ensure/绑盘 +
+改密/重置/块文档解密/rewrap DEK 复用全链路）。
+
+**门禁复验（本机实测）**：严格 analyze No issues found；主套件 3068/5/0；
+KDF 串行 97/1/0；架构+棘轮 154 项/边界/版本/依赖（7≤7）全过。
+
 ### material_ui/cupertino_ui 迁移完成（2026-11-16，探针实测推翻「等上游」原判，同版本增量，未 bump）
 
 > 外部核查指出原评估「等上游类型收敛」前提不成立——官方从未有兼容层/

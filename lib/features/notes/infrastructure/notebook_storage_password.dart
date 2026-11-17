@@ -148,7 +148,11 @@ extension _NotebookStoragePassword on NotebookStorage {
     if (key == null && VaultFileCodec.isEncrypted(onDisk)) {
       throw const VaultFileLockException();
     }
-    final clear = key == null
+    // 明文外层守卫（2026-11-16 审查补齐）：保险库有钥但笔记本未设密时，
+    // 外层是明文 JSON——此前有钥即无条件 decrypt 会撞 vault_file_codec
+    // 「不是 DNV 加密信封」抛错，阻断 ensure/改密/绑盘。对齐本文件
+    // _patchEncryptedPayloadInsideExclusive 的既有口径（!isEncrypted 放行）。
+    final clear = key == null || !VaultFileCodec.isEncrypted(onDisk)
         ? onDisk
         : await VaultFileCodec.decrypt(
             onDisk,

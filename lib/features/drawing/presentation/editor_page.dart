@@ -927,6 +927,9 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             )) {
           return;
         }
+        // 第二个异步间隙（确认弹窗）后同样须复查 mounted（2026-11-16 审查
+        // 补齐）：弹窗期间页面可能已被销毁，直接 setState 会抛异常。
+        if (!mounted) return;
         setState(() => _allowPopAfterSave = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) navigator.pop(result);
