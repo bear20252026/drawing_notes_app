@@ -574,4 +574,24 @@ extension _EditorPageInput on _EditorPageState {
     if (!mounted) return;
     _updateCurrentBrushPreset(color: color);
   }
+
+  // ── 缩放控件（R1 归并 2026-11-17：自 editing 逐字搬移，视口手势同域）──
+
+  /// 缩放控件：放大（借鉴 Excalidraw 缩放导航）。
+  void _zoomIn() {
+    _controller.viewScale = (_controller.viewScale * 1.25).clamp(0.05, 20.0);
+    _controller.tickFrame();
+  }
+
+  /// 缩放控件：缩小。
+  void _zoomOut() {
+    _controller.viewScale = (_controller.viewScale / 1.25).clamp(0.05, 20.0);
+    _controller.tickFrame();
+  }
+
+  /// 缩放控件：恢复 100%。
+  void _zoomReset() {
+    _controller.viewScale = 1.0;
+    _controller.tickFrame();
+  }
 }

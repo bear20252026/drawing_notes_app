@@ -454,9 +454,9 @@ void main() {
     await remount();
     expect(toolSelected(tester, penTip), isTrue);
 
-    // 依据两条：① `_toggleLinkMode`（`editor_page_editing.dart:341`）清了指针模式/
+    // 依据两条：① `_toggleLinkMode`（`editor_page_editing.dart:113`）清了指针模式/
     // 吸管/文字/选区，唯独不碰 `controller.tool`；② 连线模式一旦开启就接管元素点击
-    // （`:369` 起），而 `editor_context_bar.dart:301` 早就把
+    // （`_onItemTap` `:141` 起），而 `editor_context_bar.dart:301` 早就把
     // `eyedropperActive || textToolActive || linkMode` 算成同一族「模式激活」——
     // 工具条这份副本漏了 linkMode，于是 pen 与连线两格并亮。
     linkMode = true;

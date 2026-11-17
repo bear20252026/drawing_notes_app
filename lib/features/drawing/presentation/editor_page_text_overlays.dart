@@ -1,9 +1,8 @@
 part of 'editor_page.dart';
 
-/// 编辑器文字叠层、就地编辑与斜杠命令展示域。
-///
-/// 此 extension 只组合文字相关 Widget，并将所有状态修改继续委托给
-/// _EditorPageState 的既有方法，避免产生新的文档或工具状态源。
+/// 编辑器文字域（R1 归并 2026-11-17：叠层/就地编辑/斜杠命令 + 文字
+/// 编辑动作自 editing 逐字搬入）：渲染与编辑动作同域，状态修改仍委托
+/// _EditorPageState 既有方法，不产生新的文档或工具状态源。
 extension _EditorPageTextOverlays on _EditorPageState {
   Widget _buildInlineEditor(PageTextItem item) {
     final viewPos = _controller.canvasToView(item.position);
@@ -483,5 +482,269 @@ extension _EditorPageTextOverlays on _EditorPageState {
     );
   }
 
-  /// 图片块叠加层（可拖动、点击选中）。
+  // ── 文字编辑动作（R1 归并 2026-11-17：自 editing 逐字搬移，与就地
+  // 编辑渲染同域；editing 只剩图片/链接/菜单/删除等混排动作）──
+
+  void _addTextItem(Offset canvasPoint) {
+    final page = widget.session;
+    if (page == null) {
+      // 画布模式（问题5）：文字块存入文档 textItems，不再禁用文字工具。
+      _addCanvasTextItem(canvasPoint);
+      return;
+    }
+
+    // 先完成上一项，再开始新项，避免 setState 内再次 setState 造成输入框失焦。
+    _commitTextEditing();
+    _applyState(() {
+      // 创建临时文字块（尚未加入页面，提交时才加入）。
+      final item = EditorTextMutation.createDraft(
+        id: LocalIdGenerator.next('txt'),
+        x: canvasPoint.dx,
+        y: canvasPoint.dy,
+      );
+      _beginTextSession(item);
+      _editController.clear();
+      _viewModel.setTextToolActive(false);
+      _selectedItemId = null;
+    });
+    // 下一帧把焦点交给就地编辑框。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocus.requestFocus();
+    });
+  }
+
+  /// 画布模式（无限画布）添加文字块（问题5修复）。
+  ///
+  /// 与笔记本页一致：创建临时文字块进入就地编辑，提交时写入
+  /// [DrawingDocument.textItems]，渲染由画布 overlay 层承载。
+  void _addCanvasTextItem(Offset canvasPoint) {
+    _commitTextEditing();
+    _applyState(() {
+      final item = EditorTextMutation.createDraft(
+        id: LocalIdGenerator.next('txt'),
+        x: canvasPoint.dx,
+        y: canvasPoint.dy,
+      );
+      _beginTextSession(item);
+      _editController.clear();
+      _viewModel.setTextToolActive(false);
+      _selectedItemId = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _editFocus.requestFocus();
+    });
+  }
+
+  /// 画布双击（对齐 Excalidraw 双击插入文字）：
+  /// 双击空白处 -> 新建文字块并立即进入就地编辑；
+  /// 双击已有文字块 -> 进入该文字块的编辑。
+  void _onCanvasDoubleTap(TapDownDetails details) {
+    final page = widget.session;
+    final canvasPoint = _controller.viewToCanvas(details.localPosition);
+    // 查找双击位置命中的文字块（取其编辑框）。
+    final hitId = EditorTextMutation.hitTextId(
+      items: page?.textItems ?? _controller.document.textItems,
+      x: canvasPoint.dx,
+      y: canvasPoint.dy,
+    );
+    if (hitId != null) {
+      _applyState(() => _selectedItemId = hitId);
+      _editTextItem();
+      return;
+    }
+    // 空白处：新建文字并编辑（Excalidraw 同款顺滑插入，问题11：
+    // 一点画面即可打字；画布/笔记两种模式均支持）。
+    _addTextItem(canvasPoint);
+  }
+
+  /// 提交就地编辑的文字块：空文本则丢弃，非空则加入页面并保存。
+  ///
+  /// 注意：编辑"已有"文字块时，[pending] 已在 [page.textItems] 中，
+  /// 不能重复添加（评审发现 P1：重复项会被持久化并叠加渲染）。
+  void _commitTextEditing() {
+    final page = widget.session;
+    final pending = _pendingTextItem;
+    if (pending == null || _editingItemId == null) return;
+
+    final text = _editController.text;
+    final targetItems = page?.textItems ?? _controller.document.textItems;
+    final committed = EditorTextMutation.commit(
+      pending: pending,
+      rawText: text,
+      items: targetItems,
+    );
+    if (committed) {
+      _applyState(() {
+        if (page == null) {
+          // 画布模式（问题5）：写入文档 textItems。
+          _controller.document.touch();
+        }
+        _selectedItemId = pending.id;
+      });
+      _notifyChanged();
+    }
+    // C-04：会话字段/状态机统一收口（不论文本是否有效变更都结束会话）。
+    _endTextSession(committed: true);
+    _editFocus.unfocus();
+  }
+
+  /// 结束就地编辑（点画布其他位置/切换工具时调用）。
+  void _cancelTextEditing() {
+    _commitTextEditing();
+  }
+
+  /// 添加"特殊标签"（便利贴样式文字块，弹窗输入，可拖动移动）。
+  ///
+  /// 与就地编辑并存：就地编辑用于快速文字，标签用于醒目分类标注。
+  Future<void> _addStickyNote() async {
+    final page = widget.session;
+    if (page == null) return;
+
+    // 先结束可能存在的就地编辑。
+    _cancelTextEditing();
+
+    final result = await GlassDialog.show<_TextDialogResult>(
+      context: context,
+      builder: (_) => const _TextInputDialog(),
+    );
+    if (result == null || result.text.trim().isEmpty) return;
+    if (!mounted) return;
+
+    _applyState(() {
+      page.textItems.add(
+        PageTextItem(
+          id: LocalIdGenerator.next('txt'),
+          x: _controller.document.width / 2 - 100,
+          y: _controller.document.height / 2 - 40,
+          text: result.text.trim(),
+          fontSize: result.fontSize,
+          color: 0xFFFFF59D, // 便利贴黄底，文字用深色
+          isSticky: true,
+        ),
+      );
+      _selectedItemId = page.textItems.last.id;
+    });
+    _notifyChanged();
+  }
+
+  /// 调节选中文字块的字号（工具栏滑块调用）。
+  void _setSelectedTextFontSize(double size) {
+    final page = widget.session;
+    final id = _selectedItemId;
+    if (page == null || id == null) return;
+    final item = page.textItems.where((t) => t.id == id).firstOrNull;
+    if (item == null) return;
+    _applyState(() {
+      EditorTextStyleMutation.setFontSize(item: item, size: size);
+    });
+    _notifyChanged();
+  }
+
+  /// 分页预览（D3：长笔记多页预览，借鉴 Umo Editor 分页模式）。
+  ///
+  /// 把页面文字块按 A4 页面高度（逻辑像素）分页渲染到预览对话框，
+  /// 便于查看长笔记的分页效果（导出 PDF 时的版式）。
+  Future<void> _showPaginationPreview() async {
+    final page = widget.session;
+    if (page == null) {
+      _showSnack(
+        AppLocalizations.of(context)?.edPreviewPagedOnly ?? '仅分页画布页面支持分页预览',
+      );
+      return;
+    }
+    if (page.textItems.isEmpty) {
+      _showSnack(AppLocalizations.of(context)?.edNoTextHere ?? '本页还没有文字内容');
+      return;
+    }
+    await GlassDialog.show<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          AppLocalizations.of(context)?.editorPagePreviewTitle(page.title) ??
+              '分页预览 · ${page.title}',
+        ),
+        content: SizedBox(
+          width: 480,
+          height: 560,
+          child: PaginationPreview(textItems: page.textItems),
+        ),
+        actions: [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(AppLocalizations.of(context)?.close ?? '关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 修改选中文字块的颜色（复用颜色选择对话框）。
+  Future<void> _changeSelectedTextColor() async {
+    final page = widget.session;
+    final id = _selectedItemId;
+    if (page == null || id == null) return;
+    final item = page.textItems.where((t) => t.id == id).firstOrNull;
+    if (item == null) return;
+
+    final color = await GlassDialog.show<Color>(
+      context: context,
+      builder: (_) => ColorPickerDialog(initialColor: Color(item.color)),
+    );
+    if (color == null) return;
+    if (!mounted) return;
+    _applyState(() {
+      EditorTextStyleMutation.setColor(item: item, color: color.toARGB32());
+    });
+    _notifyChanged();
+  }
+
+  /// 宏：批量改色（B1，借鉴 Trilium 脚本自动化）——
+  /// 把页面所有文字块的颜色统一改为当前画笔颜色。
+  void _macroRecolorAllText() {
+    final page = widget.session;
+    if (page == null) return;
+    if (page.textItems.isEmpty) {
+      _showSnack(AppLocalizations.of(context)?.edNoTextBlocks ?? '本页没有文字块');
+      return;
+    }
+    final target = _controller.color.toARGB32();
+    _applyState(() {
+      EditorTextStyleMutation.recolorAll(items: page.textItems, color: target);
+    });
+    _notifyChanged();
+    _showSnack(
+      _l10nSafe?.edRecoloredN(page.textItems.length) ??
+          '已批量改色 ${page.textItems.length} 个文字块',
+    );
+  }
+
+  /// 编辑选中的文字块：双击/工具栏进入就地编辑（直接打字修改，
+  /// 借鉴 OneNote/Word，替代弹窗输入）。
+  void _editTextItem() {
+    final page = widget.session;
+    final id = _selectedItemId;
+    if (id == null) return;
+    // 独立画布模式（page == null）同样支持编辑——items 源与双击命中的
+    // _onCanvasDoubleTap 同口径取 document.textItems；此前直接 return，
+    // 画布文字块创建后双击永远进不了编辑。
+    final source = page?.textItems ?? _controller.document.textItems;
+    final item = EditorTextMutation.findById(items: source, id: id);
+    if (item == null) return;
+
+    _applyState(() {
+      // 清理上一个未提交的就地编辑。
+      _commitTextEditing();
+      _beginTextSession(item);
+      _editController.text = item.text;
+    });
+    // 下一帧把焦点交给就地编辑框，并把光标移到末尾。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _editFocus.requestFocus();
+      _editController.selection = TextSelection.collapsed(
+        offset: _editController.text.length,
+      );
+    });
+  }
 }
