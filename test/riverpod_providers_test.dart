@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/di/providers.dart';
 import 'package:drawing_notes_app/features/drawing/application/di_providers.dart';
-import 'package:drawing_notes_app/features/drawing/application/drawing_notifiers.dart';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
-import 'package:drawing_notes_app/core/canvas_model/selection.dart';
 
 /// S5 验证：Riverpod 编译时安全 + 可测试性（ProviderContainer 独立构建）。
+///
+/// R5 裁决（业主批准 2026-11-17）：B2~B4 派生 provider 与三域 Notifier 示范
+/// 测试随生产零消费的示范单元一并删除；保留 themeProvider/themeModeProvider
+/// （生产在用）与 B1 容器本体测试（drawingControllerProvider 已生产接线）。
 void main() {
   test('themeProvider 编译时安全：ProviderContainer 可独立读取', () {
     final container = ProviderContainer();
@@ -82,84 +84,6 @@ void main() {
     expect(controller.isDirty, isFalse);
     controller.touchDocument();
     expect(controller.isDirty, isTrue, reason: 'history 操作经 provider 可达');
-  });
-  test('B2: drawingDirtyProvider 派生未保存状态（select 收窄）', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final doc = DrawingDocument(id: 'b2', title: 'B2 派生示范');
-    expect(container.read(drawingDirtyProvider(doc)), isFalse);
-    container.read(drawingControllerProvider(doc)).touchDocument();
-    container.invalidate(drawingDirtyProvider(doc)); // 失效重建（Riverpod 标准）
-    expect(
-      container.read(drawingDirtyProvider(doc)),
-      isTrue,
-      reason: 'invalidate 后派生 provider 反映控制器脏标记',
-    );
-  });
-  test('B3-B4: 核心状态派生 provider（undo/redo/图层）可独立单测', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final doc = DrawingDocument(id: 'b34', title: 'B3-B4 派生示范');
-    final controller = container.read(drawingControllerProvider(doc));
-    expect(container.read(drawingCanUndoProvider(doc)), isFalse);
-    expect(container.read(drawingCanRedoProvider(doc)), isFalse);
-    expect(container.read(drawingCurrentLayerProvider(doc)), 0);
-    controller.touchDocument();
-    container.invalidate(drawingCanUndoProvider(doc));
-    container.invalidate(drawingCurrentLayerProvider(doc));
-    expect(
-      container.read(drawingCurrentLayerProvider(doc)),
-      0,
-      reason: 'touchDocument 不改图层索引，派生值稳定',
-    );
-  });
-  test('视口域 Notifier：首个域迁移示范（不可变 state + 方法）', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    expect(container.read(viewportProvider).scale, 1.0);
-    container.read(viewportProvider.notifier).setScale(2.0);
-    expect(
-      container.read(viewportProvider).scale,
-      2.0,
-      reason: 'setScale 更新不可变 state',
-    );
-    container.read(viewportProvider.notifier).pan(10, 20);
-    expect(container.read(viewportProvider).offsetX, 10);
-    expect(container.read(viewportProvider).offsetY, 20);
-    container.read(viewportProvider.notifier).reset();
-    expect(container.read(viewportProvider).scale, 1.0);
-  });
-  test('选区域 Notifier：第二个域迁移示范（begin/extend/end/clear）', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final sel = container.read(selectionProvider);
-    expect(sel.isActive, isFalse);
-    container
-        .read(selectionProvider.notifier)
-        .beginSelection(SelectionTool.rect, const Offset(10, 10));
-    expect(container.read(selectionProvider).isActive, isTrue);
-    container
-        .read(selectionProvider.notifier)
-        .extendSelection(const Offset(100, 100));
-    expect(container.read(selectionProvider).draft.length, 2, reason: '矩形=2 点');
-    container.read(selectionProvider.notifier).clearSelection();
-    expect(container.read(selectionProvider).isActive, isFalse);
-  });
-  test('历史域 Notifier：第三个域迁移示范（canUndo/canRedo 可见状态）', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final hist = container.read(historyProvider);
-    expect(hist.canUndo, isFalse);
-    expect(hist.canRedo, isFalse);
-    container
-        .read(historyProvider.notifier)
-        .notifyChanged(canUndo: true, canRedo: false);
-    expect(container.read(historyProvider).canUndo, isTrue);
-    container
-        .read(historyProvider.notifier)
-        .afterUndo(canUndo: false, canRedo: true);
-    expect(container.read(historyProvider).canRedo, isTrue);
-    expect(container.read(historyProvider).canUndo, isFalse);
   });
 }
 

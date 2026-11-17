@@ -12,7 +12,17 @@ import 'package:drawing_notes_app/core/canvas_model/stroke.dart';
 /// - 把**保存调度**委托给 [SaveScheduler]（见 P0-3b：防抖/串行化/退出兜底/失败重试）；
 /// - 管理**混排对象选中/就地编辑状态**；
 /// - 不读写文件、不直接操作图层位图——这些仍由 Storage/Engine 负责。
-class EditorViewModel extends ChangeNotifier {
+///
+/// VM 双轨收口（R5 连带裁决，业主批准 2026-11-17）：本类此前 extends
+/// ChangeNotifier 且每个 setter 都 notifyListeners()，但全库（lib + test 生产
+/// 装配）**没有任何订阅者**——页面刷新从来都靠调用方把 VM 调用包进
+/// `_applyState`（PR #72 已钉成唯一刷新入口，门禁
+/// test/editor_page_setstate_single_entry_test.dart）。死通知轨道整体删除：
+/// 本类是**纯状态协作者**，改状态不发通知；可见性由调用方的 `_applyState`
+/// 单点负责（VM 状态只被 build 经 getter 读取，整页重建即最新值）。
+/// 若将来要给 VM 接 ListenableBuilder，须先过单点门禁评审——不许悄悄
+/// 恢复第二刷新轨道。
+class EditorViewModel {
   EditorViewModel({
     required this.controller,
     required SaveScheduler saveScheduler,
@@ -41,30 +51,26 @@ class EditorViewModel extends ChangeNotifier {
   bool get selectionDone => _selectionDone;
 
   // ---------------- 细粒度状态 setter（供 editor_page 委托接入） ----------------
+  // 双轨收口后 setter 只赋状态；调用方负责包 _applyState（见类注释）。
 
   void setEyedropperActive(bool v) {
     _eyedropperActive = v;
-    notifyListeners();
   }
 
   void setTextToolActive(bool v) {
     _textToolActive = v;
-    notifyListeners();
   }
 
   void setSelectionDone(bool v) {
     _selectionDone = v;
-    notifyListeners();
   }
 
   void setLinkMode(bool v) {
     _linkMode = v;
-    notifyListeners();
   }
 
   void setLinkSourceId(String? v) {
     _linkSourceId = v;
-    notifyListeners();
   }
 
   /// 退出连线模式——`_linkMode` 与它的端点草稿必须成对清，判据只写在这一处。
@@ -82,16 +88,17 @@ class EditorViewModel extends ChangeNotifier {
   /// 隐式副作用——`toggleLinkMode()` 里「先清吸管、后置 linkMode」的语句顺序
   /// 不该是承重结构）。
   void leaveLinkMode() {
-    // 什么都不变时不发通知：这一句在每个工具入口的每一行都会跑到，
-    // 而绝大多数时候本来就不在连线模式——无条件 notify 会让工具条
-    // 在每次切档时多重建一次（页面侧还有 `_applyState` 的那一次）。
+    // 什么都不变时直接返回（幂等守卫保留：成对清的判据仍只写在这一处）。
     if (!_linkMode && _linkSourceId == null) return;
     _linkMode = false;
     _linkSourceId = null;
-    notifyListeners();
   }
 
-  // ---------------- 工具切换（UI 只调用这些方法） ----------------
+  // ---------------- 工具切换意图 API ----------------
+  // 双轨收口后这组方法生产调用方为零（页面走 editor_page_tools 的
+  // _selectWritingTool/_toolMode 路径）；保留为意图 API 的单一判据载体——
+  // editor_viewmodel_link_mode_test 逐格钉住「切换必退连线」互斥语义，
+  // 将来工具条重构接回这组 API 时判据不丢。
 
   /// 切到画笔。
   void selectBrush() {
@@ -99,7 +106,6 @@ class EditorViewModel extends ChangeNotifier {
     _textToolActive = false;
     controller.tool = BrushType.pen;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 切到橡皮擦。
@@ -108,7 +114,6 @@ class EditorViewModel extends ChangeNotifier {
     _textToolActive = false;
     controller.tool = BrushType.eraser;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 进入吸管取色模式。
@@ -116,7 +121,6 @@ class EditorViewModel extends ChangeNotifier {
     _eyedropperActive = true;
     _textToolActive = false;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 切到文字工具（点击画布放置文字）。
@@ -125,7 +129,6 @@ class EditorViewModel extends ChangeNotifier {
     _eyedropperActive = false;
     controller.selectionTool = SelectionTool.none;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 切到矩形选区。
@@ -135,7 +138,6 @@ class EditorViewModel extends ChangeNotifier {
     _selectionDone = false;
     controller.selectionTool = SelectionTool.rect;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 切到套索选区。
@@ -145,20 +147,17 @@ class EditorViewModel extends ChangeNotifier {
     _selectionDone = false;
     controller.selectionTool = SelectionTool.lasso;
     leaveLinkMode();
-    notifyListeners();
   }
 
   /// 连线模式开关（D1：依次点选两个元素创建连接）。
   void toggleLinkMode() {
     _linkMode = !_linkMode;
     _linkSourceId = null;
-    notifyListeners();
   }
 
   /// 选区完成后置位（供画布手势回调调用）。
   void markSelectionDone() {
     _selectionDone = true;
-    notifyListeners();
   }
 
   // ---------------- 保存调度（委托 SaveScheduler） ----------------
@@ -183,10 +182,9 @@ class EditorViewModel extends ChangeNotifier {
   /// 全部保存路径；UI 侧监听即可，无需在各自 save 回调里手工置位。
   ValueNotifier<bool> get savingState => _saveScheduler.savingState;
 
-  @override
+  /// 释放保存调度（页面 dispose 调用）。双轨收口后本类无监听器需要清理。
   void dispose() {
     // 已在飞行中的保存链会自然收敛；这里只取消尚未触发的防抖。
     _saveScheduler.dispose();
-    super.dispose();
   }
 }

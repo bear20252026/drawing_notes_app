@@ -71,28 +71,25 @@ void main() {
     expect(vm.linkMode, isTrue);
   });
 
-  test('leaveLinkMode 幂等：真的在清时才发一次通知', () {
+  test('leaveLinkMode 幂等：成对清判据只写一处，重复调用状态稳定', () {
+    // VM 双轨收口（R5 连带裁决 2026-11-17）：VM 不再是 ChangeNotifier，
+    // 通知计数断言随死通知轨道删除；本用例改钉**状态语义**——幂等守卫
+    // 仍在（不在连线模式时直接返回），成对清仍然一次到位。
     final vm = buildViewModel();
-    var notifications = 0;
-    vm.addListener(() => notifications++);
 
     vm.leaveLinkMode();
-    expect(
-      notifications,
-      0,
-      reason: '本来就不在连线模式 ⇒ 空操作，不该让工具条白重建一次',
-    );
+    expect(vm.linkMode, isFalse, reason: '本来就不在连线模式 ⇒ 空操作');
+    expect(vm.linkSourceId, isNull);
 
     vm.toggleLinkMode();
     vm.setLinkSourceId('item1');
-    notifications = 0;
 
     vm.leaveLinkMode();
     expect(vm.linkMode, isFalse);
-    expect(vm.linkSourceId, isNull);
-    expect(notifications, 1, reason: '成对清两个字段只发一次通知');
+    expect(vm.linkSourceId, isNull, reason: '成对清两个字段一次到位');
 
     vm.leaveLinkMode();
-    expect(notifications, 1, reason: '第二次调用不再通知');
+    expect(vm.linkMode, isFalse, reason: '第二次调用状态稳定（幂等）');
+    expect(vm.linkSourceId, isNull);
   });
 }

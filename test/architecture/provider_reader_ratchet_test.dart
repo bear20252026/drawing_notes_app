@@ -18,7 +18,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 今天已知「没人读」的 provider —— 具名基线，**只许变短不许变长**。
-const List<String> _baseline = <String>['notebookAccessorProvider'];
+///
+/// R5 裁决（业主批准 2026-11-17）：唯一一格 notebookAccessorProvider 空装配点
+/// 已删（真实笔记访问走 NotebookStorage 实现接口后直接传参，不经 provider）——
+/// 基线清空。本棘轮的目标形态达成：lib/ 里不再有任何「没人读的 provider」。
+const List<String> _baseline = <String>[];
 
 final RegExp _declaration = RegExp(r'^\s*final\s+(\w*Provider\w*)\s*=');
 
@@ -96,10 +100,13 @@ void main() {
     final declared = declarations();
     expect(
       declared.length,
-      greaterThanOrEqualTo(11),
+      greaterThanOrEqualTo(4),
       reason:
-          '实测 lib/ 里声明了 11 个 `final *Provider`；读出个位数以下说明抽取正则失效——'
-          '那时下一条判据会「空集通过」（TE-TST-04 同族）',
+          'R5 裁决（2026-11-17）删 7 个零消费示范 provider 后实测 4 个'
+          '（themeProvider/themeModeProvider/drawingControllerProvider + '
+          'baseline_gate 的 dirProvider 局部变量误匹配格）；'
+          '读出 3 以下说明抽取正则失效——那时下一条判据会「空集通过」'
+          '（TE-TST-04 同族）。原 11 个的分母随净删下调，只紧不松。',
     );
     expect(
       lines().length,
@@ -170,7 +177,8 @@ void main() {
     );
     expect(isCodeLine('  // 见 notebookAccessorProvider 的说明'), isFalse);
     expect(isCodeLine('  ref.watch(notebookAccessorProvider);'), isTrue);
-    // ⑤ 基线里没有第二个名字的位置：加一格就会被上一条用例的长度上限抓住。
-    expect(_baseline, <String>['notebookAccessorProvider']);
+    // ⑤ R5 裁决后基线已清空（唯一一格装配点已删）：目标形态 = 空表。
+    //    加任何一格都会被上一条用例的长度上限抓住——反向锁仍然有效。
+    expect(_baseline, isEmpty);
   });
 }
