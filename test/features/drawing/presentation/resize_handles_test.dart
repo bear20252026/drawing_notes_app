@@ -2,7 +2,7 @@ import 'package:drawing_notes_app/features/drawing/presentation/editor_selection
 import 'package:drawing_notes_app/features/drawing/presentation/resize_handles.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/shared/widgets/canvas_drag_handle.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

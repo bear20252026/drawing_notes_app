@@ -8,7 +8,7 @@
 // USB 钥匙解出 DEK → 新盐重绕密码槽，载荷密文不动）。
 // 成功后会话已缓存新密码——调用方（解锁弹窗关闭后）可直接继续打开文档。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/storage/storage_service.dart';
 import 'package:drawing_notes_app/features/security/presentation/password_reset_common.dart';

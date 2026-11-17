@@ -9,7 +9,7 @@
 /// - 当 [embeddedBuilder] 为 null 或返回 null 时，走默认降级渲染。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';

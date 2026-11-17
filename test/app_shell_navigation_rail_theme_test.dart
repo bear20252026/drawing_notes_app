@@ -1,6 +1,5 @@
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/app/app_shell.dart';
 import 'package:drawing_notes_app/core/theme/app_design.dart';
@@ -20,12 +19,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: theme,
-        // 与 app.dart 相同：双 GlobalMaterialLocalizations 委托（mui + Flutter）。
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        // 探针迁移：历史双 GML 重复注册残留 → 官方标准 delegates。
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: [Locale('zh'), Locale('en')],
         home: const AppShell(),
       ),

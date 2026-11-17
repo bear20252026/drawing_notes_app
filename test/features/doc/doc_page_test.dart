@@ -2,7 +2,7 @@
 //
 // 验证：顶栏动作（收藏/信息/大纲/分享）、大纲条目点击跳转回调、
 // 保存链路（DocController → onSave）。
-import 'package:flutter/material.dart' as m;
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/features/doc/application/doc_controller.dart';

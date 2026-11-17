@@ -1,6 +1,6 @@
 // M12.7 回归：反向链接（双链索引 + 编辑器追加引用）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/features/doc/application/doc_link_index.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';

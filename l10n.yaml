@@ -6,3 +6,9 @@ output-class: AppLocalizations
 # 国际化收尾（2026-08-16）：未翻译消息排查文件——gen-l10n 生成缺失 key
 # 清单，开发/CI 对照补全（火山引擎 untranslated-messages-file 模式）。
 untranslated-messages-file: lib/l10n/untranslated_messages.json
+# material_ui 迁移（2026-11-16）：gen_l10n 模板硬编码 flutter_localizations
+# 三件套 delegate（SDK 3.50 起弃用），生成器无 delegates 覆写选项，且生成码
+# 每次 pub get 被模板重写。消费方已全部改经 AppL10nSetup（lib/l10n/
+# app_l10n_setup.dart，新源 material_ui delegates）；生成成员零消费，
+# 经 header 注入文件级忽略（模板 @(header) 位于文件首，作用域整文件）。
+header: "// ignore_for_file: deprecated_member_use\n"

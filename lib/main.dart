@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -20,6 +20,7 @@ import 'app.dart';
 import 'core/security/audit_logger.dart';
 import 'core/security/root_guard.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/app_l10n_setup.dart';
 
 import 'package:drawing_notes_app/shared/widgets/liquid_glass_shader.dart';
 
@@ -155,8 +156,8 @@ class RootRefusalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppL10nSetup.delegates,
+      supportedLocales: AppL10nSetup.supportedLocales,
       home: Builder(
         builder: (context) {
           final l10n = AppLocalizations.of(context);

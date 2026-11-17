@@ -9,7 +9,7 @@
 // 直接看不到卡片边界——而这类反馈最难被开发者复现（开发者自己不开
 // 高对比度，永远看不到问题）。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

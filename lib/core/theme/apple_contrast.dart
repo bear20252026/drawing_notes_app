@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 对比度档位（平台域裁决 C2，2026-09-04）。
 ///

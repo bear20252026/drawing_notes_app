@@ -1,8 +1,7 @@
 // 修复 1①的 UI 侧回归锁：换同步口令必须**在保存前**二次确认——
 // 取消则已存口令一个字节都不改；确认才落盘。弹窗与提示都不回显口令原文。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,11 +13,7 @@ import 'package:drawing_notes_app/features/notes/presentation/webdav_sync_settin
 // 刻意不装 AppLocalizations.delegate：页面与弹窗全部落到中文兜底字面量，
 // 断言不随文案改写而漂移（同 webdav_sync_mounted_guard_test 的口径）。
 Widget _wrap(Widget child) => MaterialApp(
-  localizationsDelegates: const [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
+  localizationsDelegates: GlobalMaterialLocalizations.delegates,
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: child,
 );

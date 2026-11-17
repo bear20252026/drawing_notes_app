@@ -10,7 +10,7 @@
 // 当成了预期（旧实现切文本只 setState，1234 被静默丢掉）。真源改为
 // [_entered] 缓冲后，该断言与缺陷同源，按新语义重写。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/pin_pad.dart';

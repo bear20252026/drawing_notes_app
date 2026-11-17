@@ -145,7 +145,7 @@ extension _DocEditorHistory on DocEditorState {
     // 宿主接管路径（DocPage）：走真实落盘链路，状态与提示由宿主驱动。
     // 仍先经 onSave 同步快照，宿主调度器从 editor.saveNow() 取最新文档。
     if (widget.onManualSave != null) {
-      widget.onSave?.call(_buildDocFromState());
+      await widget.onSave?.call(_buildDocFromState());
       await widget.onManualSave!();
       _dirtyNotified = false; // 已落盘：后续编辑重新走首次脏通知
       return;

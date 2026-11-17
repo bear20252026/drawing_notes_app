@@ -20,7 +20,7 @@ import 'dart:math' as math;
 // ⇒ 记一条纪律：**canary 必须与判据共用同一份定义**，否则「canary 绿」什么都不保证。
 import 'package:drawing_notes_app/core/theme/app_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// 把带 alpha 的前景合成到不透明背景上，得到实际观感色。

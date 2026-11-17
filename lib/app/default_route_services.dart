@@ -15,7 +15,7 @@
 // 4. [showTemplatePicker] ← 原 notes 自拼的模板选择 `GlassDialog`。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/app/app_routes.dart';
 import 'package:drawing_notes_app/app/app_services.dart';

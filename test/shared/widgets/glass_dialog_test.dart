@@ -6,7 +6,7 @@
 // 0.72、圆角 28）/ **红线：整棵树只允许一层 BackdropFilter** /
 // 平台按钮顺序（C1 裁决：Windows 主按钮在左，Android 在右）/
 // 未注入 surface 时 AppleDialog.confirm 保持裸 AlertDialog（回归保护）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
 

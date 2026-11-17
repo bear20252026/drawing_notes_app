@@ -16,7 +16,7 @@
 // - 系统手势区/3 键导航：由本组件内部 [SafeArea] 消费 viewPadding.bottom，
 //   胶囊永远悬浮在系统栏上方；再向内清零注入，防止 NavigationBar
 //   的内部 SafeArea 二次膨胀。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

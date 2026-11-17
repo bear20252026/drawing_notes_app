@@ -7,7 +7,7 @@
 // 基底 80% 不透明导致「看着像灰白板」。本文件锁定修复后的取值。
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';

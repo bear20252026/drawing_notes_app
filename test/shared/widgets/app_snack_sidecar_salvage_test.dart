@@ -9,8 +9,7 @@
 // 判据为什么只有一处：两个 store 各交出事实（`salvagedOriginalName`），句子只在
 // `AppSnack.showSidecarSalvage` 组装一遍——本仓头号复发形态是「一份判据 N 份副本」。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -22,12 +21,7 @@ Future<void> _pumpHost(WidgetTester tester, Locale locale) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
       supportedLocales: const [Locale('zh'), Locale('en')],
       home: Builder(
         builder: (context) => Scaffold(
@@ -72,12 +66,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('zh'),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
         supportedLocales: const [Locale('zh'), Locale('en')],
         home: Builder(
           builder: (context) => Scaffold(

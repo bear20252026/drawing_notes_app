@@ -1,8 +1,9 @@
 // 由 Claude 团队生成 | Drawing Notes App
 // block_slash_menu.dart 单元测试。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drawing_notes_app/l10n/app_l10n_setup.dart';
 import 'package:drawing_notes_app/core/documents/note_block.dart';
 import 'package:drawing_notes_app/features/doc/presentation/block_slash_menu.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
@@ -261,8 +262,8 @@ void main() {
       late BuildContext captured;
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppL10nSetup.delegates,
+          supportedLocales: AppL10nSetup.supportedLocales,
           locale: const Locale('en'),
           home: Builder(
             builder: (context) {
@@ -294,8 +295,8 @@ void main() {
     testWidgets('en locale 菜单渲染英文且可用英文搜索', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppL10nSetup.delegates,
+          supportedLocales: AppL10nSetup.supportedLocales,
           locale: const Locale('en'),
           home: Scaffold(
             body: BlockSlashMenu(onSelected: (_) {}, onDismiss: () {}),

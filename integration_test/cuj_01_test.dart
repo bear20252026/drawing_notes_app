@@ -2,7 +2,7 @@ import 'package:drawing_notes_app/app.dart';
 // 防抖阈值引用产品常量本身（见下方 realWait 注释），不再抄数字。
 import 'package:drawing_notes_app/core/saving/save_scheduler.dart';
 import 'package:drawing_notes_app/features/notes/presentation/home_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

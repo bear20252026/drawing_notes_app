@@ -29,7 +29,7 @@
 
 | 文档 | 结论 |
 |---|---|
-| [`MATERIAL_UI_MIGRATION_ASSESSMENT.md`](MATERIAL_UI_MIGRATION_ASSESSMENT.md) | **迁移当前不做**：material_ui 是平行 Material 实现，两套 ThemeData 类型不兼容；附将来若做的前置条件与顺序 |
+| [`MATERIAL_UI_MIGRATION_ASSESSMENT.md`](MATERIAL_UI_MIGRATION_ASSESSMENT.md) | **迁移已完成（2026-11-16）**：原「等上游收敛」判定被探针实测推翻（官方路径就是全量迁移）；原文留档作误判教训 + 升级纪律（周更包每次升级重跑黄金基线） |
 | [`K_NOTE_WIRING_PLAN.md`](K_NOTE_WIRING_PLAN.md) | K_note 媒体接线方案**已实施**（PR #63）；业主确认无存量用户，批 4 迁移消解，方案留档 |
 | [`SECURITY_HARDENING_GUIDE.md`](SECURITY_HARDENING_GUIDE.md) | **面向用户**的安全操作指南（外部锚怎么留存、哪些必须靠系统层全盘加密） |
 

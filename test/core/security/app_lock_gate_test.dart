@@ -5,7 +5,7 @@
 // 生命周期用例的驱动纪律（2026-10-03 修）：一律走 [_toBackground]/[_toForeground]
 // 的完整链路，不许再直接 `paused`/`resumed` 跳变——原因见那两个函数。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

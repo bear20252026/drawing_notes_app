@@ -1,7 +1,7 @@
 // U4a 设计精修测试：触控目标 ≥44px + 右键/长按上下文菜单。
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/all_doc.dart';
 import 'package:drawing_notes_app/core/all_doc_query.dart';

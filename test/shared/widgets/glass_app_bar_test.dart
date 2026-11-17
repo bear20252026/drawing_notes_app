@@ -2,7 +2,7 @@
 //
 // 覆盖：preferredSize 计算 / 布局行为与原生 AppBar 一致 / 背景全透明
 // （避免叠色板）/ **红线：整棵树只允许一层 BackdropFilter，不得叠玻璃**。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_app_bar.dart';

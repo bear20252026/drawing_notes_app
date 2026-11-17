@@ -8,7 +8,7 @@
 // 两种形态共享同一个 [DocOutlinePanel] 内容体——视图分家、业务不重复
 // （即 AFFiNE 的 desktop/ 与 mobile/ 两棵视图树共享同一批 services 的思路）。
 // 若沿用统一的停靠窄栏，手机上 240 会吃掉约 60% 屏宽，编辑器只剩 160。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';

@@ -5,7 +5,7 @@
 // FAB 材质全透明（玻璃由外层 GlassSurface 提供，不叠色板）/
 // 配方常量（sigma 16、基底 0.72、圆角 28）/ 红线：整棵树一层
 // BackdropFilter（玻璃壳自身裁剪，FAB ink 不新增模糊层）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_fab.dart';

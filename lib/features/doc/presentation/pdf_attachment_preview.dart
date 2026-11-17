@@ -7,7 +7,7 @@
 // 全库唯一生产消费方是 doc 的附件块视图（attachment_block_view），notes
 // 自身从不使用——留在 notes 即一条无必要的 doc→notes 展示层直连。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/storage/pdf_preview_renderer.dart';

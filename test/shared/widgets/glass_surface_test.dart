@@ -2,7 +2,7 @@
 //
 // 覆盖：三档渲染不崩溃 / L3 未就绪自动回落 / 闸门置顶与减弱动效降级 /
 // 着色器加载失败静默（isReady 恒 false，不抛错）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_surface.dart';

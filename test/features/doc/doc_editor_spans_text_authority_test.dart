@@ -23,7 +23,7 @@
 // tearDown 还原。这不是绕过 R46：生产默认仍然点不动（由
 // `doc_editor_style_entries_test.dart` 钉），这里保住的是**接上渲染那天**
 // 「正文永远赢、样式不能当第二个真相」这条裁决不因入口重开而失守。
-import 'package:flutter/material.dart' as m;
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/documents/note_block.dart';

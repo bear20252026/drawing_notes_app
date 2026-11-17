@@ -10,8 +10,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' as m;
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/app/app_services.dart';
@@ -89,11 +88,7 @@ void main() {
     await tester.pumpWidget(
       m.MaterialApp(
         theme: AppDesign.lightTheme(),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: m.GlobalMaterialLocalizations.delegates,
         supportedLocales: const [m.Locale('zh'), m.Locale('en')],
         home: AppShell(
           blockDocStore: _MemBlockDocStore(),

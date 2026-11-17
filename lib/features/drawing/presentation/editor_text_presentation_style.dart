@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 文字展示布局的不可变结果。
 final class EditorTextLayout {

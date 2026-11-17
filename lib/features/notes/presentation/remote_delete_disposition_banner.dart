@@ -11,7 +11,7 @@
 // 纯展示 + 单次回调：判定在 core（`detectRemoteDeletes`），动作在 SyncController，
 // 「认云端删除」的二次确认也在父页面——这里不弹窗、不持状态、不自己删任何东西。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/sync/remote_deletes.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';

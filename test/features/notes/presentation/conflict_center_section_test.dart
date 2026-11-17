@@ -9,8 +9,7 @@
 //  ⑤ 原因只显示**最主要的一条**——多条同时成立时全列出来会让这一行长到
 //     不可读，而用户真正需要的是「为什么会被报冲突」。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
@@ -58,12 +57,7 @@ ConflictLedgerEntry _entry({
 
 Widget _wrap(Widget child) => MaterialApp(
   locale: const Locale('zh'),
-  localizationsDelegates: const [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    AppLocalizations.delegate,
-  ],
+  localizationsDelegates: [...GlobalMaterialLocalizations.delegates, AppLocalizations.delegate],
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: Scaffold(body: child),
 );

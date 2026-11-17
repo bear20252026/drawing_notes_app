@@ -4,7 +4,7 @@
 // 提供，indicator 保留——它是选中交互态非条体材质）/ 配方常量 /
 // 高度锁定（胶囊不被 extendBody 注入二次膨胀）/ 红线：整棵树一层
 // BackdropFilter / 系统手势区由内部 SafeArea 消费（胶囊悬浮于系统栏上方）。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/shared/widgets/glass_nav_bar.dart';

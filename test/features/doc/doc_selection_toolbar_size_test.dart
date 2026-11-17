@@ -2,7 +2,7 @@
 // 根因：Overlay 对未 Positioned 包裹的子项施加 tight 全屏约束
 // （Flutter overlay.dart: nonPositionedChildConstraints = tight(size)），
 // 深色胶囊被拉成覆盖全屏的黑幕。修复：CompositedTransformFollower 外包 Positioned。
-import 'package:flutter/material.dart' as m;
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/features/doc/presentation/doc_editor.dart';

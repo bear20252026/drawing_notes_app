@@ -6,8 +6,7 @@
 //  ② 唯一会移走本机文件的动作（认云端删除）**必须二次确认**，取消就真的不执行；
 //  ③ 一轮同步正在跑时按钮禁用（与 DN-002a 单飞互斥同口径）。
 
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -87,12 +86,7 @@ class _StubController extends SyncController {
 
 Widget _wrap(Widget child) => MaterialApp(
   locale: const Locale('zh'),
-  localizationsDelegates: const [
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    AppLocalizations.delegate,
-  ],
+  localizationsDelegates: [...GlobalMaterialLocalizations.delegates, AppLocalizations.delegate],
   supportedLocales: const [Locale('zh'), Locale('en')],
   home: child,
 );

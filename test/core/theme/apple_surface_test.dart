@@ -11,7 +11,7 @@
 // 钉住这些数值的理由：发丝线现在被 `CardTheme` / `DividerTheme` 统一使用，
 // 一旦透明度漂移，全 App 的卡片边界会一起变重或变没，且很难一眼定位。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/theme/app_design.dart';

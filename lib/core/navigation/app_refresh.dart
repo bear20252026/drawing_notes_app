@@ -6,7 +6,7 @@
 // 路由可见性与 security 域无关——归位 core/navigation 并更名
 // SyncFix → AppRefresh，行为零变化。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 数据变更通知与路由可见性兜底（app 级基建）。
 ///

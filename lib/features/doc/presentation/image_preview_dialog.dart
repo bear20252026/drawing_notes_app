@@ -7,7 +7,7 @@
 /// `Colors.white*` 为功能性对比度设计，豁免于白系收编整改，保持原样。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/l10n/app_localizations.dart';
 
 import 'package:drawing_notes_app/core/utils/safe_url.dart';

@@ -7,7 +7,7 @@
 // - 已配置：修改密码（先验证旧密码）/ 关闭应用锁（先验证旧密码）；
 // - 忘记密码如实提示：首版无找回机制。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/security/app_lock_service.dart';
 import 'package:drawing_notes_app/core/security/quick_unlock_service.dart';

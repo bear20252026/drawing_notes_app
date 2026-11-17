@@ -14,7 +14,7 @@
 // keepLocal/keepRemote 执行之后，输掉那一侧的字节就已经不存在了（只有 keepBoth
 // 会留副本），没有任何存储层操作能把它们找回来。文案不许暗示可以「恢复」。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/sync/sync_conflict.dart';
 import 'package:drawing_notes_app/core/sync/sync_conflict_ledger.dart';

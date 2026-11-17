@@ -28,7 +28,7 @@
 @Timeout(Duration(minutes: 3))
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/document.dart';

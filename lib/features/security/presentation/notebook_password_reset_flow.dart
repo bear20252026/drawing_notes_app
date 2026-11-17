@@ -9,7 +9,7 @@
 // （LUKS 同款：USB 钥匙解出 DEK → 新盐重绕密码槽，payload 密文不动）。
 // 成功后会话已缓存新密码——调用方可直接继续解锁打开。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/notes_accessor.dart';
 import 'package:drawing_notes_app/features/security/presentation/password_reset_common.dart';

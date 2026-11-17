@@ -4,6 +4,39 @@
 
 ## [1.17.68] - 2026-11-05
 
+### material_ui/cupertino_ui 迁移完成（2026-11-16，探针实测推翻「等上游」原判，同版本增量，未 bump）
+
+> 外部核查指出原评估「等上游类型收敛」前提不成立——官方从未有兼容层/
+> 类型别名计划，路径就是全量迁移。本地探针实验（可回退分支）证实：
+> 原「52 处编译错误」是迁移步骤没走完的标准中间态，不是上游缺陷。
+
+- **官方三步路径实测走通**：① `dart fix --apply --code=migrate_design_widgets`
+  209 处修复/206 文件（lib 全部 + test + integration_test 的 import 切到
+  material_ui/cupertino_ui）；② 35 处 localizationsDelegates 改
+  `GlobalMaterialLocalizations.delegates`（含 l10n 生成码、历史双 GML
+  重复注册残留、if 条件混排等 6 种形态）；③ bridge **未使用**——实测
+  本项目直接依赖（pdfrx 2.12.1/riverpod/window_manager 等）零 SDK
+  Material 类型暴露，无遗留子树需要兜。
+- **依赖**：material_ui 1.11.1 + cupertino_ui 1.1.7 由传递依赖升为直接
+  依赖（精确钉版；1.11.0→1.11.1 后黄金基线重跑全等价，升级纪律兑现）。
+- **主题适配层价值兑现**：dart fix 连适配器一起切到 material_ui ThemeData，
+  AppThemeSpec 色板/四档决策零改动；黄金基线四档逐字段等价（仅 fontWeight
+  序列化 index→value 随 dart:ui 弃用同步换算，基线 JSON 同式更新）。
+- **收尾**：26 处旧 flutter_localizations 导入移除；2 处前缀导入补 m. 前缀；
+  既有 unawaited_futures（doc_editor_history）一并修复；**CI 4 处
+  --no-fatal-infos 移除，analyze 恢复严格口径（No issues found）**。
+- **gen_l10n 生成码处置**（探针实测发现的持久化陷阱）：生成模板硬编码
+  flutter_localizations 三件套 delegate（SDK 3.50 起弃用），且生成码每次
+  `flutter pub get` 被模板重写——手改不可持续（实测被覆盖两次）。生成器
+  无 delegates 覆写选项（l10n.yaml 全选项核过）。收口：新增
+  `lib/l10n/app_l10n_setup.dart`（App delegate + material_ui 新源三件套），
+  4 个消费文件改经 AppL10nSetup；l10n.yaml 经官方 header 选项注入文件级
+  弃用忽略（生成成员零消费，忽略随再生成持久，pub get 复验不再回退）。
+- **文档更正**：MATERIAL_UI_MIGRATION_ASSESSMENT 原「当前不做/等上游」
+  结论标记失效，留档作误判教训；新增升级纪律——material_ui 周更+semver
+  （1.6~1.11 已带 M3 Expressive 变化），每次升级必须重跑黄金基线回归。
+
+
 ### CI 口径收口（M-9）+ 发版说明补记（M-10，2026-11-16，同版本增量，未 bump）
 
 **M-9 CI 四处**：

@@ -2,7 +2,7 @@
 //
 // 纯展示：数据全部注入，不 import 存储/服务。
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 import 'package:drawing_notes_app/core/theme/apple_motion.dart';
 import 'package:drawing_notes_app/core/theme/apple_focus.dart';

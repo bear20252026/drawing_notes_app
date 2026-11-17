@@ -6,7 +6,7 @@
 //  - 计数为 0 ⇒ 「编辑 → 标脏 → 调度 → 保存」这条腿在 UI 层就断了（CI 可复现的产品缺陷）；
 //  - 计数 ≥1 ⇒ UI 层调度正常，问题在更下游（真实 store 写入 / 设备测试的定位），
 //    据此把排查方向收敛，而不是继续在黑暗里试。
-import 'package:flutter/material.dart' as m;
+import 'package:material_ui/material_ui.dart' as m;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/documents/note_block.dart';

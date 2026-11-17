@@ -4,7 +4,7 @@
 //
 // 适用全页/整卡空态；空间受限的嵌入场景（侧栏窄条、大纲 rail、
 // 卡片内嵌提示）保持紧凑一行字，刻意不套用本组件。
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:drawing_notes_app/core/theme/apple_design.dart';
 
