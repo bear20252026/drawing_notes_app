@@ -7,9 +7,9 @@
 // 是没接上却写成接上了）。
 //
 // 判据（窄，只紧不松）：`lib/**` 里每个 `final xProvider = ...` 都必须至少被
-// lib 或 test 的**别的行**引用一次。今天唯一的违规进具名基线，基线本身有上限——
-// 新增一个没人读的 provider 当场红；把已有那格真的接上后，基线里那行也必须删掉
-// （反向锁：基线不许变成没人管的存档区）。
+// lib 或 test 的**别的行**引用一次。R5 裁决（2026-11-17）后具名基线已清空
+// （上限 0）——新增一个没人读的 provider 当场红；想给它开豁免格也当场红，
+// 必须先接线或删掉（反向锁：基线不许变成没人管的存档区）。
 @Timeout(Duration(minutes: 3))
 library;
 
@@ -145,8 +145,9 @@ void main() {
     );
     expect(
       _baseline.length,
-      lessThanOrEqualTo(1),
-      reason: '基线只许变短（今天 1 格）⇒ 变长这一步必须先在台账里过一遍理由',
+      lessThanOrEqualTo(0),
+      reason: '基线已清空（R5 裁决 2026-11-17）⇒ 上限收紧到 0：任何加格都当场红，'
+          '「没人读的 provider」不许再进存档区（原上限 1 随清空同步收紧）',
     );
   });
 
@@ -178,7 +179,7 @@ void main() {
     expect(isCodeLine('  // 见 notebookAccessorProvider 的说明'), isFalse);
     expect(isCodeLine('  ref.watch(notebookAccessorProvider);'), isTrue);
     // ⑤ R5 裁决后基线已清空（唯一一格装配点已删）：目标形态 = 空表。
-    //    加任何一格都会被上一条用例的长度上限抓住——反向锁仍然有效。
+    //    上限已收紧到 0——加任何一格都会被上一条用例抓住，反向锁仍然有效。
     expect(_baseline, isEmpty);
   });
 }
