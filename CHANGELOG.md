@@ -4,6 +4,40 @@
 
 ## [1.17.68] - 2026-11-05
 
+### R5 裁决落地 + VM 双轨收口（2026-11-17，业主批准，同版本增量，未 bump）
+
+**R5 · 示范派生层删除**（业主裁决：删，不接线）：
+- drawing_notifiers.dart 整文件删除（256 行，三域 Notifier：视口/历史/选区，
+  生产零消费仅测试在读）——已移入废纸篓。
+- di_providers.dart 裁剪 84→26 行：删 drawingDirtyProvider /
+  drawingCanUndoProvider / drawingCanRedoProvider / drawingCurrentLayerProvider
+  四个零消费派生 provider + notebookAccessorProvider 空装配点（恒落
+  _EmptyNotebookAccessor，真实笔记访问走 NotebookStorage 实现接口后直接传参）。
+  **容器本体 drawingControllerProvider 保留**（已生产接线：editor_page
+  initState / editor_statusbar ref.watch）。
+- riverpod_providers_test 裁剪：删 B2~B4 与三域 Notifier 示范测试；保留
+  themeProvider/themeModeProvider（生产在用）与 B1 容器测试。
+- provider_reader_ratchet 棘轮同步：分母 11→4（随净删下调）、具名基线
+  notebookAccessorProvider 一格清空——**该棘轮目标形态达成：lib/ 里不再有
+  任何「没人读的 provider」**。反向锁仍有效（基线加格即红）。
+
+**VM 双轨收口**（R5 连带裁决）：EditorViewModel 此前 extends ChangeNotifier
+且每个 setter notifyListeners()，但全库无任何订阅者——页面刷新从来都靠
+调用方包 _applyState（PR #72 已钉成唯一入口）。死通知轨道整体删除：
+VM 变**纯状态协作者**（去 ChangeNotifier 继承、去全部 notifyListeners、
+dispose 不再 super.dispose），可见性由 _applyState 单点负责。
+leaveLinkMode 幂等守卫与成对清判据保留；select* 意图 API 保留为互斥判据
+载体（link_mode_test 逐格钉住，生产工具条走 _toolMode 路径）。
+link_mode_test 通知计数用例改钉状态语义（幂等/成对清），互斥纪律不放宽。
+
+**净删行**：6 文件 +60/-446（净 -386）。application 目录 39→38 文件
+（脱离 40 上限 warning 档）。editor_page 库 7149 不变（VM 不属本库）。
+
+**顺带依赖升级**：url_launcher_android 6.3.33→6.3.35（flutter.dev 官方
+一小时内新发布，changelog 核验为 Kotlin 转换 + Robolectric 测试更新，
+无安全公告；6.3.34 起 minSDK Flutter 3.41 本仓 3.50 满足）。依赖门禁
+复查时撞 8>7 阈值，升级后回到 7≤7。
+
 ### 架构审查路线图 R1 剩余域（2026-11-17，同版本增量，未 bump）
 
 **R1 · 裁剪交互域归并**（逐字搬移零逻辑变更）：_buildCropHandles（4 角手柄
