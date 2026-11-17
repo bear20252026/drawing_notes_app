@@ -111,6 +111,34 @@ class _ShimmerHighlight extends StatelessWidget {
   }
 }
 
+/// 共享呼吸脉冲样板（R4 收敛，2026-11-16）：SkeletonList/SkeletonCardGrid
+/// 此前各持一份相同的 controller 创建 + dispose + Semantics 包裹——收敛进
+/// 本 mixin，脉冲生命周期与无障碍语义只有一份。
+mixin _SkeletonPulseMixin<T extends StatefulWidget> on State<T>
+    implements TickerProvider {
+  /// 全部骨架块共享的呼吸脉冲（见文件头说明）。
+  late final AnimationController pulse = AnimationController(
+    vsync: this,
+    duration: AppleMotion.skeletonPulse,
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    pulse.dispose();
+    super.dispose();
+  }
+
+  /// 无障碍包裹：骨架整体读作「正在加载」，块级细节不进语义树。
+  Widget wrapSkeletonSemantics(BuildContext context, Widget child) {
+    return Semantics(
+      container: true,
+      label: AppLocalizations.of(context)?.loadingSkeleton ?? '正在加载',
+      excludeSemantics: true,
+      child: child,
+    );
+  }
+}
+
 /// 列表首屏骨架（AllDocs 桌面/移动共用）：
 /// 与 AllDocRow 同形态（36 图标块 + 标题/副标题两条）。
 class SkeletonList extends StatefulWidget {
@@ -123,26 +151,12 @@ class SkeletonList extends StatefulWidget {
 }
 
 class _SkeletonListState extends State<SkeletonList>
-    with SingleTickerProviderStateMixin {
-  /// 全部骨架块共享的呼吸脉冲（见文件头说明）。
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: AppleMotion.skeletonPulse,
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
+    with SingleTickerProviderStateMixin, _SkeletonPulseMixin {
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: AppLocalizations.of(context)?.loadingSkeleton ?? '正在加载',
-      excludeSemantics: true,
-      child: ListView.separated(
+    return wrapSkeletonSemantics(
+      context,
+      ListView.separated(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(
           vertical: AppleSpacing.xs,
@@ -153,7 +167,7 @@ class _SkeletonListState extends State<SkeletonList>
         itemBuilder: (_, _) => Row(
           children: [
             _SkeletonBlock(
-              controller: _pulse,
+              controller: pulse,
               width: 36,
               height: 36,
               radius: AppleRadius.sm,
@@ -164,14 +178,14 @@ class _SkeletonListState extends State<SkeletonList>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SkeletonBlock(
-                    controller: _pulse,
+                    controller: pulse,
                     width: MediaQuery.sizeOf(context).width * 0.4,
                     height: 13,
                     radius: AppleRadius.xs,
                   ),
                   const SizedBox(height: AppleSpacing.xs),
                   _SkeletonBlock(
-                    controller: _pulse,
+                    controller: pulse,
                     width: 160,
                     height: 10,
                     radius: AppleRadius.xs,
@@ -181,7 +195,7 @@ class _SkeletonListState extends State<SkeletonList>
             ),
             const SizedBox(width: AppleSpacing.sm),
             _SkeletonBlock(
-              controller: _pulse,
+              controller: pulse,
               width: 22,
               height: 22,
               radius: AppleRadius.md,
@@ -212,26 +226,12 @@ class SkeletonCardGrid extends StatefulWidget {
 }
 
 class _SkeletonCardGridState extends State<SkeletonCardGrid>
-    with SingleTickerProviderStateMixin {
-  /// 全部卡片块共享的呼吸脉冲（见文件头说明）。
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: AppleMotion.skeletonPulse,
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
+    with SingleTickerProviderStateMixin, _SkeletonPulseMixin {
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: AppLocalizations.of(context)?.loadingSkeleton ?? '正在加载',
-      excludeSemantics: true,
-      child: GridView.builder(
+    return wrapSkeletonSemantics(
+      context,
+      GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(
           AppleSpacing.md,
@@ -247,7 +247,7 @@ class _SkeletonCardGridState extends State<SkeletonCardGrid>
         ),
         itemCount: widget.count,
         itemBuilder: (_, _) => _SkeletonBlock(
-          controller: _pulse,
+          controller: pulse,
           width: double.infinity,
           height: double.infinity,
           radius: AppleRadius.md,

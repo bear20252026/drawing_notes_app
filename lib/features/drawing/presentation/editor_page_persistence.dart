@@ -1,9 +1,9 @@
 part of 'editor_page.dart';
 
-// 编辑器自动保存/导出域（O1 拆分）：定时自动保存与各格式导出
-// 包装方法从 editor_page.dart 移出为 extension；行为零变化。
+// 编辑器保存域（O1 拆分；R1 归并 2026-11-17 后导出方法群移往
+// editor_page_actions）：定时自动保存、重命名、裁剪确认。
 
-/// 编辑器自动保存/导出域（拆分自 editor_page.dart）。
+/// 编辑器保存域（拆分自 editor_page.dart）。
 extension _EditorPagePersistence on _EditorPageState {
   /// setState 的 lint 友好包装（extension 无法直接调用受保护成员）。
   void notify() {
@@ -216,180 +216,10 @@ extension _EditorPagePersistence on _EditorPageState {
     _scheduleAutosave();
   }
 
-  /// 导出当前画布为 PNG（用户选择保存位置）。
-  /// 复制 PNG 到剪贴板（委托给 [EditorExporter]，逻辑见 editor_exporter.dart）。
-  Future<void> _copyPngToClipboard() => _exporter.copyPngToClipboard();
-
-  /// 导出当前画布为 PNG（委托给 [EditorExporter]）。
-  Future<void> _exportPng() => _exporter.exportPng();
-
   void _showSnack(String message) {
     if (!mounted) return;
     AppSnack.show(context, message);
   }
-
-  /// 导出当前画布为 PDF（M12.5 二级面板）：先弹纸张/范围/质量面板，
-  /// 确认后走 [EditorExporter.exportPdfWithOptions]（含 notebook 分支）。
-  /// 旧直导逻辑保留在 exporter.exportPdf（命令面板兼容与回退）。
-  Future<void> _exportPdf() async {
-    final sessions = widget.allSessionsProvider?.call() ?? const [];
-    final selection = await showPdfExportPanel(
-      context,
-      hasMultiplePages: widget.session != null && sessions.length > 1,
-      pageCount: sessions.length,
-      // v1.17.20：独立画布（含无限画布）才显示「布局」档位。
-      showLayout: widget.session == null,
-    );
-    if (selection == null) return; // 用户取消
-    if (!mounted) return;
-    // v1.17.22：分页导出 = 切片预览确认 + 逐页进度（模态）；单页/笔记本
-    // 走既有路径零变化。
-    final isTiled =
-        widget.session == null && selection.layout == PdfLayout.tiled;
-    if (!isTiled) {
-      await _exporter.exportPdfWithOptions(
-        paper: selection.paper,
-        quality: selection.quality,
-        range: selection.range,
-        layout: selection.layout,
-      );
-      return;
-    }
-    final navigator = Navigator.of(context, rootNavigator: true);
-    final progress = ValueNotifier<int>(0);
-    var total = 0;
-    // 对话框开合状态（审计 #3/#9）：取消按钮 pop 后同步置 false——
-    // finally 据此不再重复 pop（canPop 不辨对象会把此刻栈顶的编辑器
-    // 路由弹掉）；同时作为 exporter 的取消轮询信号。
-    var dialogOpen = true;
-    // 审计 #24：出场动画期间对话框仍订阅 progress，pop 启动动画即
-    // dispose 会触碰已释放 notifier——捕获路由完全退出时机再释放
-    // （复用 _renameCanvas 的 routeExited 手法）。
-    var routeExited = Future<void>.value();
-    unawaited(
-      GlassDialog.show<void>(
-        context: context,
-        barrierDismissible: false,
-        canPop: false, // 返回键拦截（审计 #3）：进度模态不可被系统返回关闭
-        builder: (dialogContext) {
-          routeExited = ModalRoute.of(dialogContext)!.completed;
-          return ValueListenableBuilder<int>(
-            valueListenable: progress,
-            builder: (context, done, _) => AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  ),
-                  const SizedBox(height: AppleSpacing.md),
-                  Text(
-                    done == 0
-                        ? (AppLocalizations.of(context)?.pdfExporting ??
-                              '正在导出 PDF…')
-                        : (done > total
-                              ? (AppLocalizations.of(
-                                      context,
-                                    )?.pdfExportComposing ??
-                                    '正在合成 PDF…')
-                              : (AppLocalizations.of(
-                                      context,
-                                    )?.pdfExportRenderingPage(done, total) ??
-                                    '正在渲染第 $done / $total 页')),
-                    style: AppleType.controlStyle(
-                      Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              // 取消按钮（审计 #9）：200 页 × 每页光栅 + isolate 合成
-              // 可持续数分钟，必须给出口；关闭对话框即置取消信号，
-              // exporter 在下一页渲染前静默中止。
-              actions: AppleDialog.actions([
-                TextButton(
-                  onPressed: () {
-                    dialogOpen = false;
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
-                ),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-    try {
-      await _exporter.exportPdfWithOptions(
-        paper: selection.paper,
-        quality: selection.quality,
-        range: selection.range,
-        layout: selection.layout,
-        columnMajor: selection.columnMajor,
-        footer: selection.footer,
-        onProgress: (done, t) {
-          total = t;
-          progress.value = done;
-        },
-        confirmTiles: _confirmTileLayout,
-        isCancelled: () => !dialogOpen,
-      );
-    } finally {
-      if (dialogOpen && navigator.canPop()) navigator.pop();
-      await routeExited;
-      progress.dispose();
-    }
-  }
-
-  /// 分页导出前切片预览（v1.17.22）：网格化展示每页覆盖的世界区域与
-  /// 页序号，用户确认后才进入逐页渲染。返回 false = 取消导出。
-  Future<bool> _confirmTileLayout(List<ui.Rect> tiles) async {
-    if (!mounted) return false;
-    final choice = await GlassDialog.show<bool>(
-      context: context,
-      // 审计 #22：默认 true 时误触弹窗外空白 → 返回 null → 按 false
-      // 处理 → 整个导出被静默取消且无任何反馈。确认框必须显式点击。
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          AppLocalizations.of(context)?.pdfTilePreviewTitle ?? '确认分页方式',
-        ),
-        content: SizedBox(
-          width: 300,
-          height: 340,
-          child: CustomPaint(painter: PdfTilePreviewPainter(tiles: tiles)),
-        ),
-        actions: AppleDialog.actions([
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(AppLocalizations.of(context)?.cancel ?? '取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              AppLocalizations.of(
-                    context,
-                  )?.pdfTilePreviewConfirm(tiles.length) ??
-                  '导出 ${tiles.length} 页',
-            ),
-          ),
-        ]),
-      ),
-    );
-    return choice ?? false;
-  }
-
-  /// 导出画布为 SVG（委托给 [EditorExporter]；片段生成见 svg_exporter.dart）。
-  Future<void> _exportSvg() => _exporter.exportSvg();
-
-  /// 导出 Word 兼容文档（委托给 [EditorExporter]）。
-  Future<void> _exportWordCompatibleRtf() =>
-      _exporter.exportWordCompatibleRtf();
-
-  /// 导出页面文字为 Markdown/TXT（委托给 [EditorExporter]）。
-  Future<void> _exportText() => _exporter.exportText();
 
   /// 确认裁剪：按裁剪矩形重新编码图片并写回文件（对齐 Excalidraw 图片裁剪）。
   ///

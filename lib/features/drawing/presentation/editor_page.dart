@@ -36,6 +36,7 @@ import 'package:drawing_notes_app/features/drawing/application/gesture_math.dart
 import 'package:drawing_notes_app/core/rendering/pencil_shader.dart';
 import 'package:drawing_notes_app/features/drawing/rendering/shape_binding_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/editor_image_crop.dart';
+import 'package:drawing_notes_app/features/drawing/infrastructure/mixed_item_hit_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/infrastructure/shape_creation_geometry.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/shape_library.dart';
 import 'package:drawing_notes_app/core/utils/safe_url.dart';
@@ -94,18 +95,18 @@ import 'package:drawing_notes_app/features/drawing/presentation/toolbar_state_ma
 // ── part 导航目录（AGENTS.md §9：新增 part 必须同步本目录）────────────────
 // 本文件是编辑器页面的**状态与生命周期宿主**；下列 part 按职责切分同一
 // State 的方法群（行数门禁 1000 上限的产物，切的是位置不是逻辑）。
-//   editor_page_dialogs.dart          对话框（重命名/导出/确认等）
+//   editor_page_dialogs.dart          对话框控件（命令面板/文本输入）
 //   editor_page_overlays.dart         浮层编排（图层/属性/选区面板）
 //   editor_page_text_overlays.dart    文本对象浮层（就地编辑/样式）
 //   editor_page_canvas_surface.dart   画布表面（CustomPaint + 手势承载）
 //   editor_page_drag_ops.dart         拖拽操作（对象移动/缩放/框选）
 //   editor_page_input.dart            指针与手势输入分派
 //   editor_page_editing.dart          编辑态流转（进入/退出/提交）
-//   editor_page_actions.dart          高层动作（复制/删除/对齐等）
+//   editor_page_actions.dart          高层动作（复制/删除/对齐等）+ 导出域
 //   editor_page_tools.dart            工具切换（画笔/橡皮/形状/文本）
 //   editor_page_commands.dart         命令派发（可撤销操作入口）
 //   editor_page_shortcuts.dart        键盘快捷键映射
-//   editor_page_persistence.dart      保存/自动保存/脏标记
+//   editor_page_persistence.dart      保存/自动保存/重命名/裁剪确认
 //   editor_page_toolbar_actions.dart  工具栏动作实现
 //   editor_page_appbar.dart           顶栏构建
 //   editor_page_body.dart             主体布局构建

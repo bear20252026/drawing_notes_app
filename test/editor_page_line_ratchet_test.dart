@@ -47,7 +47,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// 即 setState——弹窗期间页面被销毁会抛异常。补 `if (!mounted) return;`（1 行）
 /// + 2 行说明注释。零逻辑分支变更、零新 UI。part 数与边界不动。这是缺陷修复
 /// 成本，不构成放宽先例——下一次增长仍须先拆或再点名。
-const int kBaselineTotalLines = 7161;
+///
+/// 2026-11-17（R3 手势收敛 + R1 首域，审查路线图）：7161 → 7149（-12）。
+/// R3：框选/套索两处三类同构命中循环收敛进 infrastructure 纯函数
+/// MixedItemHitGeometry（input -20 行）；旋转手柄保存链通知移到 onPanEnd
+/// （overlays +7 行含 onPanCancel 兜底与注释）；主文件 +1 行导入。
+/// R1 首域：导出方法群 persistence→actions 逐字搬移（-169/+171，含 2 行
+/// 域注释与接缝清理），行数中性。棘轮随净删行下调——只紧不松。
+const int kBaselineTotalLines = 7149;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

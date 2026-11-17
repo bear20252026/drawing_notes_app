@@ -95,7 +95,10 @@ const Map<String, int> _baseline = {
   'lib/features/doc/presentation/trash_page.dart': 4,
   'lib/features/notes/presentation/notebook_view_page.dart': 4,
   'lib/features/drawing/application/editor_exporter.dart': 4,
-  'lib/features/drawing/presentation/editor_page_actions.dart': 3,
+  // R1 导出域归并（2026-11-17）：原 persistence 的 2 处裸间距（PDF 进度
+  // 模态 SizedBox 24/间距）随导出方法群**逐字搬移**到 actions；persistence
+  // 归零删行，actions 3→5。总量不变，非新增裸间距（同主题适配层先例）。
+  'lib/features/drawing/presentation/editor_page_actions.dart': 5,
   'lib/features/doc/presentation/doc_outline_rail.dart': 3,
   'lib/features/doc/presentation/image_preview_dialog.dart': 3,
   'lib/features/notes/presentation/search_page.dart': 3,
@@ -110,7 +113,6 @@ const Map<String, int> _baseline = {
   'lib/features/doc/presentation/doc_editor_toolbar.dart': 2,
   'lib/core/theme/apple_design.dart': 2,
   'lib/features/notes/presentation/notebook_reader_page.dart': 2,
-  'lib/features/drawing/presentation/editor_page_persistence.dart': 2,
   'lib/core/rendering/pdf_hybrid_exporter.dart': 1,
   'lib/features/drawing/presentation/selection_action_button.dart': 1,
   'lib/features/drawing/presentation/editor_page_editing.dart': 1,
