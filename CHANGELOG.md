@@ -4,6 +4,40 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 第二轮审计批 B：拖拽专项边界收尾 7 项（2026-11-18，同版本增量，未 bump）
+
+**H-2 seed/_dashLegacy 漏恢复**：四模型补 `restoreFrom`（copy 的逆，全字段）；
+`_restoreFields` 手抄清单删除，委托模型单点；注释撒谎纠正。新增
+mixed_model_copy_restore_test 门禁（5 项：全字段 copy→改→restore 回到快照值，
+含 seed/dash legacy 投影）。dash 恢复顺序修正（先 legacy 后 strokeStyle）。
+
+**H-3 拖拽中途 Ctrl+Z 幻影条目**：事务 begin 首层开 history group（手势中
+undo/redo 被拒绝）；commit/cancel 最外层关 group。嵌套 depth 计数（内层
+commit/cancel 只递减不结算）。新增嵌套双 commit 回归。
+
+**M-6 每帧通知残留**：ResizeHandles onChanged 移 onDragEnd（无 onDragEnd
+退化为每帧兼容旧宿主）；overlays onChanged 改 noop；宽度柄每帧
+_notifyChanged 删除（onPanEnd commit 已含）。
+
+**M-7 键盘微调不入撤销**：CanvasDragHandle 键盘路径每次按键自起自结
+（begin→update→end），嵌套 depth 保证与指针会话不冲突。端点柄/八向柄
+键盘测试断言同步。
+
+**M-8 cancel 浅写回破坏身份**：cancel 复用命令层 restoreCollections（同 id
+写回原实例），不再自持 clear+addAll 副本；嵌套内层 cancel 不还原。
+
+**M-9 笔记模式双记**：笔画移动分支加 !_isNotebookMode 守卫（笔记套索选笔画
+后拖对象不再同时移笔画+push 两条命令）。
+
+**M-10 图表接线不全**：命中几何补图表第四类（idsInRect/idsInPolygon/idsInPath
+可选 charts 参数）；框选/套索调用补 charts；对齐吸附 refs+当前元素边界补图表；
+等距分布补图表。
+
+**棘轮交代（P3-3）**：editor_page 库 7230→7268（+38），逐文件明细见棘轮注释
+（drag_ops +29 图表接线 / input +8 守卫+参数 / text_overlays +1 注释）。
+事务 group/depth 落独立库、模型 restoreFrom 落 core、命中几何落 infrastructure
+均不计棘轮。零新 UI、零新 part。
+
 ### 第二轮审计 H-5 依赖门禁评估（2026-11-18，同版本增量，未 bump）
 
 可升级依赖 11 > 阈值 7（上游一天内新发布）。处置：

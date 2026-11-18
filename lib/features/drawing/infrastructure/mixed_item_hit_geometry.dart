@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
@@ -15,7 +16,7 @@ import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 /// 行为契约（与抽取前逐字一致）：
 /// - 框选：对象外接矩形与选区矩形 overlaps（文字矩形 = fontSize*2 × fontSize）；
 /// - 套索：对象**中心点**落在多边形内（文字中心 = position + (fontSize, fontSize/2)）；
-/// - 顺序：文字 → 图片 → 形状（与既有选中列表顺序一致，多选锚定语义依赖它）。
+/// - 顺序：文字 → 图片 → 形状 → 图表（M-10 补第四类；多选锚定语义依赖它）。
 class MixedItemHitGeometry {
   const MixedItemHitGeometry._();
 
@@ -25,6 +26,7 @@ class MixedItemHitGeometry {
     required List<PageTextItem> textItems,
     required List<PageImageItem> imageItems,
     required List<PageShapeItem> shapes,
+    List<PageChartItem> charts = const [],
   }) {
     return <String>[
       for (final text in textItems)
@@ -42,6 +44,12 @@ class MixedItemHitGeometry {
           Rect.fromLTWH(shape.x, shape.y, shape.width, shape.height),
         ))
           shape.id,
+      // M-10（第二轮审计 2026-11-18）：图表第四类（顺序追加在形状后）。
+      for (final chart in charts)
+        if (rect.overlaps(
+          Rect.fromLTWH(chart.x, chart.y, chart.width, chart.height),
+        ))
+          chart.id,
     ];
   }
 
@@ -51,6 +59,7 @@ class MixedItemHitGeometry {
     required List<PageTextItem> textItems,
     required List<PageImageItem> imageItems,
     required List<PageShapeItem> shapes,
+    List<PageChartItem> charts = const [],
   }) {
     if (polygon.length < 3) return const <String>[];
     final path = Path()..addPolygon(polygon, true);
@@ -59,6 +68,7 @@ class MixedItemHitGeometry {
       textItems: textItems,
       imageItems: imageItems,
       shapes: shapes,
+      charts: charts,
     );
   }
 
@@ -68,6 +78,7 @@ class MixedItemHitGeometry {
     required List<PageTextItem> textItems,
     required List<PageImageItem> imageItems,
     required List<PageShapeItem> shapes,
+    List<PageChartItem> charts = const [],
   }) {
     return <String>[
       for (final text in textItems)
@@ -85,6 +96,12 @@ class MixedItemHitGeometry {
           shape.position + Offset(shape.width / 2, shape.height / 2),
         ))
           shape.id,
+      // M-10：图表中心点口径（与图片/形状同式）。
+      for (final chart in charts)
+        if (path.contains(
+          chart.position + Offset(chart.width / 2, chart.height / 2),
+        ))
+          chart.id,
     ];
   }
 }

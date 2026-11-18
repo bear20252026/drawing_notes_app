@@ -282,6 +282,46 @@ class PageShapeItem {
     lineEnd: lineEnd,
   );
 
+  /// 以同一对象标识的快照覆盖全部可变字段（[copy] 的逆，H-2 第二轮审计
+  /// 2026-11-18）：撤销/取消恢复经此单点——模型加字段时 copy/restoreFrom
+  /// 成对维护，字段集一致性由 mixed_model_copy_restore_test 门禁钉死。
+  /// _dashLegacy 经 dash setter 恢复（strokeStyle 非 null 时 setter 同步
+  /// 显式键，与快照值一致；为 null 时只落 legacy——getter 投影口径不变）。
+  void restoreFrom(PageShapeItem snapshot) {
+    assert(snapshot.id == id, '只能恢复同一形状对象的状态');
+    shapeType = snapshot.shapeType;
+    x = snapshot.x;
+    y = snapshot.y;
+    width = snapshot.width;
+    height = snapshot.height;
+    color = snapshot.color;
+    fillColor = snapshot.fillColor;
+    strokeWidth = snapshot.strokeWidth;
+    zOrder = snapshot.zOrder;
+    rotation = snapshot.rotation;
+    rough = snapshot.rough;
+    elbow = snapshot.elbow;
+    // dash 须在 strokeStyle 之前恢复：setter 在 strokeStyle 非 null 时
+    // 会写显式键（dashed/solid），先落 legacy 再落显式键才是快照真值。
+    dash = snapshot.dash;
+    strokeStyle = snapshot.strokeStyle;
+    fillStyle = snapshot.fillStyle;
+    flipX = snapshot.flipX;
+    flipY = snapshot.flipY;
+    boundElementId = snapshot.boundElementId;
+    locked = snapshot.locked;
+    startBinding = snapshot.startBinding?.copy();
+    endBinding = snapshot.endBinding?.copy();
+    groupId = snapshot.groupId;
+    href = snapshot.href;
+    seed = snapshot.seed;
+    version = snapshot.version;
+    versionNonce = snapshot.versionNonce;
+    fractionalIndex = snapshot.fractionalIndex;
+    lineStart = snapshot.lineStart;
+    lineEnd = snapshot.lineEnd;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'shapeType': shapeType.wireName,

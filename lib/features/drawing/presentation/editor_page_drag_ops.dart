@@ -59,6 +59,7 @@ extension _EditorPageDragOps on _EditorPageState {
       imageItems: page.imageItems,
       shapes: page.shapes,
       charts: page.charts,
+      host: _controller,
     );
   }
 
@@ -234,6 +235,18 @@ extension _EditorPageDragOps on _EditorPageState {
         cy: s.y + s.height / 2,
       ));
     }
+    // M-10（第二轮审计 2026-11-18）：图表纳入对齐参考系。
+    for (final c in page.charts) {
+      if (c.id == id) continue;
+      refs.add((
+        l: c.x,
+        r: c.x + c.width,
+        t: c.y,
+        b: c.y + c.height,
+        cx: c.x + c.width / 2,
+        cy: c.y + c.height / 2,
+      ));
+    }
     if (refs.isEmpty) return;
 
     // 当前拖动元素边界。
@@ -260,6 +273,15 @@ extension _EditorPageDragOps on _EditorPageState {
         r = s.x + s.width;
         top = s.y;
         bottom = s.y + s.height;
+      }
+    }
+    // M-10：图表自身边界（拖图表时也参与对齐）。
+    for (final c in page.charts) {
+      if (c.id == id) {
+        l = c.x;
+        r = c.x + c.width;
+        top = c.y;
+        bottom = c.y + c.height;
       }
     }
     final cx = (l + r) / 2;
@@ -368,6 +390,13 @@ extension _EditorPageDragOps on _EditorPageState {
       items.add((
         pos: s.x + s.width / 2,
         place: (center) => s.x = center - s.width / 2,
+      ));
+    }
+    // M-10：图表纳入等距分布。
+    for (final c in page.charts) {
+      items.add((
+        pos: c.x + c.width / 2,
+        place: (center) => c.x = center - c.width / 2,
       ));
     }
     if (items.length < 3) {

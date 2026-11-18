@@ -155,7 +155,13 @@ extension _EditorPageInput on _EditorPageState {
             _lastDragCanvas = canvasPoint;
           }
         }
-      } else if (_selectionDone && _controller.hasSelectedStrokes) {
+      } else if (!_isNotebookMode &&
+          _selectionDone &&
+          _controller.hasSelectedStrokes) {
+        // M-9（第二轮审计 2026-11-18）：笔记模式笔画移动加模式守卫——
+        // 此前无守卫：笔记套索选笔画后拖混排对象，Listener 链照常移笔画
+        // 并 push 笔画命令，overlay 同时 push 混排命令（一次手势两条撤销
+        // + 对象与笔画意外同移）。笔记模式笔画变换走选区栏，不经此分支。
         final last = _lastDragCanvas;
         if (last != null) {
           final delta = canvasPoint - last;
@@ -302,6 +308,7 @@ extension _EditorPageInput on _EditorPageState {
           textItems: page.textItems,
           imageItems: page.imageItems,
           shapes: page.shapes,
+          charts: page.charts,
         );
         _applyState(() => _canvasInteraction.completeMarquee(selectedIds));
         _notifyChanged();
@@ -438,6 +445,7 @@ extension _EditorPageInput on _EditorPageState {
               textItems: page.textItems,
               imageItems: page.imageItems,
               shapes: page.shapes,
+              charts: page.charts,
             );
             _applyState(
               () => _canvasInteraction.addToMultiSelection(selectedIds),

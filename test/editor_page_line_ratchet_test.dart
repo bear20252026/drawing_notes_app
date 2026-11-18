@@ -75,10 +75,24 @@ import 'package:flutter_test/flutter_test.dart';
 /// （application 层）。零新 UI 组件、零新 part。这是缺陷修复成本，不构成
 /// 放宽先例——下一次增长仍须先拆或再点名。
 ///
+/// 2026-11-18（第二轮审计批 B，拖拽专项边界收尾）：7230 → 7268（+38）。
+/// 动机是**拖拽事务边界缺陷修复**（H-3 group/M-6 通知收口/M-7 键盘会话化/
+/// M-9 双记守卫/M-10 图表接线），非功能增长。逐文件明细：
+/// - editor_page_drag_ops.dart +29：M-10 对齐吸附 refs 补图表循环（+12）、
+///   当前元素边界补图表（+9）、等距分布补图表（+7），含注释。
+/// - editor_page_input.dart +8：M-9 笔记模式笔画移动分支加 !_isNotebookMode
+///   守卫（+3 含注释）；M-10 框选/套索调用补 charts 参数（+2）；
+///   M-7 键盘会话化注释（+3）。
+/// - editor_page_text_overlays.dart +1：M-6 宽度柄每帧通知删除改注释（净+1）。
+/// 事务 group/depth 本体落 editor_page_object_mutation.dart（独立库不计）；
+/// 模型 restoreFrom 落 core/canvas_model（不计）；命中几何补图表落
+/// infrastructure（不计）。零新 UI、零新 part。缺陷修复成本，不构成放宽
+/// 先例——下一次增长仍须先拆或再点名。
+///
 /// 2026-11-17（第二轮审计批 C）：7235 → 7230（-5）。L-3 孤儿注释清理：
 /// overlays 尾部描述已迁方法的 3 行注释删除、editor_page _linkSourceId
 /// 上挂错的 3 行薄包装注释改 1 行如实描述。棘轮随净删下调——只紧不松。
-const int kBaselineTotalLines = 7230;
+const int kBaselineTotalLines = 7268;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

@@ -45,6 +45,20 @@ class PageChartItem {
 
   Offset get position => Offset(x, y);
 
+  /// 以同一对象标识的快照覆盖全部可变字段（[copy] 的逆，H-2 第二轮审计）。
+  void restoreFrom(PageChartItem snapshot) {
+    assert(snapshot.id == id, '只能恢复同一图表对象的状态');
+    chartType = snapshot.chartType;
+    data = List.of(snapshot.data);
+    labels = List.of(snapshot.labels);
+    x = snapshot.x;
+    y = snapshot.y;
+    width = snapshot.width;
+    height = snapshot.height;
+    color = snapshot.color;
+    zOrder = snapshot.zOrder;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'chartType': chartType.wireName,

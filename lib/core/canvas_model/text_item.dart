@@ -110,6 +110,31 @@ class PageTextItem {
 
   Offset get position => Offset(x, y);
 
+  /// 以同一对象标识的快照覆盖全部可变字段（[copy] 的逆，H-2 第二轮审计）。
+  void restoreFrom(PageTextItem snapshot) {
+    assert(snapshot.id == id, '只能恢复同一文字对象的状态');
+    x = snapshot.x;
+    y = snapshot.y;
+    text = snapshot.text;
+    fontSize = snapshot.fontSize;
+    color = snapshot.color;
+    isSticky = snapshot.isSticky;
+    bold = snapshot.bold;
+    italic = snapshot.italic;
+    underline = snapshot.underline;
+    strikethrough = snapshot.strikethrough;
+    isTodo = snapshot.isTodo;
+    todoChecked = snapshot.todoChecked;
+    align = snapshot.align;
+    zOrder = snapshot.zOrder;
+    width = snapshot.width;
+    groupId = snapshot.groupId;
+    href = snapshot.href;
+    fontFamily = snapshot.fontFamily;
+    fractionalIndex = snapshot.fractionalIndex;
+    runs = snapshot.runs == null ? null : List.of(snapshot.runs!);
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'x': x,
