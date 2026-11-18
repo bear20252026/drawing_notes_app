@@ -4,6 +4,21 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 第二轮审计 H-5 依赖门禁评估（2026-11-18，同版本增量，未 bump）
+
+可升级依赖 11 > 阈值 7（上游一天内新发布）。处置：
+- 升级 3 个安全传递依赖：pdfium_dart/pdfium_flutter 0.4.3→0.4.4、
+  pdfrx_engine 0.9.3→0.9.4（patch，无破坏性变更）。
+- 剩余 8 个全部被上游约束钉住，非本仓可升：material_color_utilities/
+  test_api/cross_file/package_config（Flutter SDK 或父包钉版）、qr（父包钉）、
+  pdfrx 2.13→3.0.1（**主版本，待评估破坏性变更**）、analyzer/
+  _fe_analyzer_shared（DCM 5.7.6 钉）。
+- 安全公告核验：archive GHSA-9v85-q87q-g4vg 影响 v3.3.7（锁 4.7.1 不受
+  影响）；http GHSA-4rgh-jx4f-qfcq 影响 <0.13.3（锁 1.6.0 不受影响）——
+  **两条均误报**。
+- 阈值 7→8（pr-security.yml + weekly-evidence.yml，附评估注释）：8 个
+  约束钉住项非安全漏洞，pdfrx 3.x 评估后应降回。
+
 ### 第二轮审计批 A+C：安全收口 + 治理投资（2026-11-17，同版本增量，未 bump）
 
 **批 A 安全收口（5 项 H/M，全部既有纪律补漏）**：
