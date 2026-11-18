@@ -211,9 +211,85 @@ void main() {
       expect(media.hasKeyFor('nb-m5'), isFalse, reason: '已删笔记密钥不得驻留');
     });
   });
+  group('M-4：懒补槽抛错路径（2026-11-17）', () {
+    test('attachMediaSlot 抛错 → 错误上抛且传入密钥被零化；重试后媒体可解', () async {
+      // 手工落无 media 槽的 v5 信封（懒补场景，照 H-3 先例）——
+      // encryptAndSave 自动生成 media 槽，ensure 走 unwrap 成功路不触发懒补。
+      final notebook = nb('nb-m4');
+      final envelope = await enc.encryptWithPasswordV5(
+        notebookId: 'nb-m4',
+        plaintext: '{"pages":[]}',
+        password: pw,
+      );
+      final map = jsonDecode(envelope) as Map<String, dynamic>;
+      (map['slots'] as Map<String, dynamic>).remove('media');
+      notebook.encryptedPayload = jsonEncode(map);
+      notebook.encrypted = true;
+      await storage.save(notebook);
+      // 会话口令注入（ensure 需要；照生产解锁路径）。
+      await storage.verifyNotebookPassword('nb-m4', pw);
+
+      final port = _ThrowingAttachPort(_LatePort(() => storage));
+      final failKeys = NotebookMediaKeys(media: media, envelopes: port);
+
+      // 首次 ensure：无槽 → 生成 key → attach 抛错 → key 零化后上抛。
+      await expectLater(
+        failKeys.ensure('nb-m4'),
+        throwsA(isA<VaultFileLockException>()),
+      );
+      expect(port.capturedKey, isNotNull);
+      expect(
+        port.capturedKey!.every((b) => b == 0),
+        isTrue,
+        reason: '补槽抛错后编排器必须零化已生成的独占副本（M-4）',
+      );
+
+      // 重试：attach 恢复正常 → 补槽成功 → 媒体密封/开启全链路正确。
+      port.throwOnAttach = false;
+      final sealed = await failKeys.sealMedia('nb-m4', plainOf('M4 回归'));
+      expect(sealed, isNotNull);
+      final opened = await failKeys.openMedia('nb-m4', sealed!);
+      expect(opened, plainOf('M4 回归'));
+    });
+  });
+
 }
 
 /// 延迟绑定信封端口（测试装配用）：与生产 app.dart late final 同语义。
+// M-4（第二轮审计 2026-11-17）：懒补槽抛错路径密钥零化。
+// 零化不可从外部直接观测（Dart 无内存探针）——本组钉「抛错后全链路仍正确」：
+// 补槽失败 → 错误上抛 → 重试成功 → 媒体可解。若零化误伤了服务内副本或
+// 重试路径，sealMedia/openMedia 会失败。
+class _ThrowingAttachPort implements NotebookMediaEnvelopePort {
+  _ThrowingAttachPort(this._inner);
+  final NotebookMediaEnvelopePort _inner;
+  bool throwOnAttach = true;
+  List<int>? capturedKey;
+
+  @override
+  Future<bool> isEncryptedNotebook(String notebookId) =>
+      _inner.isEncryptedNotebook(notebookId);
+
+  @override
+  Future<String?> sessionPassword(String notebookId) =>
+      _inner.sessionPassword(notebookId);
+
+  @override
+  Future<List<int>?> unwrapMediaKey(String notebookId, String password) =>
+      _inner.unwrapMediaKey(notebookId, password);
+
+  @override
+  Future<void> attachMediaSlot(
+    String notebookId,
+    String password,
+    List<int> mediaKey,
+  ) async {
+    capturedKey = mediaKey; // 持引用（fillRange 原地零化可见；复制会看不到）
+    if (throwOnAttach) throw const VaultFileLockException();
+    return _inner.attachMediaSlot(notebookId, password, mediaKey);
+  }
+}
+
 class _LatePort implements NotebookMediaEnvelopePort {
   _LatePort(this._resolve);
   final NotebookStorage Function() _resolve;

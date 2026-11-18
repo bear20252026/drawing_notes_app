@@ -640,6 +640,74 @@ void main() {
     );
   });
 
+  // H-1（第二轮审计 2026-11-17）：豁免路径落锁必须清会话敏感材料。
+  // 此前 _lockWithoutGrace 只掉主密钥不清 KEK/口令——TTL 到期/宽限关闭/
+  // 宽限到期三条路径落锁后应用已 hidden、再无生命周期信号，派生材料整段
+  // 驻留内存。④b 钉的是 hidden 信号路径；这两条钉豁免关闭路径。
+  testWidgets('H-1a TTL 到期落锁：KEK 缓存即清（不依赖后续生命周期信号）', (tester) async {
+    final service = await _configuredService('135792');
+    KekSessionCache.instance.clear();
+    await KekSessionCache.instance.deriveKek('seed', const [1, 2, 3], KdfParams.testLight);
+    expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '135792');
+
+    LockExemption.ttlOverrideForTest = const Duration(milliseconds: 120);
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    expect(KekSessionCache.instance.entryCount, greaterThan(0), reason: '豁免期内不清');
+
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(find.text('输入密码'), findsOneWidget, reason: 'TTL 到期落锁');
+    expect(
+      KekSessionCache.instance.entryCount,
+      0,
+      reason: '豁免落锁与超宽限同一收口：KEK 缓存即清，不等下一个生命周期信号',
+    );
+  });
+
+  testWidgets('H-1b 宽限关闭落锁：KEK 缓存即清', (tester) async {
+    final service = await _configuredService('135792');
+    await service.setGraceSeconds(0);
+    KekSessionCache.instance.clear();
+    await KekSessionCache.instance.deriveKek('seed', const [1, 2, 3], KdfParams.testLight);
+    expect(KekSessionCache.instance.entryCount, greaterThan(0));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockGate(
+          service: service,
+          desktopKeyboardInput: true,
+          child: const Text('SECRET_HOME'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _enterPin(tester, '135792');
+
+    LockExemption.begin();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    LockExemption.end();
+    await tester.pump();
+    expect(find.text('输入密码'), findsOneWidget, reason: 'grace=0 窗口一关即锁');
+    expect(KekSessionCache.instance.entryCount, 0, reason: '落锁即清派生材料');
+  });
+
   // ⑤a 新路径锁定后失败计数仍生效：键盘通道与九宫格都不获旁路。
   testWidgets('⑤a 新路径锁定后键盘/九宫格失败都计入防爆破', (tester) async {
     final service = await _configuredService('135792');

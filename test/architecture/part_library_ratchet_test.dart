@@ -1,4 +1,9 @@
-// R2（架构审查 2026-11-16 路线图）：7 个破千 part 库的库级行数棘轮。
+// R2（架构审查 2026-11-16 路线图）：破千 part 库的库级行数棘轮。
+// H-4（第二轮审计 2026-11-17）扩到 12 库：原 7 库 + doc_editor 2747 /
+// notebook_view_page 2108 / home_page 1928 / doc_page 1528 / all_docs_page 1402。
+// app_lock_gate 基线 1048→1053（H-1 豁免落锁清密钥安全修复 +5）；
+// notebook_storage 基线 1466→1472（M-3 续写 DEK 零化 try-finally +6）。
+// 两处抬升均为安全修复成本，三处交代：本注释 / CHANGELOG / commit message。
 //
 // 背景：单文件行数门禁（500 warn / 1000 error）对 part 拆分后的**库总量**
 // 失明——主文件都不超限，库合计却破千。此前仅 editor_page 有库级棘轮
@@ -32,19 +37,27 @@ class _LibRatchet {
 
 const List<_LibRatchet> _kLibRatchets = [
   _LibRatchet('note_block_doc_store', 'lib/core/documents/note_block_doc_store.dart', 1600, 2, 1200),
-  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1466, 3, 1100),
+  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1472, 3, 1100),
   _LibRatchet('sync_service', 'lib/core/sync/sync_service.dart', 1389, 4, 1000),
   _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1380, 4, 1000),
   _LibRatchet('app_data_root', 'lib/core/storage/app_data_root.dart', 1259, 1, 900),
   _LibRatchet('webdav_sync_settings_page', 'lib/features/notes/presentation/webdav_sync_settings_page.dart', 1052, 1, 800),
-  _LibRatchet('app_lock_gate', 'lib/core/security/app_lock_gate.dart', 1048, 1, 800),
+  _LibRatchet('app_lock_gate', 'lib/core/security/app_lock_gate.dart', 1053, 1, 800),
+  // H-4（第二轮审计 2026-11-17）：5 个破千库漏出棘轮——独立复算发现
+  // 上轮「8 库破千」本身漏数。钉现状只减不许增；doc_editor 2747 是全仓
+  // 最大泥球，列入下一轮重构候选。
+  _LibRatchet('doc_editor', 'lib/features/doc/presentation/doc_editor.dart', 2747, 8, 2000),
+  _LibRatchet('notebook_view_page', 'lib/features/notes/presentation/notebook_view_page.dart', 2108, 3, 1600),
+  _LibRatchet('home_page', 'lib/features/notes/presentation/home_page.dart', 1928, 5, 1400),
+  _LibRatchet('doc_page', 'lib/features/doc/presentation/doc_page.dart', 1528, 5, 1100),
+  _LibRatchet('all_docs_page', 'lib/features/all_docs/presentation/all_docs_page.dart', 1402, 2, 1000),
 ];
 
 int _countLines(File f) => f.readAsLinesSync().length;
 
 void main() {
-  test('R2 分母：7 个破千库全部在册（防台账静默缩水）', () {
-    expect(_kLibRatchets.length, 7);
+  test('R2 分母：12 个破千库全部在册（防台账静默缩水）', () {
+    expect(_kLibRatchets.length, 12);
   });
 
   for (final lib in _kLibRatchets) {

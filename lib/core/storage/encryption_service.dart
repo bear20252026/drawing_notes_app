@@ -193,7 +193,13 @@ class EncryptionService {
     if (dek == null) {
       throw const FormatException('密码错误或数据已损坏');
     }
-    return _decryptPayloadV5(scope: 'nb', id: notebookId, map: map, dek: dek);
+    try {
+      return await _decryptPayloadV5(scope: 'nb', id: notebookId, map: map, dek: dek);
+    } finally {
+      // H-2/M-2（第二轮审计 2026-11-17）：DEK 用完即焚，与 blockdoc 同构
+      // 路径（decryptBlockDocPassword）同口径——此前笔记本侧漏擦，堆驻留。
+      dek.fillRange(0, dek.length, 0);
+    }
   }
 
   // ==== v5 双保护器载荷（N4 批 3，2026-09-02 定案） ====
@@ -290,15 +296,23 @@ class EncryptionService {
     required String password,
     List<int>? usbKey,
     List<int>? mediaKey,
-  }) {
-    return _encryptWithPasswordV5(
-      scope: 'nb',
-      id: notebookId,
-      plaintext: plaintext,
-      password: password,
-      usbKey: usbKey,
-      mediaKey: mediaKey ?? VaultKeyService.randomBytes(_v5DekLength),
-    );
+  }) async {
+    // M-4（第二轮审计 2026-11-17）：自动生成的 K_note 是本方法独占副本，
+    // 包裹进 media 槽后即零化（调用方传入的 mediaKey 归属调用方，不擦）。
+    final generated = mediaKey == null;
+    final key = mediaKey ?? VaultKeyService.randomBytes(_v5DekLength);
+    try {
+      return await _encryptWithPasswordV5(
+        scope: 'nb',
+        id: notebookId,
+        plaintext: plaintext,
+        password: password,
+        usbKey: usbKey,
+        mediaKey: key,
+      );
+    } finally {
+      if (generated) key.fillRange(0, key.length, 0);
+    }
   }
 
   /// 笔记（块文档）v5 加密（N2）：与分页画布同一套双保护器语义，

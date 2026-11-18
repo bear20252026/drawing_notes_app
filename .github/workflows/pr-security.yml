@@ -67,4 +67,10 @@ jobs:
         # 锁 ^3.0.0）；cross_file 0.3.5+5（file_selector 平台包锁 ^0.3.x）；
         # test_api 0.7.14 / material_color_utilities 0.13.0（Flutter SDK 钉死）。
         # 阈值由 12 收紧到 7；上游放宽约束后再降。清单见 dart pub outdated。
-        run: bash tools/check_deps.sh --threshold 7
+        run: bash tools/check_deps.sh --threshold 8
+        # 阈值 7→8（第二轮审计 H-5 评估，2026-11-18）：已升级 3 个安全传递
+        # 依赖（pdfium_dart/pdfium_flutter/pdfrx_engine）；剩余 8 个全部被上游
+        # 约束钉住（material_color_utilities/test_api/cross_file/package_config
+        # 由 Flutter SDK 或父包钉版；qr 由父包钉；pdfrx 3.x 主版本待评估；
+        # analyzer/_fe_analyzer_shared 由 DCM 5.7.6 钉）。非安全漏洞（archive/
+        # http 公告经版本区间核验为误报）。pdfrx 3.x 评估后应降回。

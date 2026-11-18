@@ -49,7 +49,8 @@
 ⑤ 它是「某个域的独立纯状态」，且需要独立单测吗？
    ├─ 是 → 【Riverpod】域内 Notifier（示范单元模式）
    │        位置：features/<域>/application/*_notifiers.dart
-   │        参考：drawing_notifiers.dart（视口/历史/选区三域）
+   │        参考：di_providers.dart 容器接入（drawing_notifiers 示范单元
+   │        已于 R5 裁决删除，2026-11-17）
    └─ 否 → 默认【StatefulWidget 局部 state】，别过度设计
 ```
 
@@ -63,8 +64,7 @@
 | --- | --- | --- |
 | `core/di/providers.dart` | 主题（family 按对比度档）、主题模式 Notifier | Riverpod（跨功能共享） |
 | `features/drawing/application/di_providers.dart` | **容器接入**：每文档一个 DrawingController（`autoDispose.family`） | Riverpod 壳 + 内部 ChangeNotifier |
-| `features/drawing/application/drawing_notifiers.dart` | 视口 / 历史 / 选区三个**独立域 Notifier**（迁移示范单元） | Riverpod（不可变 state） |
-| `features/drawing/presentation/editor_statusbar.dart` | 消费域 provider | Riverpod |
+| `features/drawing/presentation/editor_statusbar.dart` | 消费容器 provider（drawingControllerProvider） | Riverpod |
 | `main.dart` / `app.dart` | ProviderScope 装配、主题消费 | Riverpod |
 
 **手工协作者：44 个 StatefulWidget + 大量普通协作者类**——主体。
@@ -80,12 +80,14 @@
 
 ## 3. 迁移边界（审慎约定，**不要擅自推进**）
 
-`drawing_notifiers.dart` 里的三个域 Notifier 是**示范单元**，不是"已接管"：
+**R5 裁决（业主批准 2026-11-17）**：drawing_notifiers.dart 三域 Notifier 与
+di_providers 派生 provider（drawingDirtyProvider 等）生产零消费，已整体删除。
+容器本体 drawingControllerProvider 保留（已生产接线）。EditorViewModel 同期
+去 ChangeNotifier 变纯状态协作者（刷新经 _applyState 单点）。
 
 - `DrawingController` 内部的 `viewScale/viewOffset`、`_history/_historyPosition`、
   `_selectionDraft/_selectionTool` **暂不替换**——避免高频路径引入 rebuild。
-- `drawingDirtyProvider` 目前**UI 侧零命中**（脏标记实际由 `editor_statusbar`
-  直读 `controller.isDirty`），只有测试在读它。**别把它当成已接管刷新链路。**
+- 脏标记由 `editor_statusbar` 直读 `controller.isDirty`（派生 provider 已删）。
 
 **推进原则**：一次只迁一个域，迁完必须跑全量门禁 + UI 回归；不允许"顺手把
 DrawingController 也改成 Notifier"。

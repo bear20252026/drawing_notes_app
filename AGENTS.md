@@ -184,9 +184,11 @@ flutter test             # 必须全绿
 - 在 `core/di/providers.dart` 加域专属 provider（污染共享内核 + 抬高
   Martin instability，撞架构规则 3b 的 0.4 基线）。
 
-**迁移边界**：`drawing_notifiers.dart` 的视口/历史/选区三个 Notifier 是**示范
-单元**，`DrawingController` 内部高频字段**暂不替换**；`drawingDirtyProvider`
-UI 侧零命中（别当成已接管刷新链路）。一次只迁一个域，迁完跑全量门禁 + UI 回归。
+**迁移边界（R5 裁决 2026-11-17 更新）**：drawing_notifiers.dart 三域 Notifier
+与 di_providers 派生 provider 生产零消费，业主批准已整体删除；容器本体
+drawingControllerProvider 保留（已生产接线）。EditorViewModel 去 ChangeNotifier
+变纯状态协作者（刷新经 _applyState 单点）。`DrawingController` 内部高频字段
+**暂不替换**。一次只迁一个域，迁完跑全量门禁 + UI 回归。
 
 ## 9. part 拆分命名与导航（2026-11-15 定案）
 

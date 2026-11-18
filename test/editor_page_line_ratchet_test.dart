@@ -74,7 +74,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// （独立库，不计本棘轮）；深快照恢复身份写回逻辑落 document_commands.dart
 /// （application 层）。零新 UI 组件、零新 part。这是缺陷修复成本，不构成
 /// 放宽先例——下一次增长仍须先拆或再点名。
-const int kBaselineTotalLines = 7235;
+///
+/// 2026-11-17（第二轮审计批 C）：7235 → 7230（-5）。L-3 孤儿注释清理：
+/// overlays 尾部描述已迁方法的 3 行注释删除、editor_page _linkSourceId
+/// 上挂错的 3 行薄包装注释改 1 行如实描述。棘轮随净删下调——只紧不松。
+const int kBaselineTotalLines = 7230;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

@@ -431,7 +431,7 @@ extension _EditorPageDragOps on _EditorPageState {
 
   /// 返回 [canvasPoint] 附近（50px 内）吸附命中的混排对象 id。
   ///
-  /// 与 [_findSnapTarget] 同逻辑但返回元素 id（供箭头绑定 boundElementId 使用）；
+  /// 与对齐吸附同逻辑但返回元素 id（供箭头绑定 boundElementId 使用）；
   /// 无命中返回 null。
   String? _findSnapTargetId(Offset canvasPoint) {
     final page = widget.session;

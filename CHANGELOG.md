@@ -4,6 +4,59 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 第二轮审计 H-5 依赖门禁评估（2026-11-18，同版本增量，未 bump）
+
+可升级依赖 11 > 阈值 7（上游一天内新发布）。处置：
+- 升级 3 个安全传递依赖：pdfium_dart/pdfium_flutter 0.4.3→0.4.4、
+  pdfrx_engine 0.9.3→0.9.4（patch，无破坏性变更）。
+- 剩余 8 个全部被上游约束钉住，非本仓可升：material_color_utilities/
+  test_api/cross_file/package_config（Flutter SDK 或父包钉版）、qr（父包钉）、
+  pdfrx 2.13→3.0.1（**主版本，待评估破坏性变更**）、analyzer/
+  _fe_analyzer_shared（DCM 5.7.6 钉）。
+- 安全公告核验：archive GHSA-9v85-q87q-g4vg 影响 v3.3.7（锁 4.7.1 不受
+  影响）；http GHSA-4rgh-jx4f-qfcq 影响 <0.13.3（锁 1.6.0 不受影响）——
+  **两条均误报**。
+- 阈值 7→8（pr-security.yml + weekly-evidence.yml，附评估注释）：8 个
+  约束钉住项非安全漏洞，pdfrx 3.x 评估后应降回。
+
+### 第二轮审计批 A+C：安全收口 + 治理投资（2026-11-17，同版本增量，未 bump）
+
+**批 A 安全收口（5 项 H/M，全部既有纪律补漏）**：
+- **H-1 锁屏豁免路径落锁清密钥**：`_lockWithoutGrace` 补
+  `_clearSessionSecrets()`——TTL 到期/宽限关闭/宽限到期三条路径此前只掉
+  主密钥不清 KEK/会话口令/K_note（注释自称「与超宽限同一收口」但那条有
+  清理这条没有）。新增 2 项 widget 回归（TTL + grace=0 落锁即清 KEK）。
+- **M-2 笔记本解密 DEK 零化**：`_decryptNotebookEnvelope` 补 try-finally
+  fillRange，与 blockdoc 同构路径同口径（此前笔记本侧漏擦）。
+- **M-3 续写 DEK 零化**：`notebook_storage_password` rewrap 后 finally
+  零化调用方独占副本（此前用后弃置不擦）。
+- **M-4 K_note 懒补槽抛错零化**：`_ensureOnce` attachMediaSlot 抛错路径
+  补 try-finally 零化已生成密钥；`encryptWithPasswordV5` 自动生成的
+  K_note 副本包裹后即零化（调用方传入的不擦）。新增 1 项 kdf 回归
+  （抛错后传入密钥全零 + 重试后媒体可解）。
+- **M-5 审计锚加载失败可重试**：catch 分支不再置 `_anchorLoaded=true`
+  ——下一条 log() 重试加载。此前一次读失败即整会话永久降级无密钥
+  SHA-256（攻击者可整链重算伪造）。新增 1 项回归（目录占锚→降级→
+  障碍移除→恢复 HMAC）。
+
+**批 C 治理投资（零行为变更）**：
+- **H-4 五库补棘轮**：doc_editor 2747 / notebook_view_page 2108 /
+  home_page 1928 / doc_page 1528 / all_docs_page 1402 补进
+  part_library_ratchet（分母 7→12）。上轮「8 库破千」本身漏数。
+- **M-11 文档同步**：STATE_MANAGEMENT_DECISION_TREE.md 与 AGENTS.md
+  仍称 drawing_notifiers 为现存示范单元（R5 已删）——同步改写。
+- **M-12 sloc 注释**：presentation 40/40 触顶、application 38/40 如实更新。
+- **L-3 孤儿注释四处**：overlays 尾部已迁方法注释删除、drag_ops 引用
+  不存在的 _findSnapTarget 改如实描述、editor_page _linkSourceId 上挂错
+  的薄包装注释纠正、object_mutation 过期棘轮数 7127→7235 纠正。
+- **L-6 kdf 卫生门禁**：双引号 @Tags(["kdf"]) 纳入合规标记（6 文件在用）。
+
+**棘轮交代（P3-3）**：app_lock_gate 1048→1053（H-1 +5）；
+notebook_storage 1466→1472（M-3 +6）；editor_page 库 7235→7230（L-3 -5）。
+抬升均为安全修复成本，下调随净删——三处交代（棘轮注释/本段/commit）。
+
+### 混排拖拽域统一入撤销专项（2026-11-17，同版本增量，未 bump）
+
 ### 混排拖拽域统一入撤销专项（2026-11-17，同版本增量，未 bump）
 
 **整域缺口**：笔记模式的移动/旋转/缩放/文字宽度柄直改对象字段，结束只

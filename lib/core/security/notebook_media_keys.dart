@@ -106,7 +106,15 @@ class NotebookMediaKeys implements SessionSecretsHolder {
     if (key == null) {
       // 懒补槽（仅「无槽」会走到这里——损坏/错密码在端口内已抛错）。
       key = MediaCryptoService.generateNotebookKey();
-      await envelopes.attachMediaSlot(notebookId, password, key);
+      try {
+        await envelopes.attachMediaSlot(notebookId, password, key);
+      } catch (_) {
+        // M-4（第二轮审计 2026-11-17）：补槽抛错（回锁/落盘失败）时已生成
+        // 的密钥是本方法独占副本，零化后原样上抛——此前无 try/finally，
+        // 世代校验只覆盖成功路，抛错路径密钥堆驻留。
+        key.fillRange(0, key.length, 0);
+        rethrow;
+      }
     }
     // 慢操作（Argon2id ×2 + 落盘）期间可能回锁/页面退出——世代校验，
     // 过期即作废：不注入、源副本零化（M-4 构造性消除）。

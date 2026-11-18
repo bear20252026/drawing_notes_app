@@ -298,7 +298,7 @@ class EditorHyperlinkMutation {
 /// `lib/features/drawing/presentation/` 受 `sloc-guard` 的 `max_files = 40`
 /// 目录门禁（`.sloc-guard.toml` 里 P3-8 那条注释就是这条临界），第 41 个文件
 /// 当场 FAILED。也不落在 `editor_page_editing.dart`：那条 part 所在库受行数棘轮
-/// 约束（`test/editor_page_line_ratchet_test.dart`，当前 7127/7127，余量 0）。
+/// 约束（`test/editor_page_line_ratchet_test.dart`，基线 7235；本文件独立库不计入）。
 class MixedObjectDeleteRecorder {
   const MixedObjectDeleteRecorder._();
 
