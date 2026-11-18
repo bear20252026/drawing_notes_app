@@ -229,6 +229,11 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     });
     // 与「超宽限」同一收口：主密钥掉锁，此后加密读写 fail-closed。
     widget.vault?.lock();
+    // H-1（第二轮审计 2026-11-17）：豁免路径落锁同样清会话敏感材料。
+    // 此前只挂 hidden/resumed 超宽限两处——TTL 到期/宽限关闭/宽限到期
+    // 三条路径落锁后应用已 hidden、再无生命周期信号，KEK 缓存/会话口令/
+    // K_note 整段驻留内存。收口方法已存在，补齐即与超宽限真正同一口径。
+    _clearSessionSecrets();
     unawaited(_refreshQuickUnlock());
   }
 

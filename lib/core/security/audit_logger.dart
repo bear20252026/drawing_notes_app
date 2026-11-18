@@ -370,7 +370,14 @@ class AuditLogger {
       // 世代标记：链尾追加（此时 _anchorKey 已就绪 → 走 HMAC）。
       _appendEntry('audit.genesis', detail: 'generation=$_generation');
     } catch (_) {
-      _anchorKey = null; // 加载失败退回 SHA-256（审计永不阻断业务）。
+      // M-5（第二轮审计 2026-11-17）：加载失败退回 SHA-256（审计永不阻断
+      // 业务），但**不置 _anchorLoaded**——下一条 log() 重试加载。此前
+      // catch 里 _anchorLoaded 已 true 且永不重试：制造一次锚读失败
+      // （文件锁/权限）即可让整会话永久降级无密钥 SHA-256，攻击者后续
+      // 伪造条目只需重算 SHA-256 链（HMAC 不可伪造）——永久降级超出
+      // 「永不阻断」的声明取舍。重试成功后世代标记自然恢复 HMAC。
+      _anchorKey = null;
+      _anchorLoaded = false;
     }
   }
 

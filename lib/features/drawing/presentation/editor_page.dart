@@ -697,9 +697,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   bool _closingEditor = false;
   bool _allowPopAfterSave = false;
 
-  /// 状态刷新薄包装（供 overlays extension 使用）：
-  /// extension 不是 State 子类，不能直接调用受保护的 [setState]，
-  /// 通过本实例方法转发（行为零变化，拆分专用）。
+  /// 连线源元素 id（委托 ViewModel；刷新经 _applyState 单点）。
   String? get _linkSourceId => _viewModel.linkSourceId;
 
   /// 鼠标悬停/移动时的画布坐标（状态栏显示，借鉴 Joplin StatusBar）。

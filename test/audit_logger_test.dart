@@ -288,6 +288,59 @@ void main() {
     });
   });
 
+  // M-5（第二轮审计 2026-11-17）：锚加载失败不得永久降级。
+  group('M-5：锚加载失败可重试（2026-11-17）', () {
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('audit_anchor_retry_');
+      sinkFile = File(
+        '${tempDir!.path}${Platform.pathSeparator}security'
+        '${Platform.pathSeparator}audit.log',
+      );
+      AuditLogger.sinkOverrideForTest = sinkFile;
+    });
+
+    test('锚路径被目录占据 → 降级 SHA-256；障碍移除后下一条 log 恢复 HMAC', () async {
+      final anchorPath = '${sinkFile!.parent.path}/audit.anchor';
+      // 用目录占据锚文件路径：existsSync=true 但 readAsStringSync 抛错
+      // → 走 catch 降级分支（模拟文件锁/权限导致的读失败）。
+      Directory(anchorPath).createSync(recursive: true);
+
+      AuditLogger.log('degraded-entry');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.anchorLoadedForTest, isFalse, reason: '读失败 → 无密钥降级');
+      // mac 在落盘 JSON 里（snapshot 是人读 display 不含 mac）——读文件链。
+      final degradedLines = sinkFile!.readAsLinesSync()
+          .map((l) => jsonDecode(l) as Map<String, dynamic>)
+          .toList();
+      expect(
+        degradedLines.every((m) => m['mac'] == null),
+        isTrue,
+        reason: '降级条目无 HMAC',
+      );
+
+      // 障碍移除：删目录、放正常锚文件（模拟锁释放/权限恢复）。
+      Directory(anchorPath).deleteSync();
+      File(anchorPath).writeAsStringSync(
+        jsonEncode({'key': base64Encode(List.filled(32, 7)), 'gen': 0}),
+      );
+
+      AuditLogger.log('recovered-entry');
+      await AuditLogger.flushForTest();
+      expect(
+        AuditLogger.anchorLoadedForTest,
+        isTrue,
+        reason: '下一条 log 重试加载成功——永久降级会让攻击者一次读失败换整会话无 HMAC',
+      );
+      final recoveredLines = sinkFile!.readAsLinesSync()
+          .map((l) => jsonDecode(l) as Map<String, dynamic>)
+          .toList();
+      final recovered = recoveredLines.last;
+      expect(recovered['mac'], isNotNull, reason: '恢复后条目带 HMAC');
+      expect(recovered['operation'], 'recovered-entry');
+      expect(AuditLogger.verifyIntegrity(), isTrue);
+    });
+  });
+
   // 外部追加锚（M-05 残余边界补强，2026-11-15）：锚密钥与日志同盘时，
   // 同时拿到两者的攻击者仍可整链重算——外部凭据（独立介质）是最后一道。
   group('外部追加锚（M-05 残余边界补强）', () {

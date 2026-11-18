@@ -27,6 +27,7 @@ final String _kdfTrigger = ['encryptAndSave', '('].join();
 final List<String> _cheapMarks = const [
   'KdfParams.testLight',
   "@Tags(['kdf'])",
+  '@Tags(["kdf"])', // L-6（第二轮审计）：双引号标签同口径（6 文件在用）
 ];
 
 /// 涉真 KDF 但两条腿都没交代 ⇒ 返回该文件；合规返回 null。

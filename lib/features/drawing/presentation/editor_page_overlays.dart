@@ -452,7 +452,4 @@ extension _EditorPageOverlays on _EditorPageState {
     );
   }
 
-  /// 拖动混排对象：把屏幕位移换算为画布位移。
-  /// 分组展开（借鉴 Excalidraw groupIds）：给定元素 id 集合，
-  /// 返回包含同组元素的完整集合（整体移动/删除联动）。
 }

@@ -37,13 +37,19 @@ extension _NotebookStoragePassword on NotebookStorage {
       if (dek == null) {
         throw const FormatException('会话密码与当前信封不匹配');
       }
-      final newPayload = await NotebookStorage._encryption.rewrapPayloadV5(
-        notebookId: notebook.id,
-        map: map,
-        dek: dek,
-        plaintext: payloadJson,
-      );
-      notebook.encryptedPayload = newPayload;
+      try {
+        final newPayload = await NotebookStorage._encryption.rewrapPayloadV5(
+          notebookId: notebook.id,
+          map: map,
+          dek: dek,
+          plaintext: payloadJson,
+        );
+        notebook.encryptedPayload = newPayload;
+      } finally {
+        // M-3（第二轮审计 2026-11-17）：unwrapPasswordSlotForRewrap 返回的
+        // DEK 归属调用方（独占副本），续写完成后即零化——此前用后弃置不擦。
+        dek.fillRange(0, dek.length, 0);
+      }
     } else {
       notebook.encryptedPayload = await NotebookStorage._encryption
           .encryptWithPasswordV5(
