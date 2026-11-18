@@ -4,6 +4,31 @@
 
 ## [1.17.68] - 2026-11-05
 
+### 第二轮审计批 D：M-1 密封降级 + pdfrx 3.x 升级 + L-10 留档（2026-11-18）
+
+**M-1 密封判定单调性**：`isEncryptedNotebook` 改直读主文件，不再走
+`load()`（load 回退陈旧明文 .bak → 误判 false → 媒体按全局保险库钥而非
+K_note 密封，保护降级到开屏 PIN）。主文件不存在 → false（新本）；
+DNV 外层锁定 → 抛 VaultFileLockException（fail-closed）；主文件损坏 →
+抛 FormatException（不据此判「未加密」）。新增回归 3 项（备份不降级 /
+损坏 fail-closed / 锁定 fail-closed）。
+
+**pdfrx 2.13.0 → 3.0.1**（主版本升级，评估后安全）：本仓仅用
+`pdfrxFlutterInitialize()` + `PdfDocument.openFile()`（pdf_preview_renderer /
+pdf_import_service），**零 PdfViewerParams / 布局策略 / 缩放参数使用**——
+3.0 破坏面（layoutStrategy 取代 layoutPages/margin、移除 maxScale/minScale/
+calculateInitialZoom、PdfPageLayout 接口扩展）全部不触及。编译零问题。
+依赖门禁可升级数 8→7（pdfrx 主版本项消除）。
+
+**L-10 窄快照性能——留档不实施（评估结论）**：每次手势 begin/commit 各
+全页四类深拷贝 + 撤销栈每条常驻两份全页副本（60 条上限）。窄快照（只快照
+选中对象）理论上可降内存，但**会破坏跨命令组合正确性**：① 箭头绑定跟随
+（_dragItem 移动 boundElementId 关联箭头，非选中对象也改）；② 删除命令
+持全页快照，与窄拖拽快照 LIFO 组合时恢复范围不一致；③ 分组展开
+（_expandGroup）使实际影响集大于选中集。全页快照是**跨命令组合正确的
+前提**（PR #75 深快照设计决策），不是内存优化选项。性能开销在可接受范围
+（几百对象 × 60 条 ≈ 数 MB 级），留待真实 profiling 数据驱动再评估。
+
 ### 第二轮审计批 B：拖拽专项边界收尾 7 项（2026-11-18，同版本增量，未 bump）
 
 **H-2 seed/_dashLegacy 漏恢复**：四模型补 `restoreFrom`（copy 的逆，全字段）；

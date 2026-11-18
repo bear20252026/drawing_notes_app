@@ -527,12 +527,42 @@ class NotebookStorage
 
   // ---- NotebookMediaEnvelopePort（编排器信封端口——存储侧实现）----
 
-  /// 该笔记本是否声明加密（读磁盘当前信封，非内存快照）。
-  /// 不存在/明文 → false；DNV 外层锁定由 load 抛 [VaultFileLockException]。
+  /// 该笔记本是否声明加密（**直读主文件**，非内存快照、不回退备份）。
+  ///
+  /// M-1（第二轮审计 2026-11-18）：此前走 load()——主文件瞬时缺失
+  /// （rename 兜底先 delete）或损坏时回退陈旧明文 .bak → 误判 false →
+  /// 媒体按全局保险库钥而非 K_note 密封（保护降级到开屏 PIN）。
+  /// 密封判定必须单调：只认主文件当前信封，备份回退是**读取**恢复路径，
+  /// 不是**加密声明**的权威来源。主文件不存在 → false（新笔记本）；
+  /// DNV 外层锁定 → 抛 VaultFileLockException（fail-closed，与 load 同口径）。
   @override
   Future<bool> isEncryptedNotebook(String notebookId) async {
-    final nb = await load(notebookId);
-    return nb != null && nb.encrypted && nb.encryptedPayload != null;
+    final file = File(await _pathFor(notebookId));
+    if (!file.existsSync()) return false;
+    final onDisk = await file.readAsBytes();
+    final key = await _currentKey();
+    if (key == null && VaultFileCodec.isEncrypted(onDisk)) {
+      throw const VaultFileLockException();
+    }
+    final clear = key == null || !VaultFileCodec.isEncrypted(onDisk)
+        ? onDisk
+        : await VaultFileCodec.decrypt(
+            onDisk,
+            key,
+            aadContext: 'nb:$notebookId',
+          );
+    try {
+      final root = jsonDecode(utf8.decode(clear));
+      if (root is! Map<String, dynamic>) return false;
+      final payload = root['encryptedPayload'];
+      return root['encrypted'] == true &&
+          payload is String &&
+          payload.isNotEmpty;
+    } on FormatException {
+      // 主文件损坏：不能据此判定「未加密」——fail-closed 抛错，
+      // 调用方（密封路径）按损坏处理，不降级到全局钥。
+      throw const FormatException('笔记本数据损坏：无法判定加密状态');
+    }
   }
 
   @override

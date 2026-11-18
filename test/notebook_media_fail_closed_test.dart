@@ -219,6 +219,101 @@ void main() {
       expect(imagesOnDisk(), isEmpty);
     });
   });
+
+  // M-1（第二轮审计 2026-11-18）：密封判定直读主文件，不回退陈旧明文备份。
+  group('M-1：isEncryptedNotebook 单调性（备份回退不降级密封）', () {
+    test('主文件缺失但 .bak 为陈旧明文 → 仍判加密（不回退备份）', () async {
+      late final NotebookStorage wired;
+      final keys = NotebookMediaKeys(
+        media: MediaCryptoService.instance,
+        envelopes: _LatePort(() => wired),
+      );
+      wired = NotebookStorage(
+        directoryProvider: () async => tempDir,
+        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: keys,
+        keyProvider: () async => null,
+      );
+      const pw = 'm1-test-pw';
+      await wired.encryptAndSave(Notebook(id: 'nb_m1', title: '加密本'), pw);
+      expect(await wired.isEncryptedNotebook('nb_m1'), isTrue);
+
+      // 构造陈旧明文 .bak（模拟「曾明文后加密」的历史备份）。
+      final nbDir = Directory(
+        '${tempDir.path}${Platform.pathSeparator}notebooks',
+      );
+      final mainFile = File('${nbDir.path}${Platform.pathSeparator}nb_m1.json');
+      final bakFile = File('${mainFile.path}.bak');
+      bakFile.writeAsStringSync(
+        '{"id":"nb_m1","title":"旧明文","encrypted":false,"pages":[]}',
+      );
+      // 主文件瞬时缺失（rename 兜底先 delete 的窗口）。
+      mainFile.deleteSync();
+
+      // 修复前：load() 回退 .bak → encrypted=false → 密封降级到全局钥。
+      // 修复后：直读主文件，不存在 → false（新本），但**不回退备份**。
+      // 此处主文件缺失 → false 是正确语义（无主文件=无加密声明），
+      // 关键断言：即便 .bak 存在也不读它。
+      expect(await wired.isEncryptedNotebook('nb_m1'), isFalse);
+
+      // 恢复主文件（密文）→ 仍判加密，.bak 明文不影响。
+      // 重新加密保存恢复主文件。
+      await wired.encryptAndSave(Notebook(id: 'nb_m1', title: '加密本'), pw);
+      expect(await wired.isEncryptedNotebook('nb_m1'), isTrue);
+      expect(bakFile.existsSync(), isTrue, reason: '备份仍在（明文）');
+      // 密封路径仍走 K_note DAN（不降级）。
+      final dan = await File(
+        await wired.storeImage('nb_m1', pngSource().path, 'pg_m1'),
+      ).readAsBytes();
+      expect(MediaCryptoService.isEncryptedFile(dan), isTrue,
+          reason: '主文件密文在 → K_note 密封，陈旧明文备份不降级');
+    });
+
+    test('主文件损坏 → 抛 FormatException（fail-closed，不判未加密）', () async {
+      late final NotebookStorage wired;
+      final keys = NotebookMediaKeys(
+        media: MediaCryptoService.instance,
+        envelopes: _LatePort(() => wired),
+      );
+      wired = NotebookStorage(
+        directoryProvider: () async => tempDir,
+        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: keys,
+        keyProvider: () async => null,
+      );
+      await wired.encryptAndSave(Notebook(id: 'nb_m1b', title: '加密本'), 'pw');
+      final nbDir = Directory(
+        '${tempDir.path}${Platform.pathSeparator}notebooks',
+      );
+      final mainFile = File('${nbDir.path}${Platform.pathSeparator}nb_m1b.json');
+      // 损坏主文件（非 JSON）。
+      mainFile.writeAsBytesSync([0xFF, 0xFE, 0x00, 0x01]);
+      await expectLater(
+        wired.isEncryptedNotebook('nb_m1b'),
+        throwsA(isA<FormatException>()),
+        reason: '损坏不能据此判「未加密」——密封路径按损坏处理，不降级',
+      );
+    });
+
+    test('主文件锁定（DNV 外层 + 无钥）→ 抛 VaultFileLockException', () async {
+      final key = VaultKeyService.randomBytes(32);
+      final unlocked = NotebookStorage(
+        directoryProvider: () async => tempDir,
+        keyProvider: () async => key,
+      );
+      await unlocked.encryptAndSave(Notebook(id: 'nb_m1c', title: '加密本'), 'pw');
+      // 锁定态存储（无钥）。
+      final locked = NotebookStorage(
+        directoryProvider: () async => tempDir,
+        keyProvider: () async => null,
+      );
+      await expectLater(
+        locked.isEncryptedNotebook('nb_m1c'),
+        throwsA(isA<VaultFileLockException>()),
+        reason: 'DNV 外层锁定 fail-closed，与 load 同口径',
+      );
+    });
+  });
 }
 
 /// 延迟绑定信封端口（测试装配用）：编排器先于存储构造时，经闭包引用
