@@ -726,18 +726,18 @@ packages:
     dependency: "direct main"
     description:
       name: pdfrx
-      sha256: adb9a27cabc3a431792c4419a292d10d818b0a586e1c251f0d70c2ba4842a3f8
+      sha256: a62544072f74b921d76de2f92c7b3b39021da87dd8a5a0f2a8f32ad30319a4b1
       url: "https://pub.dev"
     source: hosted
-    version: "2.13.0"
+    version: "3.0.2"
   pdfrx_engine:
     dependency: transitive
     description:
       name: pdfrx_engine
-      sha256: "84bcd2df6925f3bbd4013a325cc5a2d75832b4c575c70fdf0b647239de075d1e"
+      sha256: c98b259494bd21b3e83f2f6c5a9b1c1064fd56e643c7e030641ab583fb6b1efa
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.4"
+    version: "0.9.5"
   perfect_freehand:
     dependency: "direct main"
     description:
