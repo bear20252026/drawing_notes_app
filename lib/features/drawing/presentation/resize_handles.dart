@@ -164,10 +164,16 @@ class ResizeHandles extends StatelessWidget {
         hint: l10n?.canvasHandleKeyboardHint ?? '方向键微调，Shift 加速',
         visualSize: size,
         onPanStart: onDragStart,
-        onPanEnd: onDragEnd,
+        // M-6（第二轮审计 2026-11-18）：保存链通知移会话结束——此前每帧
+        // onChanged 打防抖自动保存+updatedAt，与移动/旋转「结束才通知」
+        // 语义不一致。onDragEnd 未注入时退化为每帧通知（兼容旧宿主）。
+        onPanEnd: () {
+          onDragEnd?.call();
+          if (onDragEnd == null) onChanged();
+        },
         onPanUpdate: (screenDelta) {
           onResize(handle, screenToCanvasDelta(screenDelta));
-          onChanged();
+          if (onDragEnd == null) onChanged();
         },
       ),
     );

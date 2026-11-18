@@ -123,7 +123,7 @@ void _keyboardEquivalenceGroup() {
     await tester.pump();
     expect(emitted.last.$1, EditorShapeResizeHandle.bottomRight);
     expect(emitted.last.$2, const Offset(0, 16), reason: 'Shift 档 32 屏幕 px');
-    expect(notifications, 2, reason: '每次按键都通知宿主，与拖拽同时序');
+    expect(notifications, 4, reason: 'M-7 键盘自起自结：每键 start+end 各一次通知（无 onDragEnd 退化口径）');
 
     // 非方向键不产生任何增量（交给上层/系统）。
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
@@ -227,10 +227,13 @@ void _keyboardEquivalenceGroup() {
     await tester.pump();
     expect(updates, hasLength(1));
     expect(updates.single, const Offset(-8, 0), reason: '屏幕口径，不经 viewScale');
+    // M-7（第二轮审计 2026-11-18）：键盘微调独立会话——按键自起自结。
+    expect(starts, 2, reason: '聚焦 1 次 + 按键自起 1 次');
+    expect(ends, 1, reason: '按键自结 1 次（失焦前）');
 
     _focusNodeAt(tester, 0).unfocus();
     await tester.pump();
-    expect(ends, 1, reason: '失焦结算本次会话');
+    expect(ends, 2, reason: '失焦再结 1 次（嵌套 depth 保证不重复还原）');
   });
 
   testWidgets('每个手柄都挂了键盘入口与可见焦点环', (tester) async {

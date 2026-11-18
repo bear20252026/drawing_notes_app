@@ -155,7 +155,13 @@ class CanvasDragHandle extends StatelessWidget {
       _ => Offset.zero,
     };
     if (delta == Offset.zero) return KeyEventResult.ignored;
+    // M-7（第二轮审计 2026-11-18）：键盘微调独立会话——此前聚焦即 begin、
+    // 失焦即 commit，指针拖完（焦点仍持有）commit 已清槽，随后方向键无
+    // begin：宽度柄 anchor=null 键盘死、形状柄改动不入撤销。现每次按键
+    // 自起自结（begin→update→end），嵌套 depth 保证与指针会话不冲突。
+    onPanStart?.call();
     onPanUpdate(delta);
+    onPanEnd?.call();
     return KeyEventResult.handled;
   }
 }

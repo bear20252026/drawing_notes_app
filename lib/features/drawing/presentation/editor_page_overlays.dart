@@ -291,7 +291,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                           ..height = resized.height;
                                         _controller.tickFrame();
                                       },
-                                      onChanged: _notifyChanged,
+                                      onChanged: () {}, // M-6：通知经 onDragEnd→_commitMixedDrag
                                     ),
                                   ],
                                 )

@@ -473,7 +473,8 @@ extension _EditorPageTextOverlays on _EditorPageState {
                         x: anchor.x,
                       );
                     });
-                    _notifyChanged();
+                    // M-6（第二轮审计 2026-11-18）：保存链通知移 onPanEnd
+                    // （_commitMixedDrag 内含），不再每帧打防抖保存。
                   },
                   label:
                       AppLocalizations.of(context)?.textWidthHandle ?? '调整文字宽度',

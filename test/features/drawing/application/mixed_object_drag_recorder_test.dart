@@ -53,6 +53,7 @@ void main() {
     imageItems: images,
     shapes: shapes,
     charts: charts,
+    host: host,
   );
 
   bool commit() => MixedObjectDragRecorder.commit(
@@ -160,8 +161,12 @@ void main() {
   test('嵌套 begin 以首个为准（宽度柄聚焦+指针同会话不覆盖基准）', () {
     begin();
     shapes.first.x = 100;
-    begin(); // 第二次 begin 不覆盖
+    begin(); // 第二次 begin 不覆盖（depth=2）
     shapes.first.x = 200;
+    // 内层 commit 只递减 depth，不结算（H-3：最外层才关 group/清槽）。
+    expect(commit(), isFalse, reason: '内层 commit 不产生条目');
+    expect(host.canUndo, isFalse, reason: 'group 仍开着，undo 被拒绝');
+    // 最外层 commit 结算：基准是第一次 begin 的起点（30），不是第二次。
     expect(commit(), isTrue);
 
     host.undo();

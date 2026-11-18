@@ -254,6 +254,11 @@ class EditorCanvasInteractionState {
   /// 只可能有一个手势在改混排对象，嵌套 begin 以首个为准（不覆盖）。
   MixedObjectCollections? mixedDragBefore;
 
+  /// 拖拽事务嵌套深度（H-3/M-8 第二轮审计 2026-11-18）：宽度柄聚焦+指针
+  /// 同会话、键盘连续微调等场景 begin 可嵌套。只有最外层 commit/cancel
+  /// 才结算/还原；内层只递减。history group 与快照槽同生命周期。
+  int mixedDragDepth = 0;
+
   /// 不可变的多选结果视图；修改必须通过本类的命令方法完成。
   Set<String> get multiSelectedIds =>
       Set<String>.unmodifiable(_multiSelectedIds);

@@ -41,6 +41,20 @@ class PageImageItem {
 
   Offset get position => Offset(x, y);
 
+  /// 以同一对象标识的快照覆盖全部可变字段（[copy] 的逆，H-2 第二轮审计）。
+  void restoreFrom(PageImageItem snapshot) {
+    assert(snapshot.id == id, '只能恢复同一图片对象的状态');
+    x = snapshot.x;
+    y = snapshot.y;
+    filePath = snapshot.filePath;
+    width = snapshot.width;
+    height = snapshot.height;
+    zOrder = snapshot.zOrder;
+    groupId = snapshot.groupId;
+    href = snapshot.href;
+    fractionalIndex = snapshot.fractionalIndex;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'x': x,

@@ -382,13 +382,21 @@ class MixedObjectDragRecorder {
   const MixedObjectDragRecorder._();
 
   /// 手势起点：拍起始深快照。已有进行中事务时不覆盖（首个为准）。
+  /// H-3（第二轮审计 2026-11-18）：首层 begin 开 history group——手势
+  /// 进行中 undo/redo 被 HistoryService 拒绝（groupDepth>0），消除「拖拽
+  /// 中途 Ctrl+Z 产生幻影条目 / cancel 滚回撤销结果」的交错窗口。
   static void begin({
     required EditorCanvasInteractionState interaction,
     required List<PageTextItem> textItems,
     required List<PageImageItem> imageItems,
     required List<PageShapeItem> shapes,
     required List<PageChartItem> charts,
+    required DrawingController host,
   }) {
+    if (interaction.mixedDragDepth == 0) {
+      host.historyService.beginGroup();
+    }
+    interaction.mixedDragDepth++;
     interaction.mixedDragBefore ??= MixedObjectCollections(
       textItems: textItems,
       imageItems: imageItems,
@@ -407,8 +415,17 @@ class MixedObjectDragRecorder {
     required DrawingController host,
     required void Function() markDirty,
   }) {
+    // 嵌套递减：内层 commit 不结算（最外层才关 group/清槽）。
+    if (interaction.mixedDragDepth > 1) {
+      interaction.mixedDragDepth--;
+      return false;
+    }
+    interaction.mixedDragDepth = 0;
     final before = interaction.mixedDragBefore;
     interaction.mixedDragBefore = null;
+    // 关 group：窗口内无子命令（拖拽直改字段不经 push），closeGroup 返回
+    // 空表——不产生额外条目；group 关闭后 undo/redo 恢复可用。
+    host.historyService.closeGroup();
     if (before == null) return false;
     final after = MixedObjectCollections(
       textItems: textItems,
@@ -446,21 +463,25 @@ class MixedObjectDragRecorder {
     required List<PageChartItem> charts,
     required DrawingController host,
   }) {
+    // 嵌套递减：内层 cancel 不还原（M-8：内层用外层旧基准会抹掉外层
+    // 进行中改动——只有最外层 cancel 才还原到整个手势的起点）。
+    if (interaction.mixedDragDepth > 1) {
+      interaction.mixedDragDepth--;
+      return;
+    }
+    interaction.mixedDragDepth = 0;
     final before = interaction.mixedDragBefore;
     interaction.mixedDragBefore = null;
+    host.historyService.discardGroup();
     if (before == null) return;
-    _writeBack(textItems, before.textItems);
-    _writeBack(imageItems, before.imageItems);
-    _writeBack(shapes, before.shapes);
-    _writeBack(charts, before.charts);
+    // M-8（第二轮审计 2026-11-18）：复用命令层同 id 写回（restoreFrom
+    // 语义），不再自持浅写回——cancel 后 overlay 闭包旧实例与列表不脱钩。
+    MixedObjectsSnapshotCommand.restoreCollections(textItems, before.textItems);
+    MixedObjectsSnapshotCommand.restoreCollections(imageItems, before.imageItems);
+    MixedObjectsSnapshotCommand.restoreCollections(shapes, before.shapes);
+    MixedObjectsSnapshotCommand.restoreCollections(charts, before.charts);
     host.invalidateLayer(host.currentLayer.id);
     host.tickFrame();
-  }
-
-  static void _writeBack<T>(List<T> live, List<T> snapshot) {
-    live
-      ..clear()
-      ..addAll(snapshot);
   }
 
   /// 逐字段比对（toJson 串，与 DocumentObjectsSnapshot.isSame 同口径）。
