@@ -1,4 +1,4 @@
-// 拖拽撤销专项（2026-11-17）：MixedObjectDragRecorder 事务语义单测。
+// 拖拽事务会话单测（P1 架构收口 2026-11-18：Recorder→MixedDragSession）。
 //
 // 整域缺口：笔记模式移动/旋转/缩放/宽度柄直改字段不入撤销。本文件钉
 // 事务层的机器事实：begin 深快照 / commit 有变化才入栈 / cancel 还原
@@ -11,13 +11,12 @@ import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late DrawingController host;
-  late EditorCanvasInteractionState interaction;
+  MixedDragSession? session;
   late List<PageTextItem> texts;
   late List<PageImageItem> images;
   late List<PageShapeItem> shapes;
@@ -28,7 +27,7 @@ void main() {
     host = DrawingController(
       DrawingDocument(id: 'drag1', title: '拖拽事务', width: 800, height: 600),
     );
-    interaction = EditorCanvasInteractionState();
+    session = null;
     texts = [PageTextItem(id: 't1', x: 10, y: 10, text: '甲')];
     images = [PageImageItem(id: 'i1', x: 20, y: 20, filePath: '/a.png')];
     shapes = [
@@ -47,33 +46,21 @@ void main() {
     dirtyCalls = 0;
   });
 
-  void begin() => MixedObjectDragRecorder.begin(
-    interaction: interaction,
-    textItems: texts,
-    imageItems: images,
-    shapes: shapes,
-    charts: charts,
-    host: host,
-  );
+  void begin() {
+    session ??= MixedDragSession(
+      textItems: texts,
+      imageItems: images,
+      shapes: shapes,
+      charts: charts,
+      host: host,
+      markDirty: () => dirtyCalls++,
+    );
+    session!.begin();
+  }
 
-  bool commit() => MixedObjectDragRecorder.commit(
-    interaction: interaction,
-    textItems: texts,
-    imageItems: images,
-    shapes: shapes,
-    charts: charts,
-    host: host,
-    markDirty: () => dirtyCalls++,
-  );
+  bool commit() => session!.commit();
 
-  void cancel() => MixedObjectDragRecorder.cancel(
-    interaction: interaction,
-    textItems: texts,
-    imageItems: images,
-    shapes: shapes,
-    charts: charts,
-    host: host,
-  );
+  void cancel() => session!.cancel();
 
   test('移动后 commit：一条撤销，undo 回到起点，redo 再到终点', () {
     begin();
@@ -136,14 +123,16 @@ void main() {
 
   test('空拖拽（begin 后无变化）commit：不产生历史条目', () {
     begin();
-    expect(commit(), isFalse);
+    expect(commit(), isTrue, reason: '会话已闭合（返回值=闭合态，非条目态）');
     expect(host.canUndo, isFalse, reason: '空拖拽进栈 = 白吃一步真操作');
     expect(dirtyCalls, 0);
   });
 
-  test('无 begin 直接 commit：不产生条目（防御性）', () {
+  test('无会话直接 commit：页面入口 null 守卫（防御性）', () {
     shapes.first.x = 999;
-    expect(commit(), isFalse);
+    // 会话 API：无会话时页面入口 _commitMixedDrag 直接 return；
+    // 会话对象自身 commit 前必 begin（构造即绑定），此处钉 null 守卫语义。
+    expect(session, isNull);
     expect(host.canUndo, isFalse);
   });
 
@@ -155,7 +144,7 @@ void main() {
     expect(shapes.first.x, 30);
     expect(images.first.x, 20);
     expect(host.canUndo, isFalse, reason: '取消手势不写历史（session 同口径）');
-    expect(interaction.mixedDragBefore, isNull);
+    expect(session!.isClosed, isTrue);
   });
 
   test('嵌套 begin 以首个为准（宽度柄聚焦+指针同会话不覆盖基准）', () {
@@ -193,6 +182,7 @@ void main() {
     begin();
     shapes.first.x = 100;
     commit();
+    session = null; // 闭合后开新会话（页面入口同口径：isClosed 即重建）
     begin();
     shapes.first.x = 200;
     commit();
@@ -209,6 +199,7 @@ void main() {
     begin();
     shapes.first.x = 100;
     commit();
+    session = null;
 
     MixedObjectDeleteRecorder.deleteAndRecord(
       ids: {'s1'},

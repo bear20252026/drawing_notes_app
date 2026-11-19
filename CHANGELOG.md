@@ -4,6 +4,36 @@
 
 ## [1.17.68] - 2026-11-05
 
+### P1 架构收口：拖拽事务会话化（2026-11-18，同版本增量，未 bump）
+
+**根因**：三轮审计反复抓到「约定失守」——depth+group+快照三态靠记得配对
+维持，dispose/切页早退漏关组（H-1）、closeGroup 返回值被丢弃吞掉窗口内
+Delete 命令（H-2，删除撤不回+自动落盘）、漏 flush 挂起通知（M-1）。
+收口为**结构上不可能违反**：
+
+- **MixedDragSession 会话对象**（取代静态 Recorder）：begin 时捕获四列表
+  引用+host——commit/cancel/abort 不依赖页面存活（H-1 构造性消除）；
+  depth/快照私有化进会话，交互态三裸 public 字段收为单槽；abort 供
+  dispose 兜底（任意嵌套强制还原+回滚，幂等）；isClosed 幂等守卫
+  （焦点失焦+panEnd 双触发不重复关组）。
+- **DrawingController 公开 commitGroup()/rollbackGroup()**：复用图层事务
+  样板语义（closeGroup→pushTransaction→flush / discard→逆序 undo→flush），
+  **消费窗口内命令**成为入口结构保证——聚焦期 Delete 冒泡 push 的命令
+  合成事务入栈不再被吞（H-2）；挂起通知必然补发（M-1）。不经 layerService
+  通道（保其 _transactionDepth）。
+- **CanvasDragHandle/ResizeHandles 补 onPanCancel/onDragCancel 通道**（L-1）：
+  取消不再被当提交；overlays 接线。
+- 键盘逐键 begin/end 嵌套在聚焦会话内**自然合并为一条历史**（M-2 栈膨胀
+  随会话嵌套语义消解）。
+
+**新增回归 7 项**（mixed_drag_session_test）：窗口命令合成入栈/cancel 回滚
+窗口命令/abort 任意嵌套幂等/会话不依赖页面/挂起通知补发/嵌套递减/双触发幂等。
+
+**棘轮交代（P3-3）**：editor_page 库 7268→7281（+13：dispose 兜底+4、
+会话路由+8、cancel 接线+1）；drawing_controller 1380→1409（+29：公开
+关组入口含注释）。会话本体落独立库不计。零新 UI、零新 part。
+
+
 ### 第二轮审计批 D：M-1 密封降级 + pdfrx 3.x 升级 + L-10 留档（2026-11-18）
 
 **M-1 密封判定单调性**：`isEncryptedNotebook` 改直读主文件，不再走
