@@ -726,10 +726,10 @@ packages:
     dependency: "direct main"
     description:
       name: pdfrx
-      sha256: a62544072f74b921d76de2f92c7b3b39021da87dd8a5a0f2a8f32ad30319a4b1
+      sha256: "1d033d7a98866c942cb8f50e6e56ded97c0c2c3598baed47f88761f1487d4b17"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.2"
+    version: "3.0.3"
   pdfrx_engine:
     dependency: transitive
     description:
