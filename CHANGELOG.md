@@ -4,6 +4,24 @@
 
 ## [1.17.68] - 2026-11-05
 
+### P4 架构收口：AST 门禁基建（2026-11-18，同版本增量，未 bump）
+
+**三轮审计 M-7/H-4 收口**：
+
+- **M-7 字段集机器判据**：新增 `mixed_model_field_set_ast_gate_test`——用
+  analyzer AST 解析四混排模型（PageTextItem/PageShapeItem/PageImageItem/
+  PageChartItem）的可变字段 ∪ 公开 setter，与 copy()/restoreFrom() 覆盖集
+  比对，差集非空即红。机器跟随模型，**双双漏跟也红**（旧手抄清单测试的盲区）。
+  含 2 项突变自证（注入漏跟字段/只改 copy 不改 restore，验证判据非恒真）。
+  旧 `mixed_model_copy_restore_test` 注释如实改写：只钉已列字段恢复正确性，
+  不声称自动跟随新增字段（机器判据由 AST 门禁承担）。
+- **H-4 棘轮 part 正则双引号盲区**：part_library_ratchet / editor_page_line_ratchet
+  两处 `^part\s+'([^']+)';` 改 `^part\s+['"]([^'"]+)['"];`（三引号 raw string），
+  单/双引号 part 同口径——`part "x.dart";` 不再逃逸行数分母。
+- analyzer ^11.0.0 加入 dev_dependencies（AST 门禁用，对齐 lock 版本）。
+
+新增门禁 6 项（4 模型字段集 + 2 突变自证）；架构套件 152→159。
+
 ### P3 架构收口：密钥作用域 + 写腿世代闸（2026-11-18，同版本增量，未 bump）
 
 **三轮审计 M-1/M-2 收口**：解锁时发起的加密写，若密封/编码期间回锁
