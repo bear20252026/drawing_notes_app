@@ -101,7 +101,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// 不计）；commitGroup/rollbackGroup 公开入口落 controller（不计）；
 /// 交互态三裸字段收为单槽（application 层不计）。零新 UI、零新 part。
 /// 结构收口成本，不构成放宽先例——下一次增长仍须先拆或再点名。
-const int kBaselineTotalLines = 7281;
+/// 2026-11-18（P2 架构收口：笔画平移专属路由）：7281 → 7294（+13）。
+/// body 选区栏接 onNudgeStrokes 回调（笔记模式 move+end 成对窄命令，
+/// 含注释）——三轮 M-3 功能回归修复。按钮组本体落 selection_bar.dart
+/// （独立 Widget 不计本库）。零新 part。
+const int kBaselineTotalLines = 7294;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 

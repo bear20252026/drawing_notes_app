@@ -57,6 +57,19 @@ extension _EditorPageBody on _EditorPageState {
                               _selectionTransform.rotationDegrees;
                           _controller.tickFrame();
                         },
+                        // P2 架构收口（三轮 M-3）：笔记模式套索笔画的平移
+                        // 专属路由——M-9 守卫堵死 input 拖拽分支后笔画无
+                        // 平移路径。每按一次 move+end 成对提交一条窄命令
+                        // （selectionSession 事务，不进 MixedDragSession，
+                        // 与混排拖拽解耦不双记）。独立模式走指针拖拽不渲染。
+                        onNudgeStrokes: _isNotebookMode
+                            ? (delta) {
+                                _controller.moveSelectedStrokes(delta);
+                                _controller.endTransform();
+                                _controller.tickFrame();
+                                _notifyChanged();
+                              }
+                            : null,
                         onClearSelection: () => _applyState(() {
                           _viewModel.setSelectionDone(false);
                           _controller.clearDocumentObjectSelection();

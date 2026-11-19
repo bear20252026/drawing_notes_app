@@ -37,6 +37,7 @@ class SelectionBar extends StatelessWidget {
     required this.onRotateChanged,
     required this.onClearSelection,
     required this.onTransformEnd,
+    this.onNudgeStrokes,
   });
 
   final DrawingController controller;
@@ -55,6 +56,12 @@ class SelectionBar extends StatelessWidget {
 
   /// 变换结束（State 侧 controller.endXxxTransform + 通知）。
   final VoidCallback onTransformEnd;
+
+  /// 笔画四向微调（P2 架构收口 2026-11-18）：笔记模式套索笔画的平移
+  /// 专属路由——M-9 守卫堵死 input 拖拽分支后笔画无平移路径（三轮 M-3）。
+  /// 每次点按 = 一步独立变换事务（move+end 成对），单条撤销。
+  /// null = 不渲染平移按钮组（独立模式走指针拖拽，不需要）。
+  final void Function(Offset delta)? onNudgeStrokes;
 
   /// 从 controller 派生统一的选区布尔状态。
   _SelectionState _deriveState() {
@@ -176,6 +183,38 @@ class SelectionBar extends StatelessWidget {
     return null;
   }
 
+  /// 笔画四向微调按钮组（P2：笔记模式笔画平移专属路由）。
+  /// 步长 4px 画布坐标；每按一次 move+end 成对提交一条窄命令。
+  Widget _buildStrokeNudgeButtons() {
+    final nudge = onNudgeStrokes!;
+    const step = 4.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SelectionActionButton(
+          icon: Icons.keyboard_arrow_left,
+          tooltip: '左移选中笔画',
+          onTap: () => nudge(const Offset(-step, 0)),
+        ),
+        SelectionActionButton(
+          icon: Icons.keyboard_arrow_up,
+          tooltip: '上移选中笔画',
+          onTap: () => nudge(const Offset(0, -step)),
+        ),
+        SelectionActionButton(
+          icon: Icons.keyboard_arrow_down,
+          tooltip: '下移选中笔画',
+          onTap: () => nudge(const Offset(0, step)),
+        ),
+        SelectionActionButton(
+          icon: Icons.keyboard_arrow_right,
+          tooltip: '右移选中笔画',
+          onTap: () => nudge(const Offset(step, 0)),
+        ),
+      ],
+    );
+  }
+
   /// 删除按钮。
   Widget _buildDeleteButton(BuildContext context, _SelectionState s) {
     return SelectionActionButton(
@@ -273,6 +312,8 @@ class SelectionBar extends StatelessWidget {
                   _buildMixedLockButton(context, s)
                 else
                   _buildSingleLockButtons(context, s),
+                if (s.hasStrokes && onNudgeStrokes != null)
+                  _buildStrokeNudgeButtons(),
                 _buildDeleteButton(context, s),
                 SelectionActionButton(
                   icon: Icons.close,
