@@ -80,6 +80,7 @@ class ResizeHandles extends StatelessWidget {
     required this.onChanged,
     this.onDragStart,
     this.onDragEnd,
+    this.onDragCancel,
   });
 
   /// 元素外接框尺寸（经 viewScale 换算后的展示坐标，决定手柄位置）。
@@ -102,6 +103,9 @@ class ResizeHandles extends StatelessWidget {
 
   /// 拖拽/键盘会话结束（宿主结算撤销）。null = 宿主不需要事务。
   final VoidCallback? onDragEnd;
+
+  /// 拖拽被系统取消（宿主按取消结算）。null = 退化走 onDragEnd。
+  final VoidCallback? onDragCancel;
 
   /// 视觉手柄尺寸：保持 10px 的小巧观感，不遮挡画布内容。
   static const double _handleSize = 10.0;
@@ -164,6 +168,7 @@ class ResizeHandles extends StatelessWidget {
         hint: l10n?.canvasHandleKeyboardHint ?? '方向键微调，Shift 加速',
         visualSize: size,
         onPanStart: onDragStart,
+        onPanCancel: onDragCancel,
         // M-6（第二轮审计 2026-11-18）：保存链通知移会话结束——此前每帧
         // onChanged 打防抖自动保存+updatedAt，与移动/旋转「结束才通知」
         // 语义不一致。onDragEnd 未注入时退化为每帧通知（兼容旧宿主）。

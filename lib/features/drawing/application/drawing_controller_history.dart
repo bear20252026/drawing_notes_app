@@ -74,6 +74,35 @@ extension DrawingControllerHistoryOps on DrawingController {
     _pushCommand(SnapshotCommand(this, entry.before, entry.after));
   }
 
+  /// 事务窗口的**公开提交入口**（P1 架构收口 2026-11-18）：关组 + 消费
+  /// 窗口内命令 + 补发挂起通知，与图层事务 _commitLayerTransaction 同语义。
+  ///
+  /// 为什么必须公开：三轮审计 H-1/H-2 的根因是 presentation 层的事务
+  /// 记录器摸不到私有的 _flushDeferredNotify，自己调 historyService.closeGroup
+  /// 又丢弃返回值——聚焦手柄期间 Delete 冒泡 push 的命令被吞（删除撤不回
+  /// +自动落盘）、挂起通知永不补发。收口后**任何事务关组只经此入口**，
+  /// 「消费返回值+flush」成为结构保证而非约定。不经 layerService 通道
+  /// （其 _transactionDepth 是图层专属计数，借用会撕裂）。
+  ///
+  /// 返回是否真正闭合了最外层窗口（嵌套中返回 false，调用方据此不结算）。
+  bool commitGroup() {
+    final commands = historyService.closeGroup();
+    if (commands == null) return false; // 仍在嵌套中，等最外层闭合
+    if (commands.isNotEmpty) pushTransaction(commands);
+    _flushDeferredNotify();
+    return true;
+  }
+
+  /// 事务窗口的**公开回滚入口**（P1 架构收口）：拆全部嵌套层、逆序撤销
+  /// 窗口内已执行命令、补发挂起通知——与 _rollbackLayerTransaction 同语义。
+  void rollbackGroup() {
+    final commands = historyService.discardGroup();
+    for (final command in commands.reversed) {
+      command.undo();
+    }
+    _flushDeferredNotify();
+  }
+
   /// 批量命令原子提交。
   ///
   /// 多个 [DocCommand] 作为一条历史记录写入，撤销或重做时保持全有或全无。

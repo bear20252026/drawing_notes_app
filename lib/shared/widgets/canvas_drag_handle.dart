@@ -41,6 +41,7 @@ class CanvasDragHandle extends StatelessWidget {
     this.hint,
     this.onPanStart,
     this.onPanEnd,
+    this.onPanCancel,
     this.visualSize = 10,
     this.circular = false,
   });
@@ -62,6 +63,11 @@ class CanvasDragHandle extends StatelessWidget {
 
   /// 拖拽/键盘会话结束（宿主结算）。
   final VoidCallback? onPanEnd;
+
+  /// 拖拽被系统取消（来电/手势竞争失败等）——宿主按取消结算。
+  /// P1 架构收口（L-1）：此前无此通道，取消路径只能靠 onPanEnd 兜底，
+  /// 语义混淆（取消被当提交）。null = 宿主未接（退化走 onPanEnd）。
+  final VoidCallback? onPanCancel;
 
   /// 可见蓝点边长（px）。形状/文字手柄 10，线性端点 12。
   final double visualSize;
@@ -101,6 +107,7 @@ class CanvasDragHandle extends StatelessWidget {
             onPanStart: (_) => onPanStart?.call(),
             onPanUpdate: (details) => onPanUpdate(details.delta),
             onPanEnd: (_) => onPanEnd?.call(),
+            onPanCancel: () => (onPanCancel ?? onPanEnd)?.call(),
             child: SizedBox(
               width: hitSize,
               height: hitSize,

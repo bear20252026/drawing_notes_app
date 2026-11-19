@@ -613,6 +613,10 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     // 使 _persistArtwork 至少完成文档 JSON 写入而不再访问随后释放的渲染控制器。
     // 脏检查版：干净退出（_flushBeforePop 已落盘）不重复写盘。
     _closingEditor = true;
+    // P1 架构收口（H-1）：拖拽进行中 dispose——手势识别器随 widget 销毁
+    // 不触发 onPanCancel，会话必须在此强制结算（还原+回滚组），否则
+    // group 永挂 → undo/redo 永久拒绝、挂起通知永不补发。
+    _abortMixedDrag();
     _saveScheduler.savingState.removeListener(_savingStateListener);
     _saveScheduler.saveFailure.removeListener(_saveFailureListener);
     unawaited(_viewModel.flushIfDirty());

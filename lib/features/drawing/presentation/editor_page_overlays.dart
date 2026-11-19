@@ -263,6 +263,7 @@ extension _EditorPageOverlays on _EditorPageState {
                                     ResizeHandles(
                                       onDragStart: _beginMixedDrag,
                                       onDragEnd: _commitMixedDrag,
+                                      onDragCancel: _cancelMixedDrag,
                                       width: w,
                                       height: h,
                                       screenToCanvasDelta: (delta) =>

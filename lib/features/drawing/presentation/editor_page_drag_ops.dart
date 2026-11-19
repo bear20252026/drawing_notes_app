@@ -45,53 +45,61 @@ extension _EditorPageDragOps on _EditorPageState {
     );
   }
 
-  // ── 混排拖拽事务便捷入口（拖拽撤销专项 2026-11-17）──────────────
-  // overlay 手势链路（移动/旋转/缩放/宽度柄）统一经此三法登记撤销；
-  // 独立画布指针链路走 session 事务，不经这里（防双记）。
+  // ── 混排拖拽会话入口（P1 架构收口 2026-11-18）──────────────────
+  // overlay 手势链路统一经会话对象登记撤销；独立画布指针链路走 session
+  // 事务不经这里（防双记）。会话在 begin 时捕获列表引用——commit/cancel
+  // **不再依赖 widget.session 存活**（H-1：切页/dispose 照样关组还原）。
 
-  /// 手势起点：拍四类集合起始深快照（笔记模式才有混排集合）。
+  /// 当前进行中的拖拽会话（null = 无手势）。
+  MixedDragSession? get _mixedDrag =>
+      _canvasInteraction.mixedDragSession as MixedDragSession?;
+
+  /// 手势起点：无会话则创建（捕获四列表+host），嵌套 begin 复用会话。
   void _beginMixedDrag() {
     final page = widget.session;
     if (page == null) return;
-    MixedObjectDragRecorder.begin(
-      interaction: _canvasInteraction,
-      textItems: page.textItems,
-      imageItems: page.imageItems,
-      shapes: page.shapes,
-      charts: page.charts,
-      host: _controller,
-    );
+    var session = _mixedDrag;
+    if (session == null || session.isClosed) {
+      session = MixedDragSession(
+        textItems: page.textItems,
+        imageItems: page.imageItems,
+        shapes: page.shapes,
+        charts: page.charts,
+        host: _controller,
+        markDirty: _notifyChanged,
+      );
+      _canvasInteraction.mixedDragSession = session;
+    }
+    session.begin();
   }
 
-  /// 手势终点：有变化登记一条撤销，随后走既有保存链通知。
+  /// 手势终点：会话自行结算（关组+消费窗口命令+flush 是入口结构保证）。
+  /// 无会话/无页面都不早退漏关——会话持有引用，照旧结算。
   void _commitMixedDrag() {
-    final page = widget.session;
-    if (page == null) return;
-    MixedObjectDragRecorder.commit(
-      interaction: _canvasInteraction,
-      textItems: page.textItems,
-      imageItems: page.imageItems,
-      shapes: page.shapes,
-      charts: page.charts,
-      host: _controller,
-      markDirty: _notifyChanged,
-    );
+    final session = _mixedDrag;
+    if (session == null) return;
+    if (session.commit()) {
+      _canvasInteraction.mixedDragSession = null;
+    }
     _notifyChanged();
   }
 
-  /// 手势取消：还原起始快照、不入栈，随后补保存链通知（还原也是改动）。
+  /// 手势取消：会话自行回滚+还原，不入栈。
   void _cancelMixedDrag() {
-    final page = widget.session;
-    if (page == null) return;
-    MixedObjectDragRecorder.cancel(
-      interaction: _canvasInteraction,
-      textItems: page.textItems,
-      imageItems: page.imageItems,
-      shapes: page.shapes,
-      charts: page.charts,
-      host: _controller,
-    );
+    final session = _mixedDrag;
+    if (session == null) return;
+    if (session.cancel()) {
+      _canvasInteraction.mixedDragSession = null;
+    }
     _notifyChanged();
+  }
+
+  /// dispose/切页兜底（H-1）：强制结算进行中会话，幂等。
+  void _abortMixedDrag() {
+    final session = _mixedDrag;
+    if (session == null) return;
+    session.abort();
+    _canvasInteraction.mixedDragSession = null;
   }
 
   void _dragItem(String id, Offset screenDelta) {

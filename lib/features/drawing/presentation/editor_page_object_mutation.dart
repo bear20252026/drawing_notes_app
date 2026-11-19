@@ -6,7 +6,6 @@ import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
-import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
 
 /// 混合画布对象的无状态突变协作者。
 ///
@@ -360,80 +359,88 @@ class MixedObjectDeleteRecorder {
   }
 }
 
-/// 混排对象**拖拽事务**的成对登记组合根（拖拽撤销专项 2026-11-17）。
+/// 混排对象**拖拽事务会话**（P1 架构收口 2026-11-18，取代静态 Recorder）。
 ///
-/// 整域缺口：笔记模式的移动/旋转/缩放/文字宽度柄直改对象字段，结束只
-/// `_notifyChanged`（排自动保存）不 push 任何命令——拖完既撤不回又立刻
-/// 落盘，与删除（EUI-02 已修）是同一形状。独立画布模式的指针链路早已
-/// 走 session 的 begin/end 事务（`endDocumentObjectsTransform` 等），
-/// 本类把同一语义补给 overlay 手势链路，**不碰独立模式那条腿**（防双记）。
+/// 三轮审计的根因：depth+group+快照三态靠「记得配对 begin/commit/cancel」
+/// 维持——dispose/切页早退漏关组（H-1）、closeGroup 返回值被丢弃吞掉窗口内
+/// Delete 命令（H-2）、漏 flush 挂起通知（M-1）。收口为**会话对象**：
 ///
-/// 事务形状（与 session 懒快照同构，但起点显式）：
-/// - [begin]：手势起点拍一份四类集合**深快照**存进交互态槽；嵌套 begin
-///   以首个为准（宽度柄聚焦+指针同会话不覆盖基准）。
-/// - [commit]：手势终点再拍一份，与起始**逐字段比对**（toJson 串，与
-///   DocumentObjectsSnapshot 同口径）；无变化不产生条目（空拖拽不白吃
-///   一步撤销）；有变化 push 一条 [MixedObjectsSnapshotCommand]。
-/// - [cancel]：还原起始快照、不入栈（与 session cancel* 同口径）。
+/// - 会话在 begin 时**捕获四份列表引用与 host**——commit/cancel/abort 不再
+///   依赖 widget.session 存活，切页/dispose 照样能关组还原（H-1 构造性消除）。
+/// - 关组只经 host.commitGroup()/rollbackGroup() 公开入口——「消费窗口内
+///   命令 + 补发挂起通知」是入口的结构保证，会话想丢都丢不掉（H-2/M-1）。
+/// - depth/快照是会话私有字段，外部拿不到——三态不可能脱节（裸 public
+///   字段 mixedDragDepth/mixedDragBefore 已从交互态移除）。
+/// - [abort] 供 dispose 兜底：无论嵌套多深强制还原+回滚，幂等。
 ///
-/// 为什么落本文件不新开：presentation 目录 max_files=40 已满；本文件是
-/// 独立库（不计 editor_page 行数棘轮），与 MixedObjectDeleteRecorder 同域。
-class MixedObjectDragRecorder {
-  const MixedObjectDragRecorder._();
+/// 嵌套语义保留：聚焦+指针同会话 begin 可嵌套，内层 commit/cancel 只递减；
+/// 最外层才结算。键盘逐键 begin/end 嵌套在聚焦会话内自然合并为一条历史。
+///
+/// 落本文件不新开：presentation max_files=40 已满；本文件独立库不计棘轮。
+class MixedDragSession {
+  MixedDragSession({
+    required this.textItems,
+    required this.imageItems,
+    required this.shapes,
+    required this.charts,
+    required this.host,
+    required this.markDirty,
+  });
 
-  /// 手势起点：拍起始深快照。已有进行中事务时不覆盖（首个为准）。
-  /// H-3（第二轮审计 2026-11-18）：首层 begin 开 history group——手势
-  /// 进行中 undo/redo 被 HistoryService 拒绝（groupDepth>0），消除「拖拽
-  /// 中途 Ctrl+Z 产生幻影条目 / cancel 滚回撤销结果」的交错窗口。
-  static void begin({
-    required EditorCanvasInteractionState interaction,
-    required List<PageTextItem> textItems,
-    required List<PageImageItem> imageItems,
-    required List<PageShapeItem> shapes,
-    required List<PageChartItem> charts,
-    required DrawingController host,
-  }) {
-    if (interaction.mixedDragDepth == 0) {
+  /// 会话捕获的四份列表引用（begin 时绑定，commit/cancel/abort 不依赖
+  /// 页面存活——H-1 构造性消除的关键）。
+  final List<PageTextItem> textItems;
+  final List<PageImageItem> imageItems;
+  final List<PageShapeItem> shapes;
+  final List<PageChartItem> charts;
+  final DrawingController host;
+  final void Function() markDirty;
+
+  int _depth = 0;
+  MixedObjectCollections? _before;
+  bool _closed = false;
+
+  /// 会话是否已结算/还原（幂等守卫：焦点失焦+panEnd 双触发不重复关组）。
+  bool get isClosed => _closed;
+
+  /// 手势起点：首层开 history group + 拍起始深快照（嵌套不覆盖基准）。
+  void begin() {
+    if (_closed) return;
+    if (_depth == 0) {
       host.historyService.beginGroup();
+      _before = MixedObjectCollections(
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+        charts: charts,
+      );
     }
-    interaction.mixedDragDepth++;
-    interaction.mixedDragBefore ??= MixedObjectCollections(
-      textItems: textItems,
-      imageItems: imageItems,
-      shapes: shapes,
-      charts: charts,
-    );
+    _depth++;
   }
 
-  /// 手势终点：有变化才登记一条撤销；返回是否产生了历史条目。
-  static bool commit({
-    required EditorCanvasInteractionState interaction,
-    required List<PageTextItem> textItems,
-    required List<PageImageItem> imageItems,
-    required List<PageShapeItem> shapes,
-    required List<PageChartItem> charts,
-    required DrawingController host,
-    required void Function() markDirty,
-  }) {
-    // 嵌套递减：内层 commit 不结算（最外层才关 group/清槽）。
-    if (interaction.mixedDragDepth > 1) {
-      interaction.mixedDragDepth--;
+  /// 手势终点：最外层关组结算，返回 true=会话已闭合（调用方清槽）。
+  /// 内层只递减返回 false。窗口内混入的命令（聚焦期 Delete 等）经
+  /// commitGroup 合成一条事务入栈——不再被吞（H-2）。
+  bool commit() {
+    if (_closed) return true;
+    if (_depth > 1) {
+      _depth--;
       return false;
     }
-    interaction.mixedDragDepth = 0;
-    final before = interaction.mixedDragBefore;
-    interaction.mixedDragBefore = null;
-    // 关 group：窗口内无子命令（拖拽直改字段不经 push），closeGroup 返回
-    // 空表——不产生额外条目；group 关闭后 undo/redo 恢复可用。
-    host.historyService.closeGroup();
-    if (before == null) return false;
+    _closed = true;
+    _depth = 0;
+    final before = _before;
+    _before = null;
+    // 关组入口保证：消费窗口命令 + flush 挂起通知（H-2/M-1 结构收口）。
+    host.commitGroup();
+    if (before == null) return true;
     final after = MixedObjectCollections(
       textItems: textItems,
       imageItems: imageItems,
       shapes: shapes,
       charts: charts,
     );
-    if (_same(before, after)) return false;
+    if (_same(before, after)) return true;
     host.pushCommand(
       MixedObjectsSnapshotCommand(
         textItems: textItems,
@@ -443,8 +450,6 @@ class MixedObjectDragRecorder {
         before: before,
         after: after,
         onRestored: () {
-          // 与删除记录器同口径：字节回来了还得失效渲染缓存、补一帧，
-          // 并把这次撤销登记成待落盘改动。
           host.invalidateLayer(host.currentLayer.id);
           host.tickFrame();
           markDirty();
@@ -454,34 +459,37 @@ class MixedObjectDragRecorder {
     return true;
   }
 
-  /// 手势取消：还原起始快照，不写入历史（与 session cancel* 同口径）。
-  static void cancel({
-    required EditorCanvasInteractionState interaction,
-    required List<PageTextItem> textItems,
-    required List<PageImageItem> imageItems,
-    required List<PageShapeItem> shapes,
-    required List<PageChartItem> charts,
-    required DrawingController host,
-  }) {
-    // 嵌套递减：内层 cancel 不还原（M-8：内层用外层旧基准会抹掉外层
-    // 进行中改动——只有最外层 cancel 才还原到整个手势的起点）。
-    if (interaction.mixedDragDepth > 1) {
-      interaction.mixedDragDepth--;
-      return;
+  /// 手势取消：最外层回滚窗口命令 + 还原起始快照，不入栈。
+  /// 返回 true=会话已闭合。内层只递减（防抹掉外层进行中改动）。
+  bool cancel() {
+    if (_closed) return true;
+    if (_depth > 1) {
+      _depth--;
+      return false;
     }
-    interaction.mixedDragDepth = 0;
-    final before = interaction.mixedDragBefore;
-    interaction.mixedDragBefore = null;
-    host.historyService.discardGroup();
-    if (before == null) return;
-    // M-8（第二轮审计 2026-11-18）：复用命令层同 id 写回（restoreFrom
-    // 语义），不再自持浅写回——cancel 后 overlay 闭包旧实例与列表不脱钩。
-    MixedObjectsSnapshotCommand.restoreCollections(textItems, before.textItems);
-    MixedObjectsSnapshotCommand.restoreCollections(imageItems, before.imageItems);
-    MixedObjectsSnapshotCommand.restoreCollections(shapes, before.shapes);
-    MixedObjectsSnapshotCommand.restoreCollections(charts, before.charts);
+    _closed = true;
+    _depth = 0;
+    final before = _before;
+    _before = null;
+    // 回滚入口保证：逆序 undo 窗口命令 + flush（Delete 被撤回到位）。
+    host.rollbackGroup();
+    if (before != null) {
+      MixedObjectsSnapshotCommand.restoreCollections(textItems, before.textItems);
+      MixedObjectsSnapshotCommand.restoreCollections(imageItems, before.imageItems);
+      MixedObjectsSnapshotCommand.restoreCollections(shapes, before.shapes);
+      MixedObjectsSnapshotCommand.restoreCollections(charts, before.charts);
+    }
     host.invalidateLayer(host.currentLayer.id);
     host.tickFrame();
+    return true;
+  }
+
+  /// dispose/切页兜底（H-1）：无论嵌套多深强制按取消结算，幂等。
+  /// 会话持有列表引用，不依赖页面存活。
+  void abort() {
+    if (_closed) return;
+    _depth = 1; // 压平嵌套，cancel 走最外层路径
+    cancel();
   }
 
   /// 逐字段比对（toJson 串，与 DocumentObjectsSnapshot.isSame 同口径）。

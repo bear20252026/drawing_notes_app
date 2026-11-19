@@ -2,6 +2,8 @@
 // H-4（第二轮审计 2026-11-17）扩到 12 库：原 7 库 + doc_editor 2747 /
 // notebook_view_page 2108 / home_page 1928 / doc_page 1528 / all_docs_page 1402。
 // app_lock_gate 基线 1048→1053（H-1 豁免落锁清密钥安全修复 +5）；
+// drawing_controller 基线 1380→1409（P1 架构收口：公开 commitGroup/
+// rollbackGroup 事务关组入口 +29，复用图层样板语义，含注释）。
 // notebook_storage 基线 1466→1472（M-3 续写 DEK 零化 +6）→1502（M-1 密封
 // 判定直读主文件 +30：isEncryptedNotebook 从 3 行 load 委托改 33 行直读+
 // fail-closed 三分支，含注释）。抬升均为安全修复成本，三处交代：本注释 /
@@ -41,7 +43,7 @@ const List<_LibRatchet> _kLibRatchets = [
   _LibRatchet('note_block_doc_store', 'lib/core/documents/note_block_doc_store.dart', 1600, 2, 1200),
   _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1502, 3, 1100),
   _LibRatchet('sync_service', 'lib/core/sync/sync_service.dart', 1389, 4, 1000),
-  _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1380, 4, 1000),
+  _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1409, 4, 1000),
   _LibRatchet('app_data_root', 'lib/core/storage/app_data_root.dart', 1259, 1, 900),
   _LibRatchet('webdav_sync_settings_page', 'lib/features/notes/presentation/webdav_sync_settings_page.dart', 1052, 1, 800),
   _LibRatchet('app_lock_gate', 'lib/core/security/app_lock_gate.dart', 1053, 1, 800),

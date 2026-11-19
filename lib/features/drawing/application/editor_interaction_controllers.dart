@@ -13,7 +13,6 @@ import 'package:flutter/foundation.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
-import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
 import 'package:drawing_notes_app/features/drawing/application/text_edit_session_state_machine.dart';
 
 // ── 斜杠命令菜单 ─────────────────────────────────────────────
@@ -249,15 +248,12 @@ class EditorCanvasInteractionState {
 
   ({double width, double fontSize, double x})? textResizeAnchor;
 
-  /// 混排拖拽事务的起始深快照（拖拽撤销专项 2026-11-17）：
-  /// null = 无进行中手势。移动/旋转/缩放/宽度柄共用一个槽——同一时刻
-  /// 只可能有一个手势在改混排对象，嵌套 begin 以首个为准（不覆盖）。
-  MixedObjectCollections? mixedDragBefore;
-
-  /// 拖拽事务嵌套深度（H-3/M-8 第二轮审计 2026-11-18）：宽度柄聚焦+指针
-  /// 同会话、键盘连续微调等场景 begin 可嵌套。只有最外层 commit/cancel
-  /// 才结算/还原；内层只递减。history group 与快照槽同生命周期。
-  int mixedDragDepth = 0;
+  /// 进行中的混排拖拽会话（P1 架构收口 2026-11-18）：null = 无手势。
+  /// depth/快照/group 三态私有化进 MixedDragSession——外部只经
+  /// begin/commit/cancel/abort 操作，三态不可能脱节（此前三裸 public
+  /// 字段靠约定同步，三轮审计 H-1/H-2 的根）。类型用 Object? 避免
+  /// application→presentation 反向依赖；页面侧 cast 为 MixedDragSession。
+  Object? mixedDragSession;
 
   /// 不可变的多选结果视图；修改必须通过本类的命令方法完成。
   Set<String> get multiSelectedIds =>

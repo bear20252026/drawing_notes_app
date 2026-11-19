@@ -92,7 +92,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// 2026-11-17（第二轮审计批 C）：7235 → 7230（-5）。L-3 孤儿注释清理：
 /// overlays 尾部描述已迁方法的 3 行注释删除、editor_page _linkSourceId
 /// 上挂错的 3 行薄包装注释改 1 行如实描述。棘轮随净删下调——只紧不松。
-const int kBaselineTotalLines = 7268;
+/// 2026-11-18（P1 架构收口：拖拽事务会话化）：7268 → 7281（+13）。
+/// 动机是**结构性消除三轮审计 H-1/H-2/M-1**（group 永挂/命令被吞/漏 flush），
+/// 非功能增长。逐文件：editor_page.dart +4（dispose 接 _abortMixedDrag 兜底
+/// 含注释）；drag_ops +8（三入口改会话路由 + _abortMixedDrag + _mixedDrag
+/// getter，净增含注释）；overlays +1（ResizeHandles 接 onDragCancel）。
+/// 会话本体 MixedDragSession 落 editor_page_object_mutation.dart（独立库
+/// 不计）；commitGroup/rollbackGroup 公开入口落 controller（不计）；
+/// 交互态三裸字段收为单槽（application 层不计）。零新 UI、零新 part。
+/// 结构收口成本，不构成放宽先例——下一次增长仍须先拆或再点名。
+const int kBaselineTotalLines = 7281;
 
 int _countLines(File f) => f.readAsLinesSync().length;
 
