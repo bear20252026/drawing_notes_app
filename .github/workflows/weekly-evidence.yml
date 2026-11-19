@@ -58,13 +58,11 @@ jobs:
       - name: 依赖清单与过期检查
         # M-9 收口（2026-11-16）：阈值与 pr-security.yml 对齐（7）——
         # 此前未传参走脚本默认 10，依赖劣化 8~10 项时周证据漏检。
-        run: bash tools/check_deps.sh --threshold 8
-        # 阈值 7→8（第二轮审计 H-5 评估，2026-11-18）：已升级 3 个安全传递
-        # 依赖（pdfium_dart/pdfium_flutter/pdfrx_engine）；剩余 8 个全部被上游
-        # 约束钉住（material_color_utilities/test_api/cross_file/package_config
-        # 由 Flutter SDK 或父包钉版；qr 由父包钉；pdfrx 3.x 主版本待评估；
-        # analyzer/_fe_analyzer_shared 由 DCM 5.7.6 钉）。非安全漏洞（archive/
-        # http 公告经版本区间核验为误报）。pdfrx 3.x 评估后应降回。
+        run: bash tools/check_deps.sh --threshold 7
+        # 阈值 8→7 兑现（P1 架构收口批，2026-11-19）：pdfrx 已升 3.0.2
+        # （批 D）、jni/jni_flutter 已升 1.2.0/1.1.0（path_provider_android
+        # 传递，上游新发布）——剩余 7 个全部被上游约束钉死（SDK/父包/DCM），
+        # 与 2026-11-14 基线注释清单一致。第三轮审计 L-4 承诺兑现。
 
       - name: 失败时开一条待办 issue（不重复开）
         if: failure()
