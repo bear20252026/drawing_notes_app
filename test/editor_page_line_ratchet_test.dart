@@ -121,7 +121,9 @@ void main() {
 
     var total = _countLines(mainFile);
     final parts = <String>[];
-    final partDecl = RegExp(r"^part\s+'([^']+)';", multiLine: true);
+    // H-4（三轮审计 2026-11-18）：单/双引号 part 同口径——`part "x.dart";`
+      // 是合法 Dart，只认单引号会让 part 移出行数分母逃逸棘轮。
+      final partDecl = RegExp(r'''^part\s+['"]([^'"]+)['"];''', multiLine: true);
     for (final m in partDecl.allMatches(mainFile.readAsStringSync())) {
       final partFile = File('${dir.path}${Platform.pathSeparator}${m.group(1)}');
       expect(partFile.existsSync(), isTrue,

@@ -8,6 +8,13 @@
 // 判据：对每类模型，构造一个**全字段非默认值**的实例 → copy() → 改原实例
 // 全部可变字段为另一组值 → restoreFrom(copy) → 逐字段断言回到 copy 时的值。
 // 任何漏恢复的字段都会停在「改后值」而非「copy 时值」→ 红。
+//
+// 局限（M-7 三轮审计 2026-11-18）：本测试是**手抄字段清单**——模型新增
+// 字段而 copy+restoreFrom 双双漏跟时，本测试不红（新字段不在清单内）。
+// 「字段集自动跟随模型」的机器判据由 AST 门禁承担：
+// test/architecture/mixed_model_field_set_ast_gate_test.dart（解析源码可变
+// 字段 vs copy/restoreFrom 覆盖集，差集非空即红）。本测试只钉**已列字段**
+// 的恢复正确性，不声称自动跟随新增字段。
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
