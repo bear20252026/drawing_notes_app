@@ -4,6 +4,25 @@
 
 ## [1.17.68] - 2026-11-05
 
+### P3 架构收口：密钥作用域 + 写腿世代闸（2026-11-18，同版本增量，未 bump）
+
+**三轮审计 M-1/M-2 收口**：解锁时发起的加密写，若密封/编码期间回锁
+（SessionEpoch.bump），在途写腿提交前世代比对作废——密文不得写进锁定态磁盘。
+
+- `_KeyScope`（密钥 + 发起时会话世代成对携带）+ `_currentKeyScope()`；
+  五条写腿（懒迁移/save/密码补丁/独占写/storeImage）提交前世代闸。
+- save 锁定态 fail-closed（与媒体写 `_plainMediaOrLock` 同口径）：已建库
+  锁定拒绝保存，防锁屏自动保存把密文笔记本降级明文覆盖；单笔记本密码
+  流程（encryptAndSave 等）独立于保险库，不受影响。
+- 新增回归 6 项（notebook_write_epoch_gate_test）：在途 save 作废 /
+  正常密文落盘 / 无保险库明文兼容 / storeImage 作废无半成品 /
+  锁定 save 拒绝且密文不被覆盖 / 未建库锁定明文兼容。
+
+棘轮：notebook_storage 库 1502→1543（+41，_KeyScope+世代闸+fail-closed，
+含注释）；三处交代（ratchet 注释/本条/commit message）。
+
+
+
 ### P2 架构收口：笔画平移专属路由（2026-11-18，同版本增量，未 bump）
 
 **三轮 M-3 功能回归修复**：M-9 守卫堵死 input 拖拽分支后，笔记套索笔画

@@ -6,8 +6,9 @@
 // rollbackGroup 事务关组入口 +29，复用图层样板语义，含注释）。
 // notebook_storage 基线 1466→1472（M-3 续写 DEK 零化 +6）→1502（M-1 密封
 // 判定直读主文件 +30：isEncryptedNotebook 从 3 行 load 委托改 33 行直读+
-// fail-closed 三分支，含注释）。抬升均为安全修复成本，三处交代：本注释 /
-// CHANGELOG / commit message。
+// fail-closed 三分支，含注释）→1543（P3 密钥作用域 +41：_KeyScope 类+
+// _currentKeyScope+storeImage 世代闸+save 锁定 fail-closed，含注释）。
+// 抬升均为安全修复成本，三处交代：本注释 / CHANGELOG / commit message。
 //
 // 背景：单文件行数门禁（500 warn / 1000 error）对 part 拆分后的**库总量**
 // 失明——主文件都不超限，库合计却破千。此前仅 editor_page 有库级棘轮
@@ -41,7 +42,7 @@ class _LibRatchet {
 
 const List<_LibRatchet> _kLibRatchets = [
   _LibRatchet('note_block_doc_store', 'lib/core/documents/note_block_doc_store.dart', 1600, 2, 1200),
-  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1502, 3, 1100),
+  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1543, 3, 1100),
   _LibRatchet('sync_service', 'lib/core/sync/sync_service.dart', 1389, 4, 1000),
   _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1409, 4, 1000),
   _LibRatchet('app_data_root', 'lib/core/storage/app_data_root.dart', 1259, 1, 900),
