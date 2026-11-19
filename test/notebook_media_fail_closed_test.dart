@@ -314,6 +314,75 @@ void main() {
       );
     });
   });
+
+  // M-6（三轮审计）：判定缓存只许加速，不许改变安全语义。
+  group('M-6：加密判定缓存不得掩盖安全信号', () {
+    NotebookStorage wiredStorage() {
+      late final NotebookStorage wired;
+      final keys = NotebookMediaKeys(
+        media: MediaCryptoService.instance,
+        envelopes: _LatePort(() => wired),
+      );
+      return wired = NotebookStorage(
+        directoryProvider: () async => tempDir,
+        mediaCrypto: MediaCryptoService.instance,
+        mediaKeys: keys,
+        keyProvider: () async => null,
+      );
+    }
+
+    File mainFileOf(String id) => File(
+          '${tempDir.path}${Platform.pathSeparator}notebooks'
+          '${Platform.pathSeparator}$id.json',
+        );
+
+    test('缓存命中后主文件被删 → 立即判 false（存在性每次实测）', () async {
+      final s = wiredStorage();
+      await s.encryptAndSave(Notebook(id: 'nb_c1', title: '本'), 'pw');
+      expect(await s.isEncryptedNotebook('nb_c1'), isTrue); // 建缓存
+      expect(await s.isEncryptedNotebook('nb_c1'), isTrue); // 命中缓存
+      mainFileOf('nb_c1').deleteSync();
+      expect(
+        await s.isEncryptedNotebook('nb_c1'),
+        isFalse,
+        reason: '主文件缺失是安全信号，缓存不得掩盖',
+      );
+    });
+
+    test('外部改写主文件（指纹变）→ 重算判定，不用陈旧结论', () async {
+      final s = wiredStorage();
+      await s.encryptAndSave(Notebook(id: 'nb_c2', title: '本'), 'pw');
+      expect(await s.isEncryptedNotebook('nb_c2'), isTrue);
+      // 外部改写成明文 JSON（长度/mtime 均变）。
+      mainFileOf('nb_c2').writeAsStringSync(
+        '{"id":"nb_c2","title":"改","encrypted":false,"pages":[]}',
+      );
+      expect(await s.isEncryptedNotebook('nb_c2'), isFalse);
+    });
+
+    test('损坏主文件 → 每次都抛 FormatException（异常绝不入缓存）', () async {
+      final s = wiredStorage();
+      await s.encryptAndSave(Notebook(id: 'nb_c3', title: '本'), 'pw');
+      expect(await s.isEncryptedNotebook('nb_c3'), isTrue);
+      mainFileOf('nb_c3').writeAsBytesSync([0xFF, 0xFE, 0x00]);
+      for (var i = 0; i < 3; i++) {
+        await expectLater(
+          s.isEncryptedNotebook('nb_c3'),
+          throwsA(isA<FormatException>()),
+          reason: '第 $i 次仍须 fail-closed——缓存异常等于把损坏固化成明文',
+        );
+      }
+    });
+
+    test('回锁清会话 → 缓存作废，重新按磁盘判定', () async {
+      final s = wiredStorage();
+      await s.encryptAndSave(Notebook(id: 'nb_c4', title: '本'), 'pw');
+      expect(await s.isEncryptedNotebook('nb_c4'), isTrue);
+      s.clearAllSessionSecrets();
+      mainFileOf('nb_c4').deleteSync();
+      expect(await s.isEncryptedNotebook('nb_c4'), isFalse);
+    });
+  });
 }
 
 /// 延迟绑定信封端口（测试装配用）：编排器先于存储构造时，经闭包引用

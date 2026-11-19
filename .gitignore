@@ -68,9 +68,14 @@ app.*.map.json
 /.zcode/
 /.mimosa_tmp_closeout.py
 
-# 审计报告按约定保持 untracked（AGENTS.md §7；历史误入库的 3 个待用户确认后 git rm --cached）
+# 审计报告按约定保持 untracked（AGENTS.md §7）。
+# L-2（三轮审计）：此前只有小写规则——macOS 因 core.ignorecase=true 碰巧
+# 盖住大写文件名，Linux checkout 上则完全失效。两种大小写都显式登记。
+# 注：已被跟踪的历史文件不受 ignore 影响，需另行 git rm --cached（待业主确认）。
 /docs/audit_*.html
 /docs/audit_*.md
+/docs/AUDIT_*.html
+/docs/AUDIT_*.md
 
 # 本地 Windows UIA/截图测试脚手架（开发机专用，不入库）
 /tools/capture_window.ps1

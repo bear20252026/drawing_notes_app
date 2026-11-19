@@ -47,8 +47,10 @@ jobs:
           python-version: "3.12"
 
       # 步骤名照抄 pr-security.yml 的口径：check_deps.sh 只输出依赖概览 +
-      # `dart pub outdated`，**没有真实 CVE 数据源与失败阈值**，所以这里不得称 CVE 扫描
+      # `dart pub outdated`，**没有真实 CVE 数据源**，所以这里不得称 CVE 扫描
       # （pr-security.yml:30-33 的 C-004/C-005 更正就是为了让这句话可被背书）。
+      # L-5（三轮审计）更正：脚本已有可升级数失败阈值（--threshold，本处传 7），
+      # 旧注释里"无失败阈值"的说法已过时。
       - name: 秘密扫描（Gitleaks 模式——0 误报）
         run: python tools/scan_secrets.py
 

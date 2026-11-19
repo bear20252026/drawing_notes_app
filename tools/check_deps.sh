@@ -27,7 +27,9 @@ set -u
 cd "$(dirname "$0")/.."
 
 # ── 参数 ────────────────────────────────────────────────────────────────────
-THRESHOLD="${THRESHOLD:-10}"
+# L-5（三轮审计）：默认阈值与 CI 实参对齐（此前默认 10、CI 传 7——
+# 本地裸跑比 CI 宽松，容易漏过）。可用 --threshold 或环境变量覆盖。
+THRESHOLD="${THRESHOLD:-7}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --threshold)

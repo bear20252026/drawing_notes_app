@@ -87,6 +87,19 @@ class AuditLogger {
   /// [warmUpAnchor]，测试注入临时 sink 时首次 log() 同步加载。
   static bool _anchorLoaded = false;
 
+  /// M-5（三轮审计）：锚加载失败后的重试退避。log() 是同步热路径（全仓
+  /// 60+ 调用点），持续失败时每条日志都 existsSync+read+tmp 写会打爆 UI
+  /// 线程 IO。失败后按指数退避静默降级 SHA-256，到点再试一次。
+  static DateTime? _anchorRetryNotBefore;
+  static int _anchorBackoffMs = _anchorBackoffBaseMs;
+
+  /// 退避判定用的时钟（测试可注入以确定性地推进退避窗口；生产恒为
+  /// DateTime.now）。只影响重试节奏，不影响条目时间戳。
+  @visibleForTesting
+  static DateTime Function() anchorClockForTest = DateTime.now;
+  static const int _anchorBackoffBaseMs = 1000;
+  static const int _anchorBackoffMaxMs = 60000;
+
   /// 测试注入锚密钥文件（null = 用默认 sink 同目录）。
   static File? _anchorFileOverrideForTest;
 
@@ -337,6 +350,10 @@ class AuditLogger {
   /// 已在启动时异步预热，正常运行期 log() 命中已加载态、不再触发 IO。
   static void _ensureAnchorLoadedSync() {
     if (_anchorLoaded) return;
+    final notBefore = _anchorRetryNotBefore;
+    if (notBefore != null && anchorClockForTest().isBefore(notBefore)) {
+      return; // 退避窗口内：静默降级 SHA-256，不做 IO（M-5）。
+    }
     final sink = _sinkFileCache;
     if (sink == null) return; // sink 未解析（生产首条前未预热）→ 暂不加载。
     _anchorLoaded = true;
@@ -369,6 +386,8 @@ class AuditLogger {
       tmp.renameSync(anchorFile.path);
       // 世代标记：链尾追加（此时 _anchorKey 已就绪 → 走 HMAC）。
       _appendEntry('audit.genesis', detail: 'generation=$_generation');
+      _anchorRetryNotBefore = null; // 恢复即清退避（M-5）。
+      _anchorBackoffMs = _anchorBackoffBaseMs;
     } catch (_) {
       // M-5（第二轮审计 2026-11-17）：加载失败退回 SHA-256（审计永不阻断
       // 业务），但**不置 _anchorLoaded**——下一条 log() 重试加载。此前
@@ -378,6 +397,15 @@ class AuditLogger {
       // 「永不阻断」的声明取舍。重试成功后世代标记自然恢复 HMAC。
       _anchorKey = null;
       _anchorLoaded = false;
+      // M-5（三轮审计）：重试要有退避——否则持续失败时每条 log() 都同步
+      // 读盘+写 tmp，UI 线程 IO 风暴。指数退避封顶 60s，到点自动再试。
+      _anchorRetryNotBefore = anchorClockForTest().add(
+        Duration(milliseconds: _anchorBackoffMs),
+      );
+      _anchorBackoffMs = (_anchorBackoffMs * 2).clamp(
+        _anchorBackoffBaseMs,
+        _anchorBackoffMaxMs,
+      );
     }
   }
 
@@ -793,6 +821,9 @@ class AuditLogger {
     _anchorKey = null;
     _generation = 0;
     _anchorLoaded = false;
+    _anchorRetryNotBefore = null;
+    _anchorBackoffMs = _anchorBackoffBaseMs;
+    anchorClockForTest = DateTime.now;
     _anchorFileOverrideForTest = null;
   }
 

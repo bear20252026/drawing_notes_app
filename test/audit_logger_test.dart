@@ -324,12 +324,16 @@ void main() {
         jsonEncode({'key': base64Encode(List.filled(32, 7)), 'gen': 0}),
       );
 
+      // M-5（三轮审计）：重试改为指数退避（防持续失败时每条 log 同步打盘）。
+      // 推进注入时钟越过退避窗口，验证「到点必重试」而非永久降级。
+      final base = DateTime.now();
+      AuditLogger.anchorClockForTest = () => base.add(const Duration(minutes: 5));
       AuditLogger.log('recovered-entry');
       await AuditLogger.flushForTest();
       expect(
         AuditLogger.anchorLoadedForTest,
         isTrue,
-        reason: '下一条 log 重试加载成功——永久降级会让攻击者一次读失败换整会话无 HMAC',
+        reason: '退避到点重试成功——永久降级会让攻击者一次读失败换整会话无 HMAC',
       );
       final recoveredLines = sinkFile!.readAsLinesSync()
           .map((l) => jsonDecode(l) as Map<String, dynamic>)
@@ -338,6 +342,42 @@ void main() {
       expect(recovered['mac'], isNotNull, reason: '恢复后条目带 HMAC');
       expect(recovered['operation'], 'recovered-entry');
       expect(AuditLogger.verifyIntegrity(), isTrue);
+    });
+
+    test('M-5 退避：窗口内多条 log 不再触发锚 IO，到点才重试', () async {
+      final anchorPath = '${sinkFile!.parent.path}/audit.anchor';
+      Directory(anchorPath).createSync(recursive: true); // 持续读失败。
+      var now = DateTime.now();
+      AuditLogger.anchorClockForTest = () => now;
+
+      AuditLogger.log('fail-1'); // 首次尝试 → 失败并设退避窗口。
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.anchorLoadedForTest, isFalse);
+
+      // 窗口内连打 50 条：不得再尝试加载（否则 UI 线程 IO 风暴）。
+      for (var i = 0; i < 50; i++) {
+        AuditLogger.log('in-backoff-$i');
+      }
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.anchorLoadedForTest, isFalse);
+      // 障碍此刻移除，但仍在窗口内 → 不应恢复（证明确实没做 IO 重试）。
+      Directory(anchorPath).deleteSync();
+      AuditLogger.log('still-in-backoff');
+      await AuditLogger.flushForTest();
+      expect(
+        AuditLogger.anchorLoadedForTest,
+        isFalse,
+        reason: '退避窗口内即便障碍已除也不重试——这是退避生效的证据',
+      );
+
+      // 推进到窗口之外 → 重试成功，恢复 HMAC。
+      now = now.add(const Duration(minutes: 5));
+      AuditLogger.log('after-backoff');
+      await AuditLogger.flushForTest();
+      expect(AuditLogger.anchorLoadedForTest, isTrue);
+      final last = jsonDecode(sinkFile!.readAsLinesSync().last)
+          as Map<String, dynamic>;
+      expect(last['mac'], isNotNull, reason: '退避结束后恢复带密钥锚');
     });
   });
 

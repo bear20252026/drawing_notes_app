@@ -125,6 +125,7 @@ extension _NotebookStorageCodec on NotebookStorage {
     _writeTails[id] = operation;
     try {
       await operation;
+      invalidateEncryptedFlag(id); // M-6：落盘后判定缓存作废。
       onWrite?.call();
       return finalPath;
     } finally {

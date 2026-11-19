@@ -57,8 +57,10 @@ jobs:
       - name: SBOM 生成（CycloneDX）
         run: python tools/generate_sbom.py
       # C-004/C-005（专家更正期）：check_deps.sh 是 Bash 脚本——用 bash
-      # 解释器；脚本仅输出依赖概览 + dart pub outdated（无真实 CVE 数据源/
-      # 失败阈值）——步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
+      # 解释器；脚本输出依赖概览 + dart pub outdated，**无真实 CVE 数据源**，
+      # 故步骤名诚实化为"依赖清单与过期检查"（不得声称 CVE 扫描）。
+      # L-5（三轮审计）更正：脚本现已有可升级数失败阈值（--threshold，
+      # 本工作流传 7），"无失败阈值"的旧说法已过时。
       - name: 依赖清单与过期检查
         # 阈值基线（2026-11-14，Flutter 3.50.0 全面升级后实测）：可升级数 7，
         # 全部为上游约束/SDK 钉死的「可兼容最新版」，无法再升——
