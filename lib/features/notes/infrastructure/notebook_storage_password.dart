@@ -100,7 +100,8 @@ extension _NotebookStoragePassword on NotebookStorage {
     String newPayload,
   ) async {
     // 先取密钥再读文件：读到的必须是自己即将写回的那一份（顺序不能颠倒）。
-    final key = await _currentKey();
+    final scope = await _currentKeyScope();
+    final key = scope.key;
     final file = File(await _pathFor(id));
     if (!file.existsSync()) throw StateError('该分页画布已不存在：$id');
     final onDisk = await file.readAsBytes();
@@ -124,6 +125,8 @@ extension _NotebookStoragePassword on NotebookStorage {
     root['encrypted'] = true;
     root['encryptedPayload'] = newPayload;
     final data = utf8.encode(jsonEncode(root));
+    // P3 世代闸：读改写期间回锁翻篇 → 放弃提交。
+    if (!scope.isCurrent) return;
     await _writeNotebookBytes(
       file,
       key == null
@@ -190,7 +193,10 @@ extension _NotebookStoragePassword on NotebookStorage {
     await _ensureNotebooksDir();
     final finalPath = await _pathFor(notebook.id);
     final data = await NotebookStorage._encodeSnapshotAsync(notebook.toJson());
-    final key = await _currentKey();
+    final scope = await _currentKeyScope();
+    final key = scope.key;
+    // P3 世代闸：编码/密封期间回锁翻篇 → 放弃提交（静默，与排队腿一致）。
+    if (!scope.isCurrent) return finalPath;
     await _writeNotebookBytes(
       File(finalPath),
       key == null

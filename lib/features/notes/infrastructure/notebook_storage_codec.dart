@@ -12,6 +12,16 @@ extension _NotebookStorageCodec on NotebookStorage {
     return provider();
   }
 
+  /// P3（三轮审计 M-1/M-2）：密钥 + 发起时会话世代成对携带——写腿提交
+  /// 前校验 [scope.isCurrent]，回锁翻篇即在途作废。读路径用 [_currentKey]
+  /// （读无落盘副作用，锁定即抛）。
+  Future<_KeyScope> _currentKeyScope() async {
+    final epoch = SessionEpoch.current;
+    final provider = keyProvider;
+    final key = provider == null ? null : await provider();
+    return _KeyScope(key, epoch);
+  }
+
 
   /// 读取后的字节准备（批次①c，与 StorageService/NoteBlockDocStore 同纪律）：
   /// 密文+解锁 → 解密；密文+锁定 → [VaultFileLockException]；
@@ -41,7 +51,8 @@ extension _NotebookStorageCodec on NotebookStorage {
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
-      final key = await _currentKey();
+      final scope = await _currentKeyScope();
+      final key = scope.key;
       if (key == null) return;
       final file = File(await _pathFor(id));
       if (!file.existsSync()) return; // 已被删除——不复活
@@ -52,6 +63,8 @@ extension _NotebookStorageCodec on NotebookStorage {
         key,
         aadContext: 'nb:$id',
       );
+      // P3 世代闸：排队期间回锁 → 本次重写作废（下次读取重新排队，幂等）。
+      if (!scope.isCurrent) return;
       final tmp = File('${file.path}.${LocalIdGenerator.next('write')}.tmp');
       await tmp.writeAsBytes(sealed, flush: true);
       try {
@@ -97,10 +110,16 @@ extension _NotebookStorageCodec on NotebookStorage {
       final data = await NotebookStorage._encodeSnapshotAsync(snapshot);
       // 批次①c：保险库解锁 → DNV 信封（AAD 绑定 nb:<id>）；锁定 → 明文
       // 兼容（既有单笔记本密码/DAN 层不受影响，读取时懒迁移）。
-      final key = await _currentKey();
+      final scope = await _currentKeyScope();
+      final key = scope.key;
+      // P3（三轮审计 M-2）：锁定态保存 fail-closed——与媒体写
+      // _plainMediaOrLock 同口径（未装配/未建库 → 明文；已建库锁定 → 拒绝），
+      // 防锁屏期间自动保存把密文笔记本降级明文覆盖。
       final payload = key == null
-          ? data
+          ? await _plainMediaOrLock(data)
           : await VaultFileCodec.encrypt(data, key, aadContext: 'nb:$id');
+      // P3 世代闸：密封完成后回锁翻篇 → 放弃提交（密文不得写进锁定态磁盘）。
+      if (!scope.isCurrent) return;
       await _writeNotebookBytes(File(finalPath), payload);
     });
     _writeTails[id] = operation;

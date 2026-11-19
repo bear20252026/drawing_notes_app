@@ -449,12 +449,14 @@ class NotebookStorage
       // 先问编排器「这本声明加密吗」：加密笔记本一律经 K_note 密封
       // （缺钥/锁定 fail-closed，**不存在明文回退**）；明文笔记本才走
       // 既有 DNV/明文兼容分支。不再用 hasKeyFor 内存嗅探当加密判据。
+      // P3：世代在操作发起时捕获（覆盖密封全程，含 _sealIfEncrypted）。
+      final scope = await _currentKeyScope();
       final Uint8List stored;
       final sealed = await _sealIfEncrypted(notebookId, bytes);
       if (sealed != null) {
         stored = sealed;
       } else {
-        final key = await _currentKey();
+        final key = scope.key;
         stored = key == null
             ? await _plainMediaOrLock(bytes)
             : await VaultFileCodec.encrypt(
@@ -467,6 +469,8 @@ class NotebookStorage
       // 写入中断留下半张图片（下一次读取按损坏处理但文件占位）。改走
       // _writeNotebookBytes 的 tmp + rename + 失败清理（同 _writeNotebook
       // 单一出口纪律；目标文件名含微秒时间戳，唯一无覆盖场景）。
+      // P3 世代闸：密封期间回锁翻篇 → 放弃提交（fail-closed）。
+      if (!scope.isCurrent) throw const VaultFileLockException();
       await _writeNotebookBytes(target, stored);
       return target.path;
     } catch (_) {
@@ -835,4 +839,16 @@ class NotebookStorage
 
   /// 生成唯一 ID。
   static String newId(String prefix) => LocalIdGenerator.next(prefix);
+}
+
+/// P3（三轮审计 M-1/M-2）：一次写操作的密钥作用域——密钥与**发起时
+/// 会话世代**成对携带。回锁翻篇世代后，在途写腿提交前比对世代即作废，
+/// 防「解锁时发起的加密写，回锁后才落盘」把密文写进锁定态磁盘。
+class _KeyScope {
+  const _KeyScope(this.key, this.epoch);
+  final Uint8List? key;
+  final int epoch;
+
+  /// 提交前校验：世代未变才有效（回锁 → SessionEpoch.bump → 作废）。
+  bool get isCurrent => epoch == SessionEpoch.current;
 }
