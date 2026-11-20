@@ -23,39 +23,64 @@ import 'package:flutter_test/flutter_test.dart';
 /// 写成字面量会把门禁自己判成违规。扫描型门禁的自指问题宁可这样解决，
 /// 也不要「按文件名排除自己」那种特判（它很快会变成第二个漏洞）。
 ///
-/// 2026-11-20 扩展（#87 同类漏网）：原先只有 `encryptAndSave` 一条腿，
-/// 覆盖不到 `encryptWithPasswordV3` / `encryptWithPasswordV5` /
-/// `unlockWithPasswordV3` / `rewrapPasswordSlotV3` 等入口——vault_file_password
-/// 正是这么把生产 Argon2id 混进主套件的。触发词一律取「会执行 KDF 派生的
-/// 方法名 + 左括号」，不取类名（用了类不一定派生）。
+/// 2026-11-20（#87 同类漏网 + 第四轮审计缺口 2）：触发词从 vault 侧 5 条
+/// 扩到**全部会执行 KDF 派生/解密的 lib public 入口**——`deriveMasterKey`
+/// 正是这么让 `sync_cipher_test` 把生产 Argon2id 混进主套件的（#88 只扩
+/// 了 vault 侧，lib 其余入口仍漏）。一律取「方法名 + 左括号」，不取类名
+/// （用了类不一定派生）；不取 `unlock(` 这类通用名（静态门禁的样本字符串
+/// 会误伤；其真入口 `unlockWithPasswordV3` 已在清单）。
+/// 维护纪律：lib 新增此类入口必须同步本清单（自证钉住已知成员）。
 final List<String> _kdfTriggers = [
   ['encryptAndSave', '('].join(),
   ['encryptWithPasswordV3', '('].join(),
   ['encryptWithPasswordV5', '('].join(),
   ['unlockWithPasswordV3', '('].join(),
   ['rewrapPasswordSlotV3', '('].join(),
+  ['deriveMasterKey', '('].join(),
+  ['deriveKek', '('].join(),
+  ['encryptBlockDocPasswordV5', '('].join(),
+  ['decryptWithPasswordAad', '('].join(),
+  ['unwrapNotebookMediaKey', '('].join(),
+  ['rewrapPayloadV5', '('].join(),
+  ['changeNotebookPasswordV5', '('].join(),
+  ['bindNotebookUsbSlotV5', '('].join(),
+  ['setPin', '('].join(),
+  ['changePin', '('].join(),
+  ['initialize', '('].join(),
 ];
 
 final List<String> _cheapMarks = const [
   'KdfParams.testLight',
   "@Tags(['kdf'])",
   '@Tags(["kdf"])', // L-6（第二轮审计）：双引号标签同口径（6 文件在用）
+  'bypassIsolateForTests', // 第四轮审计 C-M4：官方测试旁路（_testOnlyKdf）
 ];
+
+/// 剔除行注释（`//` 之后）：注释里写触发词不该判违规，注释里写豁免标记
+/// 也不该放行（「注释即豁免」正是缺口 2 的一部分）。
+String _stripComments(String source) => source
+    .split('\n')
+    .map((line) {
+      final i = line.indexOf('//');
+      return i < 0 ? line : line.substring(0, i);
+    })
+    .join('\n');
 
 /// 涉真 KDF 但两条腿都没交代 ⇒ 返回该文件；合规返回 null。
 String? findUndeclaredKdfUsage(String path, String source) {
+  final code = _stripComments(source);
   String? hit;
   for (final t in _kdfTriggers) {
-    if (source.contains(t)) {
+    if (code.contains(t)) {
       hit = t;
       break;
     }
   }
   if (hit == null) return null;
-  final declared = _cheapMarks.any((mark) => source.contains(mark));
+  final declared = _cheapMarks.any((mark) => code.contains(mark));
   if (declared) return null;
   return '$path 调了 $hit，但既没注入 ${_cheapMarks[0]}、也没声明 '
-      '${_cheapMarks[1]}：它会吃生产 KDF，把主套件的默认超时赌上';
+      '${_cheapMarks[1]}/${_cheapMarks[3]}：它会吃生产 KDF，把主套件的默认超时赌上';
 }
 
 void main() {

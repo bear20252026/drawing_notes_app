@@ -10,9 +10,12 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:drawing_notes_app/core/canvas_model/page_chart_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
+import 'package:drawing_notes_app/features/drawing/application/document_commands.dart';
+import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
 import 'package:drawing_notes_app/features/drawing/application/text_edit_session_state_machine.dart';
 
 // ── 斜杠命令菜单 ─────────────────────────────────────────────
@@ -251,9 +254,12 @@ class EditorCanvasInteractionState {
   /// 进行中的混排拖拽会话（P1 架构收口 2026-11-18）：null = 无手势。
   /// depth/快照/group 三态私有化进 MixedDragSession——外部只经
   /// begin/commit/cancel/abort 操作，三态不可能脱节（此前三裸 public
-  /// 字段靠约定同步，三轮审计 H-1/H-2 的根）。类型用 Object? 避免
-  /// application→presentation 反向依赖；页面侧 cast 为 MixedDragSession。
-  Object? mixedDragSession;
+  /// 字段靠约定同步，三轮审计 H-1/H-2 的根）。
+  ///
+  /// 第四轮审计缺口 3：会话类从 presentation 下沉本层（原在
+  /// editor_page_object_mutation.dart），槽位改强类型——application→presentation
+  /// 反向依赖（Object? + 页面侧 cast）消除。
+  MixedDragSession? mixedDragSession;
 
   /// 不可变的多选结果视图；修改必须通过本类的命令方法完成。
   Set<String> get multiSelectedIds =>
@@ -505,5 +511,160 @@ class EditorChromeController extends ChangeNotifier {
     if (_lastCommandId == id) return;
     _lastCommandId = id;
     notifyListeners();
+  }
+}
+
+/// 混排对象**拖拽事务会话**（P1 架构收口 2026-11-18，取代静态 Recorder）。
+///
+/// 三轮审计的根因：depth+group+快照三态靠「记得配对 begin/commit/cancel」
+/// 维持——dispose/切页早退漏关组（H-1）、closeGroup 返回值被丢弃吞掉窗口内
+/// Delete 命令（H-2）、漏 flush 挂起通知（M-1）。收口为**会话对象**：
+///
+/// - 会话在 begin 时**捕获四份列表引用与 host**——commit/cancel/abort 不再
+///   依赖 widget.session 存活，切页/dispose 照样能关组还原（H-1 构造性消除）。
+/// - 关组只经 host.commitGroup()/rollbackGroup() 公开入口——「消费窗口内
+///   命令 + 补发挂起通知」是入口的结构保证，会话想丢都丢不掉（H-2/M-1）。
+/// - depth/快照是会话私有字段，外部拿不到——三态不可能脱节（裸 public
+///   字段 mixedDragDepth/mixedDragBefore 已从交互态移除）。
+/// - [abort] 供 dispose 兜底：无论嵌套多深强制还原+回滚，幂等。
+///
+/// 嵌套语义保留：一次拖拽的指针/键盘路径各自 begin 可嵌套，内层 commit/cancel
+/// 只递减；最外层才结算。
+///
+/// 第四轮审计缺口 3：从 presentation（editor_page_object_mutation.dart）下沉
+/// 本层——事务会话属 application 域，不再反向依赖 presentation。
+class MixedDragSession {
+  MixedDragSession({
+    required this.textItems,
+    required this.imageItems,
+    required this.shapes,
+    required this.charts,
+    required this.host,
+    required this.markDirty,
+  });
+
+  /// 会话捕获的四份列表引用（begin 时绑定，commit/cancel/abort 不依赖
+  /// 页面存活——H-1 构造性消除的关键）。
+  final List<PageTextItem> textItems;
+  final List<PageImageItem> imageItems;
+  final List<PageShapeItem> shapes;
+  final List<PageChartItem> charts;
+  final DrawingController host;
+  final void Function() markDirty;
+
+  int _depth = 0;
+  MixedObjectCollections? _before;
+  bool _closed = false;
+
+  /// 会话是否已结算/还原（幂等守卫：panEnd 与 abort 双触发不重复关组）。
+  bool get isClosed => _closed;
+
+  /// 手势起点：首层开 history group + 拍起始深快照（嵌套不覆盖基准）。
+  void begin() {
+    if (_closed) return;
+    if (_depth == 0) {
+      host.historyService.beginGroup();
+      _before = MixedObjectCollections(
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+        charts: charts,
+      );
+    }
+    _depth++;
+  }
+
+  /// 手势终点：最外层关组结算，返回 true=会话已闭合（调用方清槽）。
+  /// 内层只递减返回 false。窗口内混入的命令经 commitGroup 合成一条事务入栈
+  /// ——不再被吞（H-2）。
+  bool commit() {
+    if (_closed) return true;
+    if (_depth > 1) {
+      _depth--;
+      return false;
+    }
+    _closed = true;
+    _depth = 0;
+    final before = _before;
+    _before = null;
+    // 关组入口保证：消费窗口命令 + flush 挂起通知（H-2/M-1 结构收口）。
+    host.commitGroup();
+    if (before == null) return true;
+    final after = MixedObjectCollections(
+      textItems: textItems,
+      imageItems: imageItems,
+      shapes: shapes,
+      charts: charts,
+    );
+    if (_same(before, after)) return true;
+    host.pushCommand(
+      MixedObjectsSnapshotCommand(
+        textItems: textItems,
+        imageItems: imageItems,
+        shapes: shapes,
+        charts: charts,
+        before: before,
+        after: after,
+        onRestored: () {
+          host.invalidateLayer(host.currentLayer.id);
+          host.tickFrame();
+          markDirty();
+        },
+      ),
+    );
+    return true;
+  }
+
+  /// 手势取消：最外层回滚窗口命令 + 还原起始快照，不入栈。
+  /// 返回 true=会话已闭合。内层只递减（防抹掉外层进行中改动）。
+  bool cancel() {
+    if (_closed) return true;
+    if (_depth > 1) {
+      _depth--;
+      return false;
+    }
+    _closed = true;
+    _depth = 0;
+    final before = _before;
+    _before = null;
+    // 回滚入口保证：逆序 undo 窗口命令 + flush（Delete 被撤回到位）。
+    host.rollbackGroup();
+    if (before != null) {
+      MixedObjectsSnapshotCommand.restoreCollections(textItems, before.textItems);
+      MixedObjectsSnapshotCommand.restoreCollections(imageItems, before.imageItems);
+      MixedObjectsSnapshotCommand.restoreCollections(shapes, before.shapes);
+      MixedObjectsSnapshotCommand.restoreCollections(charts, before.charts);
+    }
+    host.invalidateLayer(host.currentLayer.id);
+    host.tickFrame();
+    return true;
+  }
+
+  /// dispose/切页兜底（H-1）：无论嵌套多深强制按取消结算，幂等。
+  /// 会话持有列表引用，不依赖页面存活。
+  void abort() {
+    if (_closed) return;
+    _depth = 1; // 压平嵌套，cancel 走最外层路径
+    cancel();
+  }
+
+  /// 逐字段比对（toJson 串，与 DocumentObjectsSnapshot.isSame 同口径）。
+  static bool _same(MixedObjectCollections a, MixedObjectCollections b) {
+    bool sameList<T>(List<T> x, List<T> y, String Function(T) json) {
+      if (x.length != y.length) return false;
+      for (var i = 0; i < x.length; i++) {
+        if (json(x[i]) != json(y[i])) return false;
+      }
+      return true;
+    }
+
+    String t(PageTextItem e) => e.toJson().toString();
+    String i(PageImageItem e) => e.toJson().toString();
+    String s(PageShapeItem e) => e.toJson().toString();
+    String c(PageChartItem e) => e.toJson().toString();
+    return sameList(a.textItems, b.textItems, t) &&
+        sameList(a.imageItems, b.imageItems, i) &&
+        sameList(a.shapes, b.shapes, s) &&
+        sameList(a.charts, b.charts, c);
   }
 }

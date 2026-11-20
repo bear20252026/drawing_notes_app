@@ -209,9 +209,10 @@ void main() {
     await tester.pump();
     expect(item.width, closeTo(308, 0.001));
 
-    // 失焦 = 会话结束（锚点清空）。此后按键不再改宽度；页面级也**不该**
+    // 失焦后按键到不了手柄（焦点已离开），宽度不再变；页面级也**不该**
     // 改位置——普通方向键只服务 Alt+方向键（微调位置，见
     // `editor_page_shortcuts.dart` 的 `_nudgeSelected` 分支）。
+    // 注：会话边界由操作语义决定（第四轮审计缺口 3），失焦本身不清锚点。
     node.unfocus();
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);

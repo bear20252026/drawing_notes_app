@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
@@ -15,6 +16,9 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../helpers/temp_dir_cleanup.dart';
 
 void main() {
+  // 本文件测世代闸（与密钥成本无关），注入轻量档避免吃生产 Argon2id。
+  setUpAll(() => KdfParams.newSlotDefault = KdfParams.testLight);
+  tearDownAll(() => KdfParams.newSlotDefault = KdfParams.argon2idProduction);
   late Directory tempDir;
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('p3_epoch_gate_');
@@ -148,5 +152,49 @@ void main() {
     final bytes = await File(nbPath('p3_novault')).readAsBytes();
     expect(VaultFileCodec.isEncrypted(bytes), isFalse);
     expect(utf8.decode(bytes).contains('无保险库笔记本'), isTrue);
+  });
+
+  // 缺口 1 架构修复（第四轮审计 H-1）：收口把世代闸**前移**到慢操作之前，
+  // 且 encryptAndSave/改密的「加密本外层」写不再静默 return——回锁翻篇
+  // 在途即抛，绝不以旧世代提交。
+  test('encryptAndSave：编码期间回锁 → 在途写腿作废，抛锁异常且不留盘', () async {
+    final storage = NotebookStorage(
+      directoryProvider: () async => tempDir,
+      keyProvider: provider,
+    );
+    slowKey = true;
+    final pending = storage.encryptAndSave(nb('p3_es', '在途设密'), 'pw');
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    currentKey = null;
+    SessionEpoch.bump();
+    await expectLater(pending, throwsA(isA<VaultFileLockException>()));
+    slowKey = false;
+    expect(
+      File(nbPath('p3_es')).existsSync(),
+      isFalse,
+      reason: '回锁翻篇后的在途设密不得落盘（含明文外层）',
+    );
+  });
+
+  test('改密：读改写期间回锁 → 抛锁异常，磁盘载荷不被旧世代改写', () async {
+    final storage = NotebookStorage(
+      directoryProvider: () async => tempDir,
+      keyProvider: provider,
+    );
+    await storage.encryptAndSave(nb('p3_cp', '先设密'), 'old-pw');
+    final before = await File(nbPath('p3_cp')).readAsBytes();
+    slowKey = true;
+    final pending = storage.changeNotebookPassword(
+      'p3_cp',
+      'old-pw',
+      'new-pw',
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    currentKey = null;
+    SessionEpoch.bump();
+    await expectLater(pending, throwsA(isA<VaultFileLockException>()));
+    slowKey = false;
+    final after = await File(nbPath('p3_cp')).readAsBytes();
+    expect(after, before, reason: '作废的改密不得改动磁盘');
   });
 }

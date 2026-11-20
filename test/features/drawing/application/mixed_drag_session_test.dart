@@ -14,6 +14,8 @@ import 'package:drawing_notes_app/core/canvas_model/page_image_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/shape_item.dart';
 import 'package:drawing_notes_app/core/canvas_model/text_item.dart';
 import 'package:drawing_notes_app/features/drawing/application/drawing_controller.dart';
+// 第四轮审计缺口 3：会话类下沉 application 层（原 presentation/mutation）。
+import 'package:drawing_notes_app/features/drawing/application/editor_interaction_controllers.dart';
 import 'package:drawing_notes_app/features/drawing/presentation/editor_page_object_mutation.dart';
 
 void main() {

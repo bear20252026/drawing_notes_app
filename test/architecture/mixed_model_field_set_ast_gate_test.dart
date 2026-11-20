@@ -24,13 +24,23 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 混排模型类 → 源文件（与 mixed_model_copy_restore_test 同四模型）。
-const Map<String, String> _models = {
-  'PageTextItem': 'lib/core/canvas_model/text_item.dart',
-  'PageShapeItem': 'lib/core/canvas_model/shape_item.dart',
-  'PageImageItem': 'lib/core/canvas_model/page_image_item.dart',
-  'PageChartItem': 'lib/core/canvas_model/page_chart_item.dart',
-};
+/// 混排模型类 → 源文件：**自动发现**（扫 canvas_model 目录 `class Page*Item`）。
+/// 第四轮审计缺口 2：原先手抄四模型清单，新增模型而门禁漏跟不红；
+/// 现在清单从源码生成，新增模型自动纳入（自证钉住已知成员）。
+Map<String, String> _discoverModels() {
+  final dir = Directory('lib/core/canvas_model');
+  final out = <String, String>{};
+  for (final f in dir.listSync().whereType<File>()) {
+    if (!f.path.endsWith('.dart')) continue;
+    for (final m
+        in RegExp(r'class\s+(Page\w+Item)\b').allMatches(f.readAsStringSync())) {
+      out[m.group(1)!] = f.path;
+    }
+  }
+  return out;
+}
+
+final Map<String, String> _models = _discoverModels();
 
 ClassDeclaration _classOf(CompilationUnit unit, String name) => unit.declarations
     .whereType<ClassDeclaration>()
@@ -135,6 +145,21 @@ List<String> fieldSetViolations(String source, String className) {
 }
 
 void main() {
+  test('模型清单自动发现：覆盖已知四模型（扫描失效即红）', () {
+    for (final n in const [
+      'PageTextItem',
+      'PageShapeItem',
+      'PageImageItem',
+      'PageChartItem',
+    ]) {
+      expect(
+        _models.containsKey(n),
+        isTrue,
+        reason: '清单未认出 $n ⇒ 目录扫描失配，下面判据会「空集通过」',
+      );
+    }
+  });
+
   for (final entry in _models.entries) {
     test('${entry.key}：copy/restoreFrom 字段集 == 模型可变字段（AST 机器判据）', () {
       final source = File(entry.value).readAsStringSync();

@@ -104,23 +104,20 @@ extension _NotebookStorageCodec on NotebookStorage {
     final snapshot = notebook.toJson();
     final finalPath = await _pathFor(notebook.id);
     final id = notebook.id;
+    // 世代在排队前（编码前）捕获——编码在隔离线程跑，期间可能回锁翻篇。
+    final epoch = SessionEpoch.current;
     final previous = _writeTails[id] ?? Future<void>.value();
     late final Future<void> operation;
     operation = previous.catchError((_) {}).then((_) async {
       final data = await NotebookStorage._encodeSnapshotAsync(snapshot);
-      // 批次①c：保险库解锁 → DNV 信封（AAD 绑定 nb:<id>）；锁定 → 明文
-      // 兼容（既有单笔记本密码/DAN 层不受影响，读取时懒迁移）。
-      final scope = await _currentKeyScope();
-      final key = scope.key;
-      // P3（三轮审计 M-2）：锁定态保存 fail-closed——与媒体写
-      // _plainMediaOrLock 同口径（未装配/未建库 → 明文；已建库锁定 → 拒绝），
-      // 防锁屏期间自动保存把密文笔记本降级明文覆盖。
-      final payload = key == null
-          ? await _plainMediaOrLock(data)
-          : await VaultFileCodec.encrypt(data, key, aadContext: 'nb:$id');
-      // P3 世代闸：密封完成后回锁翻篇 → 放弃提交（密文不得写进锁定态磁盘）。
-      if (!scope.isCurrent) return;
-      await _writeNotebookBytes(File(finalPath), payload);
+      // 落盘统一收口（缺口 1）：守卫 + 世代闸 + 加密 + 原子写。
+      await _writeSealedBytes(
+        File(finalPath),
+        data,
+        notebookId: id,
+        aadContext: 'nb:$id',
+        epoch: epoch,
+      );
     });
     _writeTails[id] = operation;
     try {

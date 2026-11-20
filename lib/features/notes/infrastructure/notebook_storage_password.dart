@@ -12,6 +12,8 @@ extension _NotebookStoragePassword on NotebookStorage {
     String password,
     List<int>? usbKey,
   ) async {
+    // 世代在重绕/编码等慢操作之前捕获（晚取会取到回锁后的新世代而误判）。
+    final epoch = SessionEpoch.current;
     // 第一步合规（2026-08-16 专家审计最优先行动②）：加密笔记本不生成
     // 明文 searchSummary——"废除默认明文 searchSummary"。未来 K_note
     // 密钥层级落地后摘要可加密存储（解锁会话内搜索——安全）。
@@ -72,7 +74,7 @@ extension _NotebookStoragePassword on NotebookStorage {
     // 该 id 的独占槽位，`_writeNotebook` 再挂 `_writeTails` 等于 await 自己
     // 所在的链 → 死锁（[:617] 同款纪律）。
     try {
-      return await _writeNotebookInsideExclusive(notebook);
+      return await _writeNotebookInsideExclusive(notebook, epoch: epoch);
     } catch (_) {
       _rollbackSessionPassword(notebook.id, priorPassword);
       rethrow;
@@ -99,12 +101,17 @@ extension _NotebookStoragePassword on NotebookStorage {
     String id,
     String newPayload,
   ) async {
+    // 世代在**读**之前捕获（覆盖读-改-写全程）。
+    final epoch = SessionEpoch.current;
     // 先取密钥再读文件：读到的必须是自己即将写回的那一份（顺序不能颠倒）。
-    final scope = await _currentKeyScope();
-    final key = scope.key;
+    final key = await _currentKey();
     final file = File(await _pathFor(id));
     if (!file.existsSync()) throw StateError('该分页画布已不存在：$id');
     final onDisk = await file.readAsBytes();
+    // 锁定态读守卫（缺口 1 收口）：密文在外却无钥 → 拒绝，不当明文解析。
+    if (key == null && VaultFileCodec.isEncrypted(onDisk)) {
+      throw const VaultFileLockException();
+    }
     final clear = key == null || !VaultFileCodec.isEncrypted(onDisk)
         ? onDisk
         : await VaultFileCodec.decrypt(
@@ -125,19 +132,16 @@ extension _NotebookStoragePassword on NotebookStorage {
     root['encrypted'] = true;
     root['encryptedPayload'] = newPayload;
     final data = utf8.encode(jsonEncode(root));
-    // P3 世代闸：读改写期间回锁翻篇 → 放弃提交。
-    if (!scope.isCurrent) return;
-    await _writeNotebookBytes(
+    // 落盘统一收口（缺口 1）。改密写的是「加密本外层」（明文 JSON +
+    // 密文载荷，设计允许）；读守卫已拦「密文外层无钥」。
+    await _writeSealedBytes(
       file,
-      key == null
-          ? data
-          : await VaultFileCodec.encrypt(
-              data,
-              key,
-              aadContext: 'nb:$id',
-            ),
+      Uint8List.fromList(data),
+      notebookId: id,
+      aadContext: 'nb:$id',
+      epoch: epoch,
+      plainOuterAllowed: true,
     );
-    invalidateEncryptedFlag(id); // M-6：改密/补槽落盘后判定缓存作废。
     onWrite?.call();
   }
 
@@ -187,28 +191,26 @@ extension _NotebookStoragePassword on NotebookStorage {
   /// 独占槽位内的整本落盘原语：编码/密封口径与 `_writeNotebook` 一致，
   /// 但**不挂 `_writeTails`**——调用方已持有该 id 的槽位，再排队就是 await
   /// 自己所在的链 → 死锁（见 [_patchEncryptedPayloadInsideExclusive] 头注释）。
-  Future<String> _writeNotebookInsideExclusive(Notebook notebook) async {
+  Future<String> _writeNotebookInsideExclusive(
+    Notebook notebook, {
+    required int epoch,
+  }) async {
     if (!NotebookStorage.isValidId(notebook.id)) {
       throw ArgumentError.value(notebook.id, 'notebook.id', '笔记本 ID 不合法');
     }
     await _ensureNotebooksDir();
     final finalPath = await _pathFor(notebook.id);
     final data = await NotebookStorage._encodeSnapshotAsync(notebook.toJson());
-    final scope = await _currentKeyScope();
-    final key = scope.key;
-    // P3 世代闸：编码/密封期间回锁翻篇 → 放弃提交（静默，与排队腿一致）。
-    if (!scope.isCurrent) return finalPath;
-    await _writeNotebookBytes(
+    // 落盘统一收口（缺口 1）。设密写的是「加密本外层」（明文 JSON +
+    // 密文载荷，设计允许，与 codec 普通快照写区分）。
+    await _writeSealedBytes(
       File(finalPath),
-      key == null
-          ? data
-          : await VaultFileCodec.encrypt(
-              data,
-              key,
-              aadContext: 'nb:${notebook.id}',
-            ),
+      data,
+      notebookId: notebook.id,
+      aadContext: 'nb:${notebook.id}',
+      epoch: epoch,
+      plainOuterAllowed: true,
     );
-    invalidateEncryptedFlag(notebook.id); // M-6：加密保存后判定缓存作废。
     onWrite?.call();
     return finalPath;
   }

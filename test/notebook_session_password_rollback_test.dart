@@ -13,8 +13,9 @@
 /// - 断言抛出的仍是原异常（回滚 catch 只 rethrow，绝吞成其它类型）。
 ///
 /// 落盘失败用「保险库回锁」复现：keyProvider 在读载荷那一次返回主密钥、
-/// 在写回那一次返回 null → `_patchEncryptedPayloadInsideExclusive` 对 DNV
-/// 字节解码失败抛 FormatException（正是失败窗口，且发生在缓存新口令之后）。
+/// 在写回那一次返回 null → `_patchEncryptedPayloadInsideExclusive` 的读守卫
+/// fail-closed 抛 [VaultFileLockException]（第四轮审计缺口 1 收口统一了
+/// 口径：密文在外却无钥 = 锁定，不再是 FormatException；回滚语义不变）。
 ///
 /// 批B 起新槽位默认 Argon2id——注入轻量参数（[KdfParams.testLight]），
 /// 格式与生产一致、无真 KDF 耗时（口径同 `notebook_password_queue_test.dart`）。
@@ -27,6 +28,7 @@ import 'dart:io';
 import 'package:drawing_notes_app/core/canvas_model/document.dart';
 import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
+import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:drawing_notes_app/features/notes/domain/notebook.dart';
 import 'package:drawing_notes_app/features/notes/infrastructure/notebook_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,7 +89,7 @@ void main() {
       flipAfter = 1; // 读载荷(第 1 次)取到钥、写回(第 2 次)掉锁 → patch 抛错
       await expectLater(
         storage.changeNotebookPassword(id, 'old-pass-1', 'new-pass-2'),
-        throwsFormatException, // 原异常（回锁→载荷解码）不被回滚 catch 吞掉
+        throwsA(isA<VaultFileLockException>()), // 原异常不被回滚 catch 吞掉
       );
 
       // 失败前有旧口令 → 恢复旧值：会话里绝不再残留新口令。
@@ -122,7 +124,7 @@ void main() {
       flipAfter = 1;
       await expectLater(
         storage.changeNotebookPassword(id, 'old-pass-1', 'new-pass-2'),
-        throwsFormatException,
+        throwsA(isA<VaultFileLockException>()),
       );
 
       // 失败前无口令 → forget：会话仍为空，绝不残留新口令。
@@ -160,7 +162,7 @@ void main() {
       flipAfter = 1; // 重置读载荷取钥、写回掉锁 → patch 抛错（缓存新口令之后）
       await expectLater(
         storage.resetNotebookPasswordWithUsb(id, usbKey, 'reset-pass-9'),
-        throwsFormatException, // 原异常不被吞
+        throwsA(isA<VaultFileLockException>()), // 原异常不被吞
       );
 
       expect(storage.notebookPasswordFor(id), isNull);

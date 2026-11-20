@@ -8,7 +8,10 @@
 // 判定直读主文件 +30：isEncryptedNotebook 从 3 行 load 委托改 33 行直读+
 // fail-closed 三分支，含注释）→1543（P3 密钥作用域 +41：_KeyScope 类+
 // _currentKeyScope+storeImage 世代闸+save 锁定 fail-closed，含注释）。
-// 抬升均为安全修复成本，三处交代：本注释 / CHANGELOG / commit message。
+// →1625（第四轮审计缺口 1 架构修复 +26：_notebook_storage.dart 新增
+// _writeSealedBytes 唯一落盘收口——明文守卫+世代闸前移集中化，三条写腿
+// 收编，含注释）。抬升均为安全修复成本，三处交代：本注释 / CHANGELOG /
+// commit message。
 //
 // 背景：单文件行数门禁（500 warn / 1000 error）对 part 拆分后的**库总量**
 // 失明——主文件都不超限，库合计却破千。此前仅 editor_page 有库级棘轮
@@ -48,7 +51,7 @@ const List<_LibRatchet> _kLibRatchets = [
   // 语义成本——只缓存正结论 + 文件指纹校验 + 存在性每次实测 + 四处写出口
   // 失效钩子（含注释）。不是放宽纪律：缓存若省掉这些校验就会掩盖主文件
   // 缺失/外部改写，把密封降级成明文。三处交代（本注释/CHANGELOG/commit）。
-  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1597, 3, 1100),
+  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1625, 3, 1100),
   _LibRatchet('sync_service', 'lib/core/sync/sync_service.dart', 1389, 4, 1000),
   _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1409, 4, 1000),
   _LibRatchet('app_data_root', 'lib/core/storage/app_data_root.dart', 1259, 1, 900),

@@ -1,4 +1,7 @@
 // PBKDF2(600k) 用例在全量高并发下超默认 30s 超时，放宽到 3 分钟。
+// 第四轮审计缺口 2：deriveMasterKey 走生产 Argon2id（KekSessionCache），
+// 归入 kdf 串行分片——判据见 test/architecture/kdf_suite_hygiene_test.dart。
+@Tags(['kdf'])
 @Timeout(Duration(minutes: 3))
 library;
 
