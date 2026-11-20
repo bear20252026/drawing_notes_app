@@ -439,10 +439,10 @@ packages:
     dependency: transitive
     description:
       name: jni
-      sha256: "822c3f004742158b80b558773ebed29891f407058d5798992436a68bdf14ccda"
+      sha256: "19764f78f6b9e0d40f6395b04649d1046eb57f5ccf05afce50cc63e5a82777b0"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "1.2.1"
   jni_flutter:
     dependency: transitive
     description:
@@ -726,18 +726,18 @@ packages:
     dependency: "direct main"
     description:
       name: pdfrx
-      sha256: "1d033d7a98866c942cb8f50e6e56ded97c0c2c3598baed47f88761f1487d4b17"
+      sha256: cd8302e9de65036cb11f9900f20f644ecbeca6564ce40093c0b6eec78e133831
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.3"
+    version: "3.1.0"
   pdfrx_engine:
     dependency: transitive
     description:
       name: pdfrx_engine
-      sha256: c98b259494bd21b3e83f2f6c5a9b1c1064fd56e643c7e030641ab583fb6b1efa
+      sha256: "5ddceeebc1bc77a5c7f4723aae83ba87837b1a4080dfe73f4a684227bb60624c"
       url: "https://pub.dev"
     source: hosted
-    version: "0.9.5"
+    version: "0.9.6"
   perfect_freehand:
     dependency: "direct main"
     description:
