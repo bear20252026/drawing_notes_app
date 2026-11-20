@@ -71,7 +71,7 @@
 
 | 典型 | 为什么不用 Riverpod |
 | --- | --- |
-| `DrawingController`（971 行 + 8 part） | 每帧重绘、指针事件高频；内部 viewScale/viewOffset/_history/_selectionDraft 精细控制 |
+| `DrawingController`（库合计 1409 行：主文件 + 4 part） | 每帧重绘、指针事件高频；内部 viewScale/viewOffset/_history/_selectionDraft 精细控制 |
 | 存储写队列（`StorageWritePipeline`） | per-document 独占队列，事务语义，与 UI 重建无关 |
 | 加密会话（`KekSessionCache` / `MediaCryptoService`） | 需要**精确的清零时机**（安全要求），不能交给框架的 dispose 时序 |
 | 锁守卫（`AppLockGate` 生命周期） | 与 OS 生命周期信号绑定，需豁免窗口等自定义状态机 |

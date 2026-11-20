@@ -12,8 +12,10 @@
 //
 // 背景：单文件行数门禁（500 warn / 1000 error）对 part 拆分后的**库总量**
 // 失明——主文件都不超限，库合计却破千。此前仅 editor_page 有库级棘轮
-// （editor_page_line_ratchet_test.dart），其余 7 个破千库无人守门，继续
-// 膨胀不会有任何门禁报警。本测试把这 7 个库的现状钉成基线：**只许减不许增**。
+// （editor_page_line_ratchet_test.dart），其余破千库无人守门，继续
+// 膨胀不会有任何门禁报警。本测试把这些库的现状钉成基线：**只许减不许增**。
+// H-4（二轮审计）后分母已由 7 扩到 12 库（见下表与末尾库数断言）——
+// 此处不再写死数字，以免再次与表内实际条目脱节。
 //
 // 基线取 2026-11-16 实测（master 590b956f）：
 //   note_block_doc_store 1600（2 parts）/ notebook_storage 1466（3 parts）/
@@ -42,7 +44,11 @@ class _LibRatchet {
 
 const List<_LibRatchet> _kLibRatchets = [
   _LibRatchet('note_block_doc_store', 'lib/core/documents/note_block_doc_store.dart', 1600, 2, 1200),
-  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1543, 3, 1100),
+  // M-6（三轮审计 2026-11-19）：1543 → 1597（+54）。加密判定缓存的安全
+  // 语义成本——只缓存正结论 + 文件指纹校验 + 存在性每次实测 + 四处写出口
+  // 失效钩子（含注释）。不是放宽纪律：缓存若省掉这些校验就会掩盖主文件
+  // 缺失/外部改写，把密封降级成明文。三处交代（本注释/CHANGELOG/commit）。
+  _LibRatchet('notebook_storage', 'lib/features/notes/infrastructure/notebook_storage.dart', 1597, 3, 1100),
   _LibRatchet('sync_service', 'lib/core/sync/sync_service.dart', 1389, 4, 1000),
   _LibRatchet('drawing_controller', 'lib/features/drawing/application/drawing_controller.dart', 1409, 4, 1000),
   _LibRatchet('app_data_root', 'lib/core/storage/app_data_root.dart', 1259, 1, 900),

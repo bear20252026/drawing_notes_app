@@ -77,7 +77,7 @@ flutter build macos --debug
 # 静态检查（提交门禁：必须 No issues found）
 flutter analyze
 
-# 全部单元/组件测试（约 3000 项——覆盖画布/块文档/安全审计回归/
+# 全部单元/组件测试（主套件 3200+ 项——覆盖画布/块文档/安全审计回归/
 # WebDAV 同步/导出链路 + 2026-09 全量审计回归；真 KDF 用例按标签拆分串行）
 flutter test
 

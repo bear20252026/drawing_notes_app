@@ -63,7 +63,7 @@ flutter build macos --debug
 
 ```bash
 flutter analyze   # must report "No issues found" (commit gate)
-flutter test      # ~3000 tests (canvas / block docs / security audit regressions /
+flutter test      # 3200+ tests in the main suite (canvas / block docs / security audit regressions /
                   # WebDAV sync / export pipelines + 2026-09 full audit regressions;
                   # real-KDF cases split into a serial tagged suite)
 flutter test test/architecture_test.dart   # 9 architecture rules (layer direction incl.

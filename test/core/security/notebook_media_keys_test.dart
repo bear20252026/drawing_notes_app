@@ -148,6 +148,51 @@ void main() {
       media.setNotebookKey('nb-h3', unwrapped!);
       expect(await media.readMediaFile('nb-h3', sealed), plainOf('并发媒体'));
     });
+
+    test('H-3 交错补槽：attach 幂等 no-op → 必须以磁盘槽为准，不注入本地新钥',
+        () async {
+      // 场景：回锁清 _inflight 后新起的 ensure 与前一条在途任务交错——
+      // 本任务 unwrap 时无槽 → 生成 keyB；attach 期间另一路已把 keyA 落盘，
+      // attachMediaSlot 对已有槽幂等 no-op（不覆盖也不回传真实钥）。
+      // 修复前会把 keyB 注入服务 → 此后密封的媒体磁盘上永久不可解。
+      final notebook = nb('nb-h3x');
+      final envelope = await enc.encryptWithPasswordV5(
+        notebookId: 'nb-h3x',
+        plaintext: '{"pages":[]}',
+        password: pw,
+      );
+      final map = jsonDecode(envelope) as Map<String, dynamic>;
+      (map['slots'] as Map<String, dynamic>).remove('media');
+      notebook.encryptedPayload = jsonEncode(map);
+      notebook.encrypted = true;
+      await storage.save(notebook);
+      expect(await storage.verifyNotebookPassword('nb-h3x', pw), isTrue);
+
+      final port = _RacingPort(storage);
+      final racing = NotebookMediaKeys(media: media, envelopes: port);
+      await racing.ensure('nb-h3x');
+
+      // 关键观测点：**首次 ensure 注入的那把钥**必须就是磁盘槽里的钥。
+      // 此刻服务里驻留的正是刚注入的钥——用它密封，再拿磁盘槽钥去解。
+      // 修复前注入的是本地新生成的 keyB，而磁盘槽是 rival 的 keyA → 解不开。
+      final sealedByInjected = await media.encryptFile(
+        'nb-h3x',
+        plainOf('交错媒体'),
+      );
+      final reloaded = await storage.load('nb-h3x');
+      final onDiskKey = await enc.unwrapNotebookMediaKey(
+        notebookId: 'nb-h3x',
+        encryptedJson: reloaded!.encryptedPayload!,
+        password: pw,
+      );
+      media.clearNotebookKey('nb-h3x');
+      media.setNotebookKey('nb-h3x', onDiskKey!);
+      expect(
+        await media.readMediaFile('nb-h3x', sealedByInjected),
+        plainOf('交错媒体'),
+        reason: '注入钥必须等于磁盘槽钥，否则此前密封的媒体永久不可解',
+      );
+    });
   });
 
   group('M-2：LRU 逐出后自动重解包', () {
@@ -286,6 +331,38 @@ class _ThrowingAttachPort implements NotebookMediaEnvelopePort {
   ) async {
     capturedKey = mediaKey; // 持引用（fillRange 原地零化可见；复制会看不到）
     if (throwOnAttach) throw const VaultFileLockException();
+    return _inner.attachMediaSlot(notebookId, password, mediaKey);
+  }
+}
+
+/// H-3 交错场景端口：attach 真正落盘**之前**，模拟另一路 ensure 已把
+/// 自己那把钥补进磁盘槽——于是本次 attach 命中「已有槽」幂等 no-op。
+class _RacingPort implements NotebookMediaEnvelopePort {
+  _RacingPort(this._inner);
+  final NotebookStorage _inner;
+
+  @override
+  Future<bool> isEncryptedNotebook(String notebookId) =>
+      _inner.isEncryptedNotebook(notebookId);
+
+  @override
+  Future<String?> sessionPassword(String notebookId) =>
+      _inner.sessionPassword(notebookId);
+
+  @override
+  Future<List<int>?> unwrapMediaKey(String notebookId, String password) =>
+      _inner.unwrapMediaKey(notebookId, password);
+
+  @override
+  Future<void> attachMediaSlot(
+    String notebookId,
+    String password,
+    List<int> mediaKey,
+  ) async {
+    // 抢先把另一把钥落盘（模拟前一条在途任务先完成补槽）。
+    final rival = MediaCryptoService.generateNotebookKey();
+    await _inner.attachMediaSlot(notebookId, password, rival);
+    // 本次 attach 落到已有槽上：幂等 no-op，不覆盖、不回传真实钥。
     return _inner.attachMediaSlot(notebookId, password, mediaKey);
   }
 }

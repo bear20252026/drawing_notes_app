@@ -541,8 +541,24 @@ class NotebookStorage
   /// DNV 外层锁定 → 抛 VaultFileLockException（fail-closed，与 load 同口径）。
   @override
   Future<bool> isEncryptedNotebook(String notebookId) async {
+    // M-6（三轮审计）：判定结果是热路径——PDF 导入每页、每张图渲染/缓存
+    // 逐出都要问一次，此前每次全量读盘+解密+parse 整个信封（MB 级）。
+    // 只缓存**成功判定的布尔值**（绝不缓存异常：损坏/锁定必须每次 fail-closed），
+    // 写出口/删除/回锁三处失效。
     final file = File(await _pathFor(notebookId));
+    // 存在性必须每次实测：主文件瞬时缺失（rename 兜底先 delete）是安全
+    // 信号，缓存不得掩盖它——命中缓存也先过这道 stat。
     if (!file.existsSync()) return false;
+    final cached = _encryptedFlags[notebookId];
+    if (cached != null) {
+      final st = file.statSync();
+      // 指纹（长度+mtime）一致才复用；外部改写/轮转一律重算。
+      if (st.size == cached.size &&
+          st.modified.millisecondsSinceEpoch == cached.mtimeMs) {
+        return true;
+      }
+      _encryptedFlags.remove(notebookId);
+    }
     final onDisk = await file.readAsBytes();
     final key = await _currentKey();
     if (key == null && VaultFileCodec.isEncrypted(onDisk)) {
@@ -559,9 +575,19 @@ class NotebookStorage
       final root = jsonDecode(utf8.decode(clear));
       if (root is! Map<String, dynamic>) return false;
       final payload = root['encryptedPayload'];
-      return root['encrypted'] == true &&
+      final encrypted = root['encrypted'] == true &&
           payload is String &&
           payload.isNotEmpty;
+      // 只缓存「已验证为加密」的正结论：false 可能来自瞬时态，
+      // 缓存它会把后续真实加密声明掩盖成明文（密封降级）。
+      if (encrypted) {
+        final st = file.statSync();
+        _encryptedFlags[notebookId] = _EncryptedFlag(
+          st.size,
+          st.modified.millisecondsSinceEpoch,
+        );
+      }
+      return encrypted;
     } on FormatException {
       // 主文件损坏：不能据此判定「未加密」——fail-closed 抛错，
       // 调用方（密封路径）按损坏处理，不降级到全局钥。
@@ -769,6 +795,21 @@ class NotebookStorage
 
   final Map<String, String> _sessionNotebookPasswords = <String, String>{};
 
+  /// M-6：加密声明判定的会话级缓存——**只存已验证为加密的正结论**，
+  /// 附主文件指纹（长度+mtime）；命中前仍实测存在性。false 与异常一律
+  /// 不入缓存（瞬时缺失/损坏不得被固化成「未加密」而密封降级）。
+  /// 失效点：四处写出口 / 删除 / 回锁 clearAllSessionSecrets。
+  final Map<String, _EncryptedFlag> _encryptedFlags = <String, _EncryptedFlag>{};
+
+  /// 使某笔记本的加密判定缓存失效（null = 全部）。写路径落盘后调用。
+  void invalidateEncryptedFlag([String? id]) {
+    if (id == null) {
+      _encryptedFlags.clear();
+    } else {
+      _encryptedFlags.remove(id);
+    }
+  }
+
   /// 该分页画布本会话内是否已解锁文件密码。
   String? notebookPasswordFor(String id) => _sessionNotebookPasswords[id];
 
@@ -783,6 +824,7 @@ class NotebookStorage
   void clearAllSessionSecrets() {
     try {
       _sessionNotebookPasswords.clear();
+      _encryptedFlags.clear(); // M-6：判定缓存随回锁一并作废。
     } catch (_) {
       /* 幂等清理：会话口令清空尽力而为（切后台回锁热路径），失败不外抛 */
     }
@@ -851,4 +893,12 @@ class _KeyScope {
 
   /// 提交前校验：世代未变才有效（回锁 → SessionEpoch.bump → 作废）。
   bool get isCurrent => epoch == SessionEpoch.current;
+}
+
+/// M-6（三轮审计）：加密判定的缓存条目——正结论 + 主文件指纹。
+/// 指纹不符即重算，外部改写不会被陈旧结论掩盖。
+class _EncryptedFlag {
+  const _EncryptedFlag(this.size, this.mtimeMs);
+  final int size;
+  final int mtimeMs;
 }

@@ -137,6 +137,7 @@ extension _NotebookStoragePassword on NotebookStorage {
               aadContext: 'nb:$id',
             ),
     );
+    invalidateEncryptedFlag(id); // M-6：改密/补槽落盘后判定缓存作废。
     onWrite?.call();
   }
 
@@ -207,6 +208,7 @@ extension _NotebookStoragePassword on NotebookStorage {
               aadContext: 'nb:${notebook.id}',
             ),
     );
+    invalidateEncryptedFlag(notebook.id); // M-6：加密保存后判定缓存作废。
     onWrite?.call();
     return finalPath;
   }

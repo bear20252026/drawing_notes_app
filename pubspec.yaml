@@ -62,10 +62,12 @@ dependencies:
   # 上游已自带 pdfrx_engine 0.6.x，移除 dependency_overrides；2.4.7 时代的
   # PdfFileCache 可空性 override（0.4.6）不再需要。低层 API（openFile/
   # ensureLoaded/page.render）未破坏。
-  # 2026-11-14 全面升级（业主批准）：2.6.5 → 2.12.1，PDFium 引擎
-  # pdfium_dart/pdfium_flutter 0.4.2、pdfrx_engine 0.9.2 联动；
-  # PDF 导入为不受信输入面，跟进上游安全修复。低层 API 兼容性经
-  # analyze + 全量测试复验。
+  # 2026-11-14 全面升级（业主批准）：2.6.5 → 2.12.1，PDFium 引擎联动。
+  # 2026-11-18 批 D：2.13.0 → 3.0.1（主版本）。本仓只用
+  # pdfrxFlutterInitialize() + PdfDocument.openFile()，零 viewer 参数使用——
+  # 3.0 破坏面（layoutStrategy 取代 layoutPages/margin、移除 maxScale/
+  # minScale/calculateInitialZoom、PdfPageLayout 接口扩展）全部不触及。
+  # PDF 导入为不受信输入面，跟进上游安全修复；兼容性经 analyze + 全量测试复验。
   pdfrx: ^3.0.1
   # 0.4.0 需 Dart ^3.14——2026-11-14 随 Flutter 3.50.0 升级解锁（业主批准）。
   hotkey_manager: ^0.4.0
@@ -166,4 +168,5 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-# E-05：pdfrx 2.6.5 已自带 pdfrx_engine 0.6.x，无需 override。
+# E-05：pdfrx 自带匹配版本的 pdfrx_engine，无需 dependency_overrides
+# （当前 pdfrx 3.0.x → pdfrx_engine 0.9.x；旧文写的 2.6.5/0.6.x 已过时）。

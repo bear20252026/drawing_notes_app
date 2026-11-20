@@ -8,7 +8,7 @@
 
 - Flutter（Dart），单仓库单应用：`drawing_notes_app`
 - 目录：`lib/core`（跨模块基础设施）+ `lib/features/*`（业务模块）+ `lib/l10n` + `lib/app`（组合根）
-- 测试：`test/`，与 lib 结构镜像（约 2750 项，全绿基线）
+- 测试：`test/`，与 lib 结构镜像（主套件 3200+ 项，另有 kdf 标签串行套件；全绿基线）
 
 ## 2. 功能模块地图
 
@@ -50,8 +50,9 @@ app（组合根，唯一知道所有实现的地方）
    页面不得自行 import 其它 feature 的 infrastructure。
 2. **页面级跳转允许 notes → doc**（如画板帧文字跳转笔记页）；**禁止 doc → notes/presentation**
    （块编辑 UI 全部位于 `features/doc/presentation/`）。
-3. **共享域**：`notes/domain` 与 `drawing/domain` 目前共享 page_* 模型
-   （历史设计：笔记本页=画布文档）。收敛工作见下方"已知债务"。
+3. **共享域**：page_* 混排模型现统一位于 `lib/core/canvas_model/`
+   （L-3 三轮审计更正：旧文写的 `drawing/domain` 共享目录已不存在），
+   notes 与 drawing 共用同一套模型（笔记本页=画布文档）。
 4. **core**：只放真正跨模块的基础设施（存储、安全、主题、l10n 渡口）。
 
 ## 4. 已整改（2026-08-30 第一批）

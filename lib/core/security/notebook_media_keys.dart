@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:drawing_notes_app/core/security/media_crypto_service.dart';
 import 'package:drawing_notes_app/core/security/session_secrets.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
+import 'package:drawing_notes_app/core/utils/constant_time.dart';
 
 /// 笔记本媒体密钥（K_note）的**唯一取钥权威**（会话密钥生命周期收口，
 /// 2026-11-15 框架级修复）。
@@ -114,6 +115,21 @@ class NotebookMediaKeys implements SessionSecretsHolder {
         // 世代校验只覆盖成功路，抛错路径密钥堆驻留。
         key.fillRange(0, key.length, 0);
         rethrow;
+      }
+      // H-3（三轮审计）：attachMediaSlot 对已有槽幂等 no-op——既不覆盖、
+      // 也不回传磁盘上的真实钥。回锁清 _inflight 后新起的 ensure 可能与
+      // 前一条在途任务交错：后者已把 keyA 落盘，本任务却把自己生成的
+      // keyB 注入服务 → 此后密封的媒体用 keyB、磁盘槽是 keyA，永久不可解。
+      // 补槽后必须复读一次，以**磁盘槽**为唯一权威。
+      final onDisk = await envelopes.unwrapMediaKey(notebookId, password);
+      if (onDisk == null) {
+        // 声明有槽却解不出：状态不一致，fail-closed（绝不注入临时钥）。
+        key.fillRange(0, key.length, 0);
+        throw const FormatException('媒体密钥槽补装后仍不可解包');
+      }
+      if (!constantTimeBytesEqual(onDisk, key)) {
+        key.fillRange(0, key.length, 0); // 丢弃本地副本，改用磁盘真实钥。
+        key = onDisk;
       }
     }
     // 慢操作（Argon2id ×2 + 落盘）期间可能回锁/页面退出——世代校验，

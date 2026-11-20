@@ -102,6 +102,7 @@ extension _NotebookStorageIo on NotebookStorage {
       }
     }
     forgetNotebookPassword(id); // 会话密码随文档删除一并清理
+    invalidateEncryptedFlag(id); // M-6：判定缓存随文档删除一并作废
     // 框架级收口（2026-11-15，审计 M-5）：K_note 随文档删除一并遗忘
     // （清驻留密钥 + 递增遗忘世代作废在途 ensure）——已删笔记的密钥
     // 不再驻留内存。

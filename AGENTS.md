@@ -162,7 +162,10 @@ flutter test             # 必须全绿
 - 引用第三方代码（AFFiNE/BlockSuite 等）须保留版权声明，见 `THIRD_PARTY_NOTICES.md`。
 - 改 UI 后若涉及改密/加密路径，注意 `test/` 里真 KDF 用例需 `@Timeout(Duration(minutes: 3))`。
 - 发版 bump 三处同步：`pubspec.yaml` + `tools/drawing_notes_setup.iss`（`MyAppVersion`）+ `CHANGELOG.md`。
-- `docs/audit_*.html` 审计报告按约定保持 **untracked**，不入库。
+- `docs/audit_*.html` / `docs/audit_*.md`（含大写 `AUDIT_*`）审计报告按约定保持
+  **untracked**，不入库。.gitignore 两种大小写均已登记（Linux checkout 上
+  `core.ignorecase` 不生效，只写小写会漏）。历史已跟踪的审计报告需另行
+  `git rm --cached` 才会真正脱离版本控制——该动作待业主确认。
 
 ## 8. 状态管理划界（2026-11-15 定案，强制）
 
