@@ -50,9 +50,8 @@ extension _EditorPageDragOps on _EditorPageState {
   // 事务不经这里（防双记）。会话在 begin 时捕获列表引用——commit/cancel
   // **不再依赖 widget.session 存活**（H-1：切页/dispose 照样关组还原）。
 
-  /// 当前进行中的拖拽会话（null = 无手势）。
-  MixedDragSession? get _mixedDrag =>
-      _canvasInteraction.mixedDragSession as MixedDragSession?;
+  /// 当前进行中的拖拽会话（null = 无手势；会话类已下沉 application 层）。
+  MixedDragSession? get _mixedDrag => _canvasInteraction.mixedDragSession;
 
   /// 手势起点：无会话则创建（捕获四列表+host），嵌套 begin 复用会话。
   void _beginMixedDrag() {

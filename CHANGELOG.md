@@ -2,6 +2,31 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+### 第四轮审计架构修复：存储唯一收口 / kdf 门禁机制化 / 事务会话下沉（2026-11-20，同版本增量，未 bump）
+
+三个结构性缺口全部架构级修复（非打补丁），均含回归钉：
+
+- **缺口 1（H-1 存储写腿明文回退）**：笔记本/媒体字节落盘收口为唯一出口
+  `NotebookStorage._writeSealedBytes`（明文守卫 + 世代闸 + 加密 + 原子写
+  + 判定缓存失效全部内置）；codec save、storeImage DAN、改密续写三条写腿
+  收编。世代闸前移到慢操作（Argon2id 重绕）之前——编码期回锁的在途写腿
+  作废并抛锁异常，不再静默假成功。补 2 条回归钉（encryptAndSave / 改密
+  读改写期间回锁 → 抛锁异常且不留盘）。
+- **缺口 2（H-2 kdf 门禁非全集）**：触发词扩到 17 条真 KDF 入口 + 剔注释
+  匹配 + `bypassIsolateForTests` 豁免；修复 2 个逃逸文件
+  （`sync_cipher_test` 归 kdf 串行分片、epoch_gate 注入 testLight）。
+- **缺口 3（事务会话划界）**：`MixedDragSession` 从 presentation 下沉
+  application（`editor_interaction_controllers.dart`），交互态槽位改强类型，
+  消除 application→presentation 反向依赖（`Object?` + 页面侧 cast）；
+  `CanvasDragHandle` 事务边界改由操作语义决定（指针按下/抬起、键盘逐键
+  自起自结），聚焦只驱动焦点环。
+- **M-6 收口**：字段集门禁的模型清单手抄改为扫 `lib/core/canvas_model/`
+  自动发现 `class Page*Item`（字段级判据本身已是 analyzer AST，报告早前
+  表述已更正）；新增混排模型自动纳入。
+- **棘轮交代**：notebook_storage 1597 → 1625（+28，含注释，收口成本；
+  `part_library_ratchet_test` 三处交代之一）；editor_page 库 7294 不变
+  （注释压缩保持行数中性）。
+
 ## [1.17.68] - 2026-11-05
 
 ### 批 F+G 收尾：媒体密钥幂等 / 锚退避 / 判定缓存 + 文档口径（2026-11-19，同版本增量，未 bump）

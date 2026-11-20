@@ -20,9 +20,10 @@ import 'package:drawing_notes_app/core/theme/apple_focus.dart';
 ///
 /// ## 会话边界
 ///
-/// 获得焦点 → [onPanStart]（宿主取拖拽基准），失去焦点 → [onPanEnd]（结算）。
-/// 只聚焦不按键的手柄因此不产生任何增量，也不污染历史。指针路径复用同一对
-/// 回调——「键盘一次离散拖拽」与「鼠标一像素拖拽」在宿主看来是同一件事。
+/// 事务边界由**操作语义**决定，不由焦点决定（第四轮审计缺口 3）：指针拖拽的
+/// 按下/抬起、键盘的每次按键各自成对 begin/结算（键盘逐键自起自结）。
+/// 聚焦只驱动焦点环，不开启事务——只 Tab 到手柄上不会建快照，拖拽中
+/// Delete 也不再被并进拖拽事务。
 ///
 /// ## 焦点
 ///
@@ -88,13 +89,6 @@ class CanvasDragHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      onFocusChange: (has) {
-        if (has) {
-          onPanStart?.call();
-        } else {
-          onPanEnd?.call();
-        }
-      },
       onKeyEvent: _handleKey,
       child: AppleFocusRing(
         borderRadius: circular ? AppleRadius.full : AppleRadius.xs,
@@ -162,10 +156,9 @@ class CanvasDragHandle extends StatelessWidget {
       _ => Offset.zero,
     };
     if (delta == Offset.zero) return KeyEventResult.ignored;
-    // M-7（第二轮审计 2026-11-18）：键盘微调独立会话——此前聚焦即 begin、
-    // 失焦即 commit，指针拖完（焦点仍持有）commit 已清槽，随后方向键无
-    // begin：宽度柄 anchor=null 键盘死、形状柄改动不入撤销。现每次按键
-    // 自起自结（begin→update→end），嵌套 depth 保证与指针会话不冲突。
+    // M-7（第二轮审计 2026-11-18）：键盘微调独立会话——每次按键自起自结
+    // （begin→update→end），与指针会话互不干扰。焦点不再触发事务边界
+    // （第四轮审计缺口 3），按键是唯一的键盘会话起点。
     onPanStart?.call();
     onPanUpdate(delta);
     onPanEnd?.call();

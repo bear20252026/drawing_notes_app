@@ -427,7 +427,7 @@ extension _EditorPageTextOverlays on _EditorPageState {
                 right: -21,
                 bottom: -21,
                 child: CanvasDragHandle(
-                  // 会话边界与指针拖拽同形：聚焦时取锚点，失焦时清空。
+                  // 会话边界由操作语义决定（指针成对、键盘逐键自起自结，缺口 3）。
                   // 键盘的离散步进与鼠标的一像素拖拽在宿主看来是同一件事
                   // ——CanvasDragHandle 把两条路径都归到 onPanUpdate，因此
                   // 宽度算法全库只有一份，不会分叉。

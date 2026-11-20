@@ -450,28 +450,27 @@ class NotebookStorage
       // （缺钥/锁定 fail-closed，**不存在明文回退**）；明文笔记本才走
       // 既有 DNV/明文兼容分支。不再用 hasKeyFor 内存嗅探当加密判据。
       // P3：世代在操作发起时捕获（覆盖密封全程，含 _sealIfEncrypted）。
-      final scope = await _currentKeyScope();
-      final Uint8List stored;
+      // 世代在**读源文件前**捕获（覆盖密封全程）。
+      final epoch = SessionEpoch.current;
       final sealed = await _sealIfEncrypted(notebookId, bytes);
       if (sealed != null) {
-        stored = sealed;
-      } else {
-        final key = scope.key;
-        stored = key == null
-            ? await _plainMediaOrLock(bytes)
-            : await VaultFileCodec.encrypt(
-                bytes,
-                key,
-                aadContext: VaultFileCodec.contextForPath(target.path),
-              );
+        // K_note 已密封：只需世代校验 + 原子写（缺口 1 收口的例外分支）。
+        if (SessionEpoch.current != epoch) throw const VaultFileLockException();
+        // E-19 修复（审计 2026-09-07）：`target.writeAsBytes` 直写非原子——
+        // 写入中断留下半张图片（下一次读取按损坏处理但文件占位）。改走
+        // _writeNotebookBytes 的 tmp + rename + 失败清理（同 _writeNotebook
+        // 单一出口纪律；目标文件名含微秒时间戳，唯一无覆盖场景）。
+        await _writeNotebookBytes(target, sealed);
+        return target.path;
       }
-      // E-19 修复（审计 2026-09-07）：`target.writeAsBytes` 直写非原子——
-      // 写入中断留下半张图片（下一次读取按损坏处理但文件占位）。改走
-      // _writeNotebookBytes 的 tmp + rename + 失败清理（同 _writeNotebook
-      // 单一出口纪律；目标文件名含微秒时间戳，唯一无覆盖场景）。
-      // P3 世代闸：密封期间回锁翻篇 → 放弃提交（fail-closed）。
-      if (!scope.isCurrent) throw const VaultFileLockException();
-      await _writeNotebookBytes(target, stored);
+      // 明文/会话密钥分支统一收口（缺口 1）：守卫 + 加密 + 原子写内置。
+      await _writeSealedBytes(
+        target,
+        bytes,
+        notebookId: notebookId,
+        aadContext: VaultFileCodec.contextForPath(target.path),
+        epoch: epoch,
+      );
       return target.path;
     } catch (_) {
       // 不让加密或写入异常留下可被清理器误认为有效媒体的半成品。
@@ -650,6 +649,34 @@ class NotebookStorage
     final configured = await (vaultConfigured?.call() ?? Future.value(true));
     if (!configured) return bytes;
     throw const VaultFileLockException();
+  }
+
+  /// 笔记本/媒体字节落盘**唯一收口**（第四轮审计缺口 1 架构修复）。
+  ///
+  /// 此前守卫与世代闸散在三条写腿、各写各的（codec 有守卫而 password 腿
+  /// 没有；世代闸在编码**之后**才取，回锁翻篇会取到新世纪而误判有效）。
+  /// 现在不变量内置：① `key == null` 走 [_plainMediaOrLock]（已建库未解锁
+  /// 即拒，绝不回退明文），仅 `plainOuterAllowed` 的加密本外层写放行；
+  /// ② 世代闸前移——调用方在慢操作前捕获 epoch 传入，取钥前后各校一次。
+  /// 懒迁移写已密封字节且失败可重试，保留独立原子写（唯一例外）。
+  Future<void> _writeSealedBytes(
+    File destination,
+    Uint8List plaintext, {
+    required String notebookId,
+    required String aadContext,
+    required int epoch,
+    bool plainOuterAllowed = false,
+  }) async {
+    if (SessionEpoch.current != epoch) throw const VaultFileLockException();
+    final key = await _currentKey();
+    if (SessionEpoch.current != epoch) throw const VaultFileLockException();
+    final payload = key == null
+        ? (plainOuterAllowed
+            ? plaintext
+            : await _plainMediaOrLock(plaintext))
+        : await VaultFileCodec.encrypt(plaintext, key, aadContext: aadContext);
+    await _writeNotebookBytes(destination, payload);
+    invalidateEncryptedFlag(notebookId);
   }
 
   /// SVG 是否需要在落盘前预检（导入隔离——README 宣称项落地，P3 修复本次）。

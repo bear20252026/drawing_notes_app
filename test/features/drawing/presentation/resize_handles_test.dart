@@ -197,7 +197,7 @@ void _keyboardEquivalenceGroup() {
     );
   });
 
-  testWidgets('端点手柄：聚焦起会话、方向键走增量、失焦结算', (tester) async {
+  testWidgets('端点手柄：聚焦不起事务、方向键走增量、失焦不结算', (tester) async {
     var starts = 0;
     var ends = 0;
     final updates = <Offset>[];
@@ -220,7 +220,8 @@ void _keyboardEquivalenceGroup() {
 
     _focusNodeAt(tester, 0).requestFocus();
     await tester.pump();
-    expect(starts, 1, reason: '聚焦即起会话（宿主取拖拽基准）');
+    // 第四轮审计缺口 3：事务边界由操作语义决定，聚焦只驱动焦点环。
+    expect(starts, 0, reason: '聚焦不开事务（只驱动焦点环）');
     expect(updates, isEmpty, reason: '只聚焦不按键不产生增量');
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
@@ -228,12 +229,50 @@ void _keyboardEquivalenceGroup() {
     expect(updates, hasLength(1));
     expect(updates.single, const Offset(-8, 0), reason: '屏幕口径，不经 viewScale');
     // M-7（第二轮审计 2026-11-18）：键盘微调独立会话——按键自起自结。
-    expect(starts, 2, reason: '聚焦 1 次 + 按键自起 1 次');
-    expect(ends, 1, reason: '按键自结 1 次（失焦前）');
+    expect(starts, 1, reason: '按键自起 1 次');
+    expect(ends, 1, reason: '按键自结 1 次');
 
     _focusNodeAt(tester, 0).unfocus();
     await tester.pump();
-    expect(ends, 2, reason: '失焦再结 1 次（嵌套 depth 保证不重复还原）');
+    expect(starts, 1, reason: '失焦不开/不结事务');
+    expect(ends, 1, reason: '失焦不结算');
+  });
+
+  testWidgets('端点手柄：指针拖拽的按下/抬起成对起结会话', (tester) async {
+    var starts = 0;
+    var ends = 0;
+    final updates = <Offset>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              EndpointHandle(
+                position: const Offset(50, 50),
+                onPanStart: () => starts++,
+                onPanUpdate: updates.add,
+                onPanEnd: () => ends++,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final handle = _focusNodeAt(tester, 0);
+    handle.requestFocus();
+    await tester.pump();
+    expect(starts, 0, reason: '只聚焦不拖拽不开事务');
+
+    final gesture = await tester.startGesture(tester.getCenter(find.byType(CanvasDragHandle)));
+    await tester.pump();
+    expect(starts, 1, reason: '指针按下起会话');
+    await gesture.moveBy(const Offset(6, 0));
+    await tester.pump();
+    expect(updates, isNotEmpty, reason: '拖拽产生增量');
+    await gesture.up();
+    await tester.pump();
+    expect(ends, 1, reason: '指针抬起结算');
   });
 
   testWidgets('每个手柄都挂了键盘入口与可见焦点环', (tester) async {

@@ -97,8 +97,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// 非功能增长。逐文件：editor_page.dart +4（dispose 接 _abortMixedDrag 兜底
 /// 含注释）；drag_ops +8（三入口改会话路由 + _abortMixedDrag + _mixedDrag
 /// getter，净增含注释）；overlays +1（ResizeHandles 接 onDragCancel）。
-/// 会话本体 MixedDragSession 落 editor_page_object_mutation.dart（独立库
-/// 不计）；commitGroup/rollbackGroup 公开入口落 controller（不计）；
+/// 会话本体 MixedDragSession 当时落 editor_page_object_mutation.dart（独立库
+/// 不计；第四轮审计缺口 3 已下沉 application/editor_interaction_controllers.dart，
+/// 行数中性）；commitGroup/rollbackGroup 公开入口落 controller（不计）；
 /// 交互态三裸字段收为单槽（application 层不计）。零新 UI、零新 part。
 /// 结构收口成本，不构成放宽先例——下一次增长仍须先拆或再点名。
 /// 2026-11-18（P2 架构收口：笔画平移专属路由）：7281 → 7294（+13）。
