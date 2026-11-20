@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:drawing_notes_app/core/security/kdf_params.dart';
 import 'package:drawing_notes_app/core/security/vault_key_service.dart';
 import 'package:drawing_notes_app/core/storage/vault_file_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +9,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// M-06 收口（2026-11-14，删除旧版加密支持）：v2 独立密码信封（PBKDF2
 /// 现场派生 + 内嵌盐）的加解密方法已移除。本套件验证 v2 旧信封不再可解——
 /// 主密钥解密路径抛明确指引（fail-closed），存量旧数据须先升级 v3。
+///
+/// 真 KDF 口径（2026-11-20）：v3 用例注入 [KdfParams.testLight]（Argon2id
+/// 8MiB/t1/p1，仍是 Argon2id，仅换工作因子）——本套件验的是信封格式、往返
+/// 与 fail-closed 语义，与密钥成本无关，故走 testLight 腿（全仓同口径，见
+/// test/architecture/kdf_suite_hygiene_test.dart）。
+/// 起因：master CI（2d11e06c）本文件 v3 用例在满并发 Windows runner 上撞 30s
+/// 默认超时（无 @Timeout 注解），本地秒过 ⇒ 环境敏感假红。
 void main() {
   const aad = 'doc:test-file';
   final masterKey = VaultKeyService.randomBytes(32);
@@ -52,6 +60,7 @@ void main() {
       final blob = await VaultFileCodec.encryptWithPasswordV3(
         plain,
         '654321',
+        kdf: KdfParams.testLight,
         aadContext: aad,
       );
       expect(VaultFileCodec.isV3Envelope(blob), isTrue);
@@ -68,6 +77,7 @@ void main() {
       final blob = await VaultFileCodec.encryptWithPasswordV3(
         plainOf('secret'),
         '654321',
+        kdf: KdfParams.testLight,
         aadContext: aad,
       );
       await expectLater(
@@ -80,6 +90,7 @@ void main() {
       final blob = await VaultFileCodec.encryptWithPasswordV3(
         plainOf('body'),
         '654321',
+        kdf: KdfParams.testLight,
         aadContext: 'doc:one',
       );
       await expectLater(
