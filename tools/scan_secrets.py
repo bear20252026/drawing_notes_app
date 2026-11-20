@@ -115,7 +115,15 @@ CREDENTIAL_FILENAME_PATTERNS = [
 # 是生成的标识符命名空间（如 lockVerifyCurrentPassword，熵 4.08）——
 # 键名与密钥无关。仅豁免熵启发式：凭据 regex 规则仍照常扫描 ARB
 # （翻译文案里若真出现 api_key=xxx 依旧拦截）。
-ENTROPY_EXCLUDED_PATHS = {"lib/l10n/app_zh.arb", "lib/l10n/app_en.arb"}
+# 第四轮审计缺口 2（2026-11-20）：kdf_suite_hygiene_test 的触发词是
+# **标识符名**（encryptBlockDocPasswordV5 / changeNotebookPasswordV5 等，
+# 含 Password 字样 + 高熵），是门禁自身的匹配清单、非密钥材料——仅豁免熵
+# 启发式；凭据 regex 规则仍照常扫该文件。
+ENTROPY_EXCLUDED_PATHS = {
+    "lib/l10n/app_zh.arb",
+    "lib/l10n/app_en.arb",
+    "test/architecture/kdf_suite_hygiene_test.dart",
+}
 # 已知安全前缀（2026-09-02）：iVBORw0KGgo = PNG 文件头（\x89PNG\r\n\x1a\n）的
 # base64 固定魔数——测试夹具的最小 1×1 PNG，内容人人皆知、非密钥，
 # 高熵检测误报（熵 4.01，阈值 4.0 擦边）。
