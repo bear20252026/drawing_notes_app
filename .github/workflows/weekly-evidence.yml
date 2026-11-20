@@ -46,6 +46,20 @@ jobs:
         with:
           python-version: "3.12"
 
+      # CI 缺陷修复（2026-11-19，issue #61）：check_deps.sh 需要 `dart pub outdated`，
+      # 而本 job 此前只装 Python——dart 不在 PATH 时脚本 fail-closed exit 2
+      # （「查不了」不判通过），周证据恒红（2026-11-15 首次暴露）。根因与修法
+      # 照抄 pr-security.yml:40-51（同一 bug 在 PR 侧 2026-11-14 已修，周证据侧漏同步）：
+      # 补装同版本同 SHA 的 Flutter，并补 `flutter pub get` 前置。
+      - name: 安装 Flutter（依赖过期检查需要 dart）
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: 3.50.0
+          channel: 'stable'
+          cache: true
+      - name: 依赖解析（pub outdated 前置）
+        run: flutter pub get
+
       # 步骤名照抄 pr-security.yml 的口径：check_deps.sh 只输出依赖概览 +
       # `dart pub outdated`，**没有真实 CVE 数据源**，所以这里不得称 CVE 扫描
       # （pr-security.yml:30-33 的 C-004/C-005 更正就是为了让这句话可被背书）。
