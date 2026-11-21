@@ -15,6 +15,7 @@ GCP service account / Azure 连接串 / NPM token / PyPI token），并新增
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import math
 import os
 import re
@@ -115,14 +116,16 @@ CREDENTIAL_FILENAME_PATTERNS = [
 # 是生成的标识符命名空间（如 lockVerifyCurrentPassword，熵 4.08）——
 # 键名与密钥无关。仅豁免熵启发式：凭据 regex 规则仍照常扫描 ARB
 # （翻译文案里若真出现 api_key=xxx 依旧拦截）。
-# 第四轮审计缺口 2（2026-11-20）：kdf_suite_hygiene_test 的触发词是
-# **标识符名**（encryptBlockDocPasswordV5 / changeNotebookPasswordV5 等，
-# 含 Password 字样 + 高熵），是门禁自身的匹配清单、非密钥材料——仅豁免熵
-# 启发式；凭据 regex 规则仍照常扫该文件。
+# 第四轮审计缺口 2（2026-11-20）：架构门禁测试里作为**字符串字面量**
+# 出现的标识符名（kdf 触发词 encryptBlockDocPasswordV5 / 类名
+# MixedObjectsSnapshotCommand 等，含 Password 字样或类名高熵）是门禁自身的
+# 匹配清单、非密钥材料——仅豁免熵启发式；凭据 regex 规则仍照常扫这些文件。
+# 匹配支持 glob（*），新增同类门禁文件无需改逻辑。
 ENTROPY_EXCLUDED_PATHS = {
     "lib/l10n/app_zh.arb",
     "lib/l10n/app_en.arb",
     "test/architecture/kdf_suite_hygiene_test.dart",
+    "test/architecture/mixed_model_field_set_ast_gate_test.dart",
 }
 # 已知安全前缀（2026-09-02）：iVBORw0KGgo = PNG 文件头（\x89PNG\r\n\x1a\n）的
 # base64 固定魔数——测试夹具的最小 1×1 PNG，内容人人皆知、非密钥，
@@ -207,7 +210,12 @@ def main() -> int:
             findings.append((str(path), 0, "凭据类文件名（.env*/credential*/secret*/密钥文件）", "<文件名命中>"))
         scanned += 1
         if not scan_file(
-            path, findings, skip_entropy=rel.as_posix() in ENTROPY_EXCLUDED_PATHS
+            path,
+            findings,
+            skip_entropy=any(
+                fnmatch.fnmatch(rel.as_posix(), p)
+                for p in ENTROPY_EXCLUDED_PATHS
+            ),
         ):
             unreadable += 1
 
