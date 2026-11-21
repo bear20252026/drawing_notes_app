@@ -22,7 +22,9 @@
   自起自结），聚焦只驱动焦点环。
 - **M-6 收口**：字段集门禁的模型清单手抄改为扫 `lib/core/canvas_model/`
   自动发现 `class Page*Item`（字段级判据本身已是 analyzer AST，报告早前
-  表述已更正）；新增混排模型自动纳入。
+  表述已更正）；新增混排模型自动纳入。`_restoreFields` 补 fail-closed
+  else（未知类型抛 `ArgumentError`，不再静默 no-op）+ AST 闭集门禁
+  （与 `_idOf` 类型集相等、末语句 throw、两条突变自证）。
 - **棘轮交代**：notebook_storage 1597 → 1625（+28，含注释，收口成本；
   `part_library_ratchet_test` 三处交代之一）；editor_page 库 7294 不变
   （注释压缩保持行数中性）。

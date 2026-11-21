@@ -679,6 +679,9 @@ class MixedObjectsSnapshotCommand extends DocCommand {
   /// （H-2 第二轮审计 2026-11-18：此前手抄清单漏 seed/_dashLegacy，且注释
   /// 谎称「toJson 往返自动跟随」。现收敛到模型单点：copy/restoreFrom 成对
   /// 维护，字段集一致性由 mixed_model_copy_restore_test 门禁钉死）。
+  ///
+  /// 第四轮审计 M-6 第二条：类型闭集与 [_idOf] 同构——未知类型**抛错**
+  /// （fail-closed），不再静默 no-op（漏恢复不报错 = 撤销静默失效）。
   static void _restoreFields<T>(T live, T snap) {
     if (live is PageTextItem && snap is PageTextItem) {
       live.restoreFrom(snap);
@@ -696,6 +699,10 @@ class MixedObjectsSnapshotCommand extends DocCommand {
       live.restoreFrom(snap);
       return;
     }
+    throw ArgumentError(
+      '未知混排对象类型（_restoreFields 与 _idOf 同一类型闭集；'
+      '漏恢复必须报错而非静默 no-op）',
+    );
   }
 
 }

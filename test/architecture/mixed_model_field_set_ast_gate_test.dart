@@ -144,7 +144,114 @@ List<String> fieldSetViolations(String source, String className) {
   return problems;
 }
 
+/// 类内方法（按名）。
+MethodDeclaration _methodOf(CompilationUnit unit, String className, String name) {
+  final cls = _classOf(unit, className);
+  return _membersOf(cls).whereType<MethodDeclaration>().firstWhere(
+    (m) => m.name.lexeme == name,
+  );
+}
+
+/// `is Xxx` 分支覆盖的类型名集（递归遍历，含嵌套 if）。
+/// analyzer 11 起 `is` 是独立的 IsExpression（不再经 BinaryExpression）。
+Set<String> _isBranchTypes(FunctionBody body) {
+  final out = <String>{};
+  void walk(AstNode node) {
+    if (node is IsExpression) out.add(node.type.toSource());
+    for (final c in node.childEntities) {
+      if (c is AstNode) walk(c);
+    }
+  }
+  walk(body);
+  return out;
+}
+
+/// 方法体最后一条语句是否为 throw（fail-closed 信号；analyzer 里 throw 是
+/// ExpressionStatement 包 ThrowExpression）。
+bool _hasTrailingThrow(FunctionBody body) {
+  if (body is! BlockFunctionBody) return false;
+  final stmts = body.block.statements;
+  if (stmts.isEmpty) return false;
+  final last = stmts.last;
+  return last is ExpressionStatement && last.expression is ThrowExpression;
+}
+
 void main() {
+  test('类型闭集：_restoreFields 与 _idOf 同集且 fail-closed（M-6 第二条）', () {
+    final source = File(
+      'lib/features/drawing/application/document_commands.dart',
+    ).readAsStringSync();
+    final unit = parseString(content: source).unit;
+    final restore = _methodOf(unit, 'MixedObjectsSnapshotCommand', '_restoreFields');
+    final idOf = _methodOf(unit, 'MixedObjectsSnapshotCommand', '_idOf');
+    final restoreTypes = _isBranchTypes(restore.body);
+    final idOfTypes = _isBranchTypes(idOf.body);
+    expect(
+      restoreTypes,
+      idOfTypes,
+      reason: '两方法类型闭集必须一致（闭集漂移 = 漏恢复/漏识别）',
+    );
+    expect(
+      restoreTypes,
+      containsAll(const [
+        'PageTextItem',
+        'PageImageItem',
+        'PageShapeItem',
+        'PageChartItem',
+      ]),
+      reason: '四模型缺一即闭集收缩',
+    );
+    expect(
+      _hasTrailingThrow(restore.body),
+      isTrue,
+      reason: '未知类型必须抛错而非静默 no-op（漏恢复 = 撤销静默失效）',
+    );
+  });
+
+  test('突变自证：_restoreFields 漏一个类型分支 → 闭集判据红', () {
+    final source = File(
+      'lib/features/drawing/application/document_commands.dart',
+    ).readAsStringSync();
+    final mutated = source.replaceFirst(
+      '    if (live is PageChartItem && snap is PageChartItem) {\n'
+      '      live.restoreFrom(snap);\n'
+      '      return;\n'
+      '    }\n',
+      '',
+    );
+    expect(mutated, isNot(source), reason: '突变须真实删除分支');
+    final unit = parseString(content: mutated).unit;
+    final restoreTypes = _isBranchTypes(
+      _methodOf(unit, 'MixedObjectsSnapshotCommand', '_restoreFields').body,
+    );
+    final idOfTypes = _isBranchTypes(
+      _methodOf(unit, 'MixedObjectsSnapshotCommand', '_idOf').body,
+    );
+    expect(restoreTypes, isNot(idOfTypes), reason: '闭集漂移必须被机器判据捕获');
+  });
+
+  test('突变自证：删掉 fail-closed throw → 判据红', () {
+    final source = File(
+      'lib/features/drawing/application/document_commands.dart',
+    ).readAsStringSync();
+    final mutated = source.replaceFirst(
+      '    throw ArgumentError(\n'
+      '      \'未知混排对象类型（_restoreFields 与 _idOf 同一类型闭集；\'\n'
+      '      \'漏恢复必须报错而非静默 no-op）\',\n'
+      '    );\n',
+      '',
+    );
+    expect(mutated, isNot(source), reason: '突变须真实删除 throw');
+    final unit = parseString(content: mutated).unit;
+    expect(
+      _hasTrailingThrow(
+        _methodOf(unit, 'MixedObjectsSnapshotCommand', '_restoreFields').body,
+      ),
+      isFalse,
+      reason: '删掉 fail-closed 必须被判据捕获',
+    );
+  });
+
   test('模型清单自动发现：覆盖已知四模型（扫描失效即红）', () {
     for (final n in const [
       'PageTextItem',
